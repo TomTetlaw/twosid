@@ -40,17 +40,18 @@ main :: () {
     print("SDL_GPU Driver: %\n", sdl_get_gpu_device_driver(gpu_device));
     
     init_memory_system();
-    init_shader_system(gpu_device, SDL_GetGPUShaderFormats(gpu_device));
+    init_shader_system(gpu_device);
     init_renderer(gpu_device, window);
     init_texture_system(gpu_device);
+    init_mesh_system(gpu_device);
     
     key_states = SDL_GetKeyboardState(null);
     SDL_SetWindowRelativeMouseMode(window, true);
     
+    camera: Camera;
+    
     old_time = current_time_monotonic();
-    
     quit := false;
-    
     while !quit {
         // reset to zero so the event can fill these for just one frame
         mouse.delta.x = 0;
@@ -93,7 +94,9 @@ main :: () {
             mouse.position.y = pos.y;
         }
         
-        draw_frame();
+        update_camera(*camera);
+        
+        draw_frame(*camera);
         
         frame_keys.count = 0;
         arena_reset(*frame_arena);

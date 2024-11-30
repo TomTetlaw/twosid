@@ -53,7 +53,7 @@ build_windows :: () {
 compile_shaders_for_format :: (output_format: string) {
     print("Compiling all shaders for format: %\n", output_format);
     
-    files := file_list("./");
+    files := file_list("./shaders");
     shader_files: [..] string;
     for files {
         if !contains(it, ".shader") continue;
@@ -65,7 +65,7 @@ compile_shaders_for_format :: (output_format: string) {
     for shader_files {
         path, base_name, ext := path_decomp(it);
         
-        file_name := tprint("%.%", base_name, ext);
+        file_name := tprint("shaders/%.%", base_name, ext);
         
         working_dir := get_working_directory();
         
@@ -82,7 +82,7 @@ compile_shaders_for_format :: (output_format: string) {
         array_add(*vert_args, "vertex_main");
         array_add(*vert_args, "-o");
         array_add(*vert_args, tprint("%/run_tree/shaders/%.%_vert", working_dir, base_name, output_format));
-        array_add(*vert_args, ("-DVERTEX_SHADER"));
+        array_add(*vert_args, "-DVERTEX_SHADER");
         
         frag_args: [..] string;
         array_add(*frag_args, tprint("%/SDL_shadercross/shadercross.exe", working_dir));
@@ -97,12 +97,22 @@ compile_shaders_for_format :: (output_format: string) {
         array_add(*frag_args, "fragment_main");
         array_add(*frag_args, "-o");
         array_add(*frag_args, tprint("%/run_tree/shaders/%.%_frag", working_dir, base_name, output_format));
-        array_add(*frag_args, ("-DFRAGMENT_SHADER"));
+        array_add(*frag_args, "-DFRAGMENT_SHADER");
         
-        run_command(..vert_args);
-        run_command(..frag_args);
+        /*for frag_args {
+            print("% ", it);
+        }
+        print("\n");
+        */
         
-        print("\t% -> %, %\n", file_name, tprint("%.%_vert", base_name, output_format), tprint("%.%_frag", base_name, output_format));
+        vert_res, vert_out, vert_err := run_command(..vert_args, "", true, true);
+        frag_res, frag_out, frag_err := run_command(..frag_args, "", true, true);
+        //print("%, %, %", vert_res, vert_out, vert_err);
+        //print("%, %, %", frag_res, frag_out, frag_err);
+        
+        if !vert_err && !frag_err {
+            print("\t% -> %, %\n", file_name, tprint("%.%_vert", base_name, output_format), tprint("%.%_frag", base_name, output_format));
+        }
     }
 }
 

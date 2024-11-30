@@ -30,7 +30,24 @@ mat4_look_at :: (pos: Vec3, target: Vec3) -> Mat4 {
     return make_look_at_matrix(pos, target, .{0, 1, 0}, true);
 }
 
-mat4_projection :: make_projection_matrix;
+mat4_projection :: (fov: float, aspect: float, n: float, f: float) -> Matrix4 {
+    t := tan(fov / 2.0);
+    r := aspect * t;
+    d := f - n;
+    
+    proj: Mat4;
+    proj._12 = -1.0 / r; // right (-Y)
+    proj._23 = 1.0 / t; // up (+Z)
+    
+    proj._31 = 1.0 / r; // forward (+X)
+    proj._34 = n / d;
+    
+    proj._44 = -n * f / d;
+    proj._41 = 1;
+    
+    return proj;
+}
+
 mat4_ortho :: orthographic_projection_matrix;
 
 append :: (v: Vec3, w: float) -> Vec4 {

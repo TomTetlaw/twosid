@@ -7,7 +7,7 @@
         ],
         "executable": "F:\\twosid\\run_tree\\twosid.exe",
         "inject": false,
-        "numQueuedFrames": 0,
+        "numQueuedFrames": 1,
         "options": {
             "allowFullscreen": true,
             "allowVSync": true,
@@ -22,7 +22,7 @@
             "softMemoryLimit": 0,
             "verifyBufferAccess": false
         },
-        "queuedFrameCap": 0,
+        "queuedFrameCap": 60,
         "workingDir": ""
     }
 }

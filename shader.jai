@@ -8,10 +8,11 @@ shader_mesh: Shader;
 shader_screen_space_mesh: Shader;
 shader_depth_pass: Shader;
 
-init_shader_system :: (gpu_device: *SDL_GPUDevice, formats: SDL_GPUShaderFormat) {
+init_shader_system :: (gpu_device: *SDL_GPUDevice) {
     shaders = create_typed_arena(Shader);
     shader_arena = create_arena();
     
+    formats := SDL_GetGPUShaderFormats(gpu_device);
     if formats & SDL_GPU_SHADERFORMAT_DXIL {
         format_to_load = SDL_GPU_SHADERFORMAT_DXIL;
     } else if formats & SDL_GPU_SHADERFORMAT_DXBC {
@@ -27,16 +28,16 @@ init_shader_system :: (gpu_device: *SDL_GPUDevice, formats: SDL_GPUShaderFormat)
     else if format_to_load == SDL_GPU_SHADERFORMAT_SPIRV shader_format = "spirv";
     else fatal_error("Unsupported shader format %", format_to_load);
     
-    mesh_vert := create_shader(gpu_device, "vert", "mesh", 0, 0, 0, 1);
-    mesh_frag := create_shader(gpu_device, "frag", "mesh", 0, 0, 0, 1);
+    mesh_vert := create_shader(gpu_device, "vert", "mesh", 0, 0, 1, 1);
+    mesh_frag := create_shader(gpu_device, "frag", "mesh", 3, 0, 0, 1);
     shader_mesh = .{mesh_vert, mesh_frag};
     
-    screen_space_mesh_vert := create_shader(gpu_device, "vert", "screen_space_mesh", 0, 0, 0, 1);
-    screen_space_mesh_frag := create_shader(gpu_device, "frag", "screen_space_mesh", 0, 0, 0, 1);
+    screen_space_mesh_vert := create_shader(gpu_device, "vert", "screen_space_mesh", 0, 0, 1, 1);
+    screen_space_mesh_frag := create_shader(gpu_device, "frag", "screen_space_mesh", 0, 0, 0, 0);
     shader_screen_space_mesh = .{screen_space_mesh_vert, screen_space_mesh_frag};
     
     depth_pass_vert := create_shader(gpu_device, "vert", "depth_pass", 0, 0, 0, 1);
-    depth_pass_frag := create_shader(gpu_device, "frag", "depth_pass", 0, 0, 0, 1);
+    depth_pass_frag := create_shader(gpu_device, "frag", "depth_pass", 0, 0, 0, 0);
     shader_depth_pass = .{depth_pass_vert, depth_pass_frag};
 }
 

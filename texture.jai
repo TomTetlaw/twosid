@@ -20,7 +20,8 @@ init_texture_system :: (gpu_device: *SDL_GPUDevice) {
     files := file_list("./textures");
     for files {
         if contains(it, ".png") {
-            load_texture(it);
+            path, base_name, ext := path_decomp(it);
+            load_texture(tprint("textures/%.%", base_name, ext));
         }
     }
     
@@ -37,8 +38,8 @@ init_texture_system :: (gpu_device: *SDL_GPUDevice) {
         texture_info.num_levels = 1;
         texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
         
-        gpu_texture := SDL_CreateGPUTexture(gpu_device, *texture_info);
-        it.gpu_texture = gpu_texture;
+        it.gpu_texture = SDL_CreateGPUTexture(gpu_device, *texture_info);
+        SDL_SetGPUTextureName(gpu_device, it.gpu_texture, it.path.data);
     }
     
     create_info: SDL_GPUTransferBufferCreateInfo;
@@ -89,7 +90,7 @@ init_texture_system :: (gpu_device: *SDL_GPUDevice) {
 }
 
 load_texture :: (path: string) -> *Texture {
-    for * textures {
+    for textures {
         if equal(it.path, path) return it;
     }
     

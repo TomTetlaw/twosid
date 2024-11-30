@@ -7,6 +7,22 @@ fatal_error :: (format: string, args: ..Any) {
     exit(0);
 }
 
+file_read_string :: (file: *File, arena: *Arena) -> string {
+    count: int;
+    file_read(file, *count, size_of(int));
+    
+    data := arena_push_n(arena, u8, xx count);
+    file_read(file, data.data, count);
+    
+    return .{count, data.data};
+}
+
+file_read_array :: (file: *File, arena: *Arena, $T: Type, count: int) -> [] T {
+    out := arena_push_n(arena, T, xx count);
+    file_read(file, out.data, count * size_of(T));
+    return out;
+}
+
 sdl_get_error :: () -> string {
     return to_string(SDL_GetError());
 }

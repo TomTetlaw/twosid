@@ -17,8 +17,7 @@ generate_bindings :: () -> bool {
     
 #if OS == .WINDOWS {
         output_filename = "windows.jai";
-    } else #if OS == .LINUX {
-        output_filename = "linux.jai";
+		array_add(*options.libnames, "sdl3.lib");
     } else {
         report_error("Platform not supported.");
     }
@@ -26,7 +25,6 @@ generate_bindings :: () -> bool {
     array_add(*options.include_paths, "./SDL3-3.1.3/include/SDL3");
     array_add(*options.include_paths, "./SDL3-3.1.3/include/");
     array_add(*options.libpaths, ".");
-    array_add(*options.libnames, "sdl3.lib");
     
     array_add(*options.source_files, "SDL.h");
     
