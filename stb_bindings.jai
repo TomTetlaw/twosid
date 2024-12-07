@@ -8,7 +8,6 @@ stb_image_free :: (memory: *void)
 
 // stb_truetype
 
-/*
 Stb_Buffer :: struct {
     data: *u8;
     cursor: s32;
@@ -102,8 +101,8 @@ stb_get_font_v_metrics :: (info: *Stb_Font_Info, ascent: *s32, descent: *s32, li
 
 stb_get_codepoint_h_metrics :: (info: *Stb_Font_Info, codepoint: s32, advanceWidth: *s32, leftSideBearing: *s32) -> void 
 #foreign stb_truetype "stbtt_GetCodepointHMetrics";
-*/
+
 #scope_file
 
-//stb_truetype :: #library "lib/stb_truetype";
-stb_image :: #library "lib/stb_image";
+stb_truetype :: #library,no_dll "lib/stb_truetype";
+stb_image :: #library,no_dll "lib/stb_image";

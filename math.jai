@@ -1,10 +1,12 @@
 
 deg2rad :: PI / 180.0;
 rad2deg :: 180.0 / PI;
+
 turn2rad :: 2 * PI;
+rad2turn :: 1.0 / (2 * PI);
+
 turn2deg :: PI;
-rad2turn :: 1.0 / 2 * PI;
-deg2turn :: 1.0 / 360;
+deg2turn :: 1.0 / 360.0;
 
 basis_forward :: Vec3.{1, 0, 0};
 basis_right :: Vec3.{0, -1, 0};
@@ -14,6 +16,32 @@ Vec2 :: Vector2;
 Vec3 :: Vector3;
 Vec4 :: Vector4;
 Mat4 :: Matrix4;
+
+cos_turns :: (t: float) -> float {
+    t -= 0.25 + floor(t + 0.25);
+    t *= 16.0 * (abs(t) - 0.5);
+    t += 0.225 * t * (abs(t) - 1.0);
+    return t;
+}
+
+sin_turns :: (t: float) -> float {
+    return cos_turns(0.25 - t);
+}
+
+tan_turns_safe :: (t: float) -> float {
+    cos_value := cos_turns(t);
+    if cos_value == 0.0 return ifx t > 0.0 then FLOAT32_INFINITY else -FLOAT32_INFINITY;
+    return sin_turns(t) / cos_value;
+}
+
+tan_turns :: (t: float) -> float {
+    cos_value := cos_turns(t);
+    return sin_turns(t) / cos_value;
+}
+
+v4 :: (v: Vec3, w: float) -> Vec4 {
+    return .{v.x, v.y, v.z, w};
+}
 
 vec3_rotate :: (v: Vec3, q: Quaternion) -> Vec3 {
     rotate(*v, q);
@@ -27,28 +55,49 @@ mat4_identity :: () -> Mat4 {
 }
 
 mat4_look_at :: (pos: Vec3, target: Vec3) -> Mat4 {
-    return make_look_at_matrix(pos, target, .{0, 1, 0}, true);
+    return make_look_at_matrix(pos, target, .{0, 0, 1}, true);
 }
 
-mat4_projection :: (fov: float, aspect: float, n: float, f: float) -> Matrix4 {
-    t := tan(fov / 2.0);
-    r := aspect * t;
-    d := f - n;
-    
-    proj: Mat4;
-    proj._12 = -1.0 / r; // right (-Y)
-    proj._23 = 1.0 / t; // up (+Z)
-    
-    proj._31 = 1.0 / r; // forward (+X)
-    proj._34 = n / d;
-    
-    proj._44 = -n * f / d;
-    proj._41 = 1;
-    
-    return proj;
+remap :: (value: float, in_min: float, in_max: float, out_min: float, out_max: float) -> float {
+    return (value - in_min) / (in_max - in_min) * (out_max - out_min) + out_min;
 }
 
-mat4_ortho :: orthographic_projection_matrix;
+mat4_view_to_vulkan_ndc :: () -> Mat4 {
+    result: Mat4;
+    
+    result._12 = -1;
+    result._23 = 1;
+    result._31 = 1;
+    result._44 = 1;
+    
+    return result;
+}
+
+mat4_projection :: (fov: float, aspect: float, near: float, far: float) -> Matrix4 {
+    result := make_projection_matrix(fov, aspect, near, far);
+    result = result * mat4_view_to_vulkan_ndc();
+    return result;
+}
+
+mat4_ortho :: (left: float, right: float, bottom: float, top: float, near: float, far: float) -> Mat4 {
+    m : Matrix4;
+    
+    m._12 = 2.0 / (right - left);
+    m._14 = -(right + left) / (right - left);
+    
+    m._23 = 2.0 / (top - bottom);
+    m._24 = -(top + bottom) / (top - bottom);
+    
+    m._31 = -2 / (far - near);
+    m._34 = -(far + near) / (far - near);
+    
+    m._44 = 1.0;
+    
+    m._33 = m._33 * 0.5 + m._43 * 0.5;
+    m._34 = m._34 * 0.5 + m._44 * 0.5;
+    
+    return m;
+}
 
 append :: (v: Vec3, w: float) -> Vec4 {
     return Vec4.{v.x, v.y, v.z, w};
@@ -86,11 +135,11 @@ nlerp_shortest :: (a: Quaternion, b: Quaternion, t: float) -> Quaternion
     return nlerp(first, second, t);
 }
 
-quat_axis_angle :: (axis: Vec3, angle: float) -> Quaternion {
+quat_axis_angle :: (axis: Vec3, turns: float) -> Quaternion {
     q: Quaternion;
     
-    st := sin(angle * 0.5);
-    ct := cos(angle * 0.5);
+    st := sin_turns(turns);
+    ct := cos_turns(turns);
     
     q.x = axis.x * st;
     q.y = axis.y * st;

@@ -106,12 +106,12 @@ main :: () {
 process_window_events :: () -> bool {
     event: SDL_Event;
     while SDL_PollEvent(*event) {
-        if event.type == .SDL_EVENT_QUIT return true;
+        if is_event_type(*event, .SDL_EVENT_QUIT) return true;
         
-        if event.type == .SDL_EVENT_KEY_DOWN {
+        if is_event_type(*event, .SDL_EVENT_KEY_DOWN) {
             if event.key.scancode == .ESCAPE return true;
             array_add(*frame_keys, event.key.scancode);
-        } else if event.type == .MOUSE_MOTION {
+        } else if is_event_type(*event, .MOUSE_MOTION) {
             mouse.delta.x = xx event.motion.xrel;
             mouse.delta.y = xx event.motion.yrel;
         }
@@ -127,7 +127,7 @@ process_window_events :: () -> bool {
 #import "File";
 #import "File_Utilities";
 #import "Process";
-#import "sdl3";
+#import "Print_Vars";
 
 key_states: *bool;
 

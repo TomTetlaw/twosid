@@ -35,8 +35,8 @@ init_texture_system :: (gpu_device: *SDL_GPUDevice) {
         texture_info.width = xx it.width;
         texture_info.height = xx it.height;
         texture_info.layer_count_or_depth = 1;
-        texture_info.num_levels = 1;
-        texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        texture_info.num_levels = 9;
+        texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
         
         it.gpu_texture = SDL_CreateGPUTexture(gpu_device, *texture_info);
         SDL_SetGPUTextureName(gpu_device, it.gpu_texture, it.path.data);
@@ -80,6 +80,11 @@ init_texture_system :: (gpu_device: *SDL_GPUDevice) {
     }
     
     SDL_EndGPUCopyPass(copy_pass);
+    
+    for textures {
+        SDL_GenerateMipmapsForGPUTexture(command_buffer, it.gpu_texture);
+    }
+    
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(gpu_device, transfer_buffer);
     

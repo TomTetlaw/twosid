@@ -20,6 +20,14 @@ file_read_string :: (file: *File, arena: *Arena) -> string {
 file_read_array :: (file: *File, arena: *Arena, $T: Type, count: int) -> [] T {
     out := arena_push_n(arena, T, xx count);
     file_read(file, out.data, count * size_of(T));
+    
+#if 0 {
+        guard: u8;
+        file_read(file, *guard, 1);
+        assert(guard == #char "x");
+    }
+    
+    
     return out;
 }
 
@@ -29,6 +37,10 @@ sdl_get_error :: () -> string {
 
 sdl_get_gpu_device_driver :: (device: *SDL_GPUDevice) -> string {
     return to_string(SDL_GetGPUDeviceDriver(device));
+}
+
+is_event_type :: (event: *SDL_Event, type: SDL_EventType) -> bool {
+    return event.type == cast(u32) type;
 }
 
 #scope_file

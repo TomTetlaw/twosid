@@ -2,17 +2,10 @@
 add_all_files :: (workspace: Workspace) {
     builder: String_Builder;
     
-    print("Code files in build:\n");
-    
     files := file_list("./");
     for files {
         if !contains(it, ".jai") continue;
         if contains(it, "first.jai") continue;
-        if contains(it, "sdl_bindings.jai") continue;
-        
-        path, base_name, ext := path_decomp(it);
-        print("\t%.%\n", base_name, ext);
-        
         add_build_file(it, workspace);
     }
 }
@@ -24,7 +17,7 @@ set_common_options :: (options: *Build_Options) {
     options.output_executable_name = "twosid";
     options.debug_for_expansions = true;
     set_optimization(options, .VERY_DEBUG);
-    options.text_output_flags = .OUTPUT_TIMING_INFO;
+    options.text_output_flags = 0;
 }
 
 build_linux :: () {
@@ -50,10 +43,35 @@ build_windows :: () {
     add_all_files(workspace);
 }
 
+generate_sdl3_bindings :: () -> bool {
+    options: Generate_Bindings_Options;
+    options.strip_enum_prefixes = false;
+    
+    output_filename := "";
+    
+    output_filename = "sdl_bindings.jai";
+    
+#if OS == .WINDOWS {
+		array_add(*options.libnames, "sdl3.lib");
+    } else {
+        report_error("Platform not supported.");
+    }
+    
+    array_add(*options.include_paths, "sdl3/include/");
+    array_add(*options.include_paths, "sdl3/include/SDL3");
+    array_add(*options.libpaths, "sdl3/lib/x64");
+    
+    array_add(*options.source_files, "SDL.h");
+    
+    if !generate_bindings(options, output_filename) return false;
+    
+    return true;
+}
+
 compile_shaders_for_format :: (output_format: string) {
     print("Compiling all shaders for format: %\n", output_format);
     
-    files := file_list("./shaders");
+    files := file_list("./");
     shader_files: [..] string;
     for files {
         if !contains(it, ".shader") continue;
@@ -65,7 +83,7 @@ compile_shaders_for_format :: (output_format: string) {
     for shader_files {
         path, base_name, ext := path_decomp(it);
         
-        file_name := tprint("shaders/%.%", base_name, ext);
+        file_name := tprint("%.%", base_name, ext);
         
         working_dir := get_working_directory();
         
@@ -117,17 +135,28 @@ compile_shaders_for_format :: (output_format: string) {
 }
 
 build :: () {
+    set_build_options_dc(.{do_output = false});
+    
     args := get_build_options().compile_time_command_line;
     
     compile_shaders := false;
+    generate_sdl_bindings := false;
     for args {
         if contains(it, "compile_shaders") compile_shaders = true;
+        if contains(it, "generate_sdl_bindings") generate_sdl_bindings = true;
+    }
+    
+    if generate_sdl_bindings {
+        if !generate_sdl3_bindings() compiler_set_workspace_status(.FAILED);
+        
+        copy_file("sdl3/lib/x64/sdl3.dll", "run_tree/sdl3.dll");
+        copy_file("sdl3/lib/x64/sdl3.pdb", "run_tree/sdl3.pdb");
     }
     
     if (compile_shaders) {
-        compile_shaders_for_format("dxil");
-        compile_shaders_for_format("dxbc");
         compile_shaders_for_format("spirv");
+        //compile_shaders_for_format("dxbc");
+        //compile_shaders_for_format("dxil");
         compile_shaders_for_format("json");
     }
     
@@ -140,8 +169,6 @@ build :: () {
     else {
         report_error("Platform not supported.");
     }
-    
-    set_build_options_dc(.{do_output = false});
 }
 
 #run build();
@@ -155,3 +182,4 @@ build :: () {
 #import "File_Utilities";
 #import "Process";
 #import "Command_Line";
+#import "Bindings_Generator";

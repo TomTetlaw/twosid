@@ -33,6 +33,16 @@ command_list = {
             { "build.bat compile_shaders", .os = "win" },
 		},
 	},
+    {
+        .name = "build_generate_bindings",
+        .out = "*compilation*",
+        .footer_panel = true,
+        .save_dirty_files = true,
+        .cursor_at_end = false,
+        .cmd = {
+            { "build.bat generate_sdl_bindings", .os = "win" },
+		},
+	},
 	{
 		.name = "run",
 		.out = "*compilation*",
@@ -47,4 +57,5 @@ command_list = {
 
 fkey_command[7] = "build";
 fkey_command[8] = "build_compile_shaders";
+fkey_command[9] = "build_generate_bindings";
 fkey_command[5] = "run";

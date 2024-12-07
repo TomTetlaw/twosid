@@ -21,7 +21,10 @@ create_arena :: (initial_cap := COMMIT_EXPAND_AMOUNT) -> Arena {
 
 arena_alloc :: (arena: *Arena, size: u64, $zero := true) -> *void {
     if arena.used + size >= arena.cap {
-        if arena.cap + COMMIT_EXPAND_AMOUNT >= MAX_COMMITTED_SIZE fatal_error("Arena exceded max committed size");
+        if arena.cap + COMMIT_EXPAND_AMOUNT >= MAX_COMMITTED_SIZE {
+            assert(false, "wtf");
+            fatal_error("Arena exceded max committed size");
+        }
         
         remainder := size % COMMIT_EXPAND_AMOUNT;
         commit_size := size;
