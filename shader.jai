@@ -29,11 +29,11 @@ init_shader_system :: (gpu_device: *SDL_GPUDevice) {
     else fatal_error("Unsupported shader format %", format_to_load);
     
     mesh_vert := create_shader(gpu_device, "vert", "mesh", 0, 0, 1, 1);
-    mesh_frag := create_shader(gpu_device, "frag", "mesh", 6, 0, 0, 1);
+    mesh_frag := create_shader(gpu_device, "frag", "mesh", 4, 0, 0, 1);
     shader_mesh = .{mesh_vert, mesh_frag};
     
-    screen_space_mesh_vert := create_shader(gpu_device, "vert", "screen_space_mesh", 0, 0, 1, 1);
-    screen_space_mesh_frag := create_shader(gpu_device, "frag", "screen_space_mesh", 0, 0, 0, 0);
+    screen_space_mesh_vert := create_shader(gpu_device, "vert", "screen_space_mesh", 0, 0, 0, 1);
+    screen_space_mesh_frag := create_shader(gpu_device, "frag", "screen_space_mesh", 1, 0, 0, 0);
     shader_screen_space_mesh = .{screen_space_mesh_vert, screen_space_mesh_frag};
     
     depth_pass_vert := create_shader(gpu_device, "vert", "depth_pass", 0, 0, 1, 1);

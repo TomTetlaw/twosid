@@ -21,6 +21,7 @@ Mesh :: struct {
     positions: [] Vec3;
     tex_coords: [] Vec2;
     normals: [] Vec3;
+    tangents: [] Vec3;
     weights: [] Vec3;
     bone_ids: [] Bone_Ids;
     indices: [] u32;
@@ -29,6 +30,7 @@ Mesh :: struct {
     position_buffer: *SDL_GPUBuffer;
     tex_coord_buffer: *SDL_GPUBuffer;
     normal_buffer: *SDL_GPUBuffer;
+    tangent_buffer: *SDL_GPUBuffer;
     weight_buffer: *SDL_GPUBuffer;
     bone_ids_buffer: *SDL_GPUBuffer;
     index_buffer: *SDL_GPUBuffer;
@@ -59,6 +61,15 @@ create_vertex_buffer :: (device: *SDL_GPUDevice, stride: int, elements: int, nam
     return buffer;
 }
 
+create_index_buffer :: (device: *SDL_GPUDevice, elements: int, name: string) -> *SDL_GPUBuffer {
+    index_create_info: SDL_GPUBufferCreateInfo;
+    index_create_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+    index_create_info.size = xx (elements * size_of(u32));
+    buffer := SDL_CreateGPUBuffer(device, *index_create_info);
+    SDL_SetGPUBufferName(device, buffer, name.data);
+    return buffer;
+}
+
 init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
     meshes = create_typed_arena(Mesh);
     mesh_arena = create_arena();
@@ -85,16 +96,13 @@ init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
         it.position_buffer = create_vertex_buffer(gpu_device, size_of(Vec3), it.positions.count, tprint("%_position", it.path));
         it.tex_coord_buffer = create_vertex_buffer(gpu_device, size_of(Vec2), it.positions.count, tprint("%_tex_coord", it.path));
         it.normal_buffer = create_vertex_buffer(gpu_device, size_of(Vec3), it.positions.count, tprint("%_normal", it.path));
+        it.tangent_buffer = create_vertex_buffer(gpu_device, size_of(Vec3), it.positions.count, tprint("%_tangent", it.path));
         it.weight_buffer = create_vertex_buffer(gpu_device, size_of(Vec3), it.positions.count, tprint("%_weight", it.path));
         it.bone_ids_buffer = create_vertex_buffer(gpu_device, size_of(Bone_Ids), it.positions.count, tprint("%_bone_ids", it.path));
         
-        index_create_info: SDL_GPUBufferCreateInfo;
-        index_create_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-        index_create_info.size = xx (it.indices.count * size_of(u32));
-        it.index_buffer = SDL_CreateGPUBuffer(gpu_device, *index_create_info);
-        SDL_SetGPUBufferName(gpu_device, it.index_buffer, tprint("%_index", it.path).data);
+        it.index_buffer = create_index_buffer(gpu_device, it.indices.count, tprint("%_index", it.path));
         
-        vertex_size :: 11 * size_of(float) + size_of(Bone_Ids);
+        vertex_size :: 14 * size_of(float) + size_of(Bone_Ids);
         total_meshes_size += vertex_size * it.positions.count;
         total_meshes_size += size_of(u32) * it.indices.count;
     }
@@ -115,6 +123,9 @@ init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
         cursor += it.positions.count * size_of(Vec2);
         
         memcpy(transfer_memory + cursor, it.normals.data, it.positions.count * size_of(Vec3));
+        cursor += it.positions.count * size_of(Vec3);
+        
+        memcpy(transfer_memory + cursor, it.tangents.data, it.positions.count * size_of(Vec4));
         cursor += it.positions.count * size_of(Vec3);
         
         memcpy(transfer_memory + cursor, it.weights.data, it.positions.count * size_of(Vec3));
@@ -150,6 +161,11 @@ init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
         location.offset += xx (it.positions.count * size_of(Vec2));
         
         region.buffer = it.normal_buffer;
+        region.size = xx (it.positions.count * size_of(Vec3));
+        SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
+        location.offset += xx (it.positions.count * size_of(Vec3));
+        
+        region.buffer = it.tangent_buffer;
         region.size = xx (it.positions.count * size_of(Vec3));
         SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
         location.offset += xx (it.positions.count * size_of(Vec3));
@@ -194,6 +210,7 @@ load_mesh :: (path: string) -> *Mesh {
     positions := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
     tex_coords := file_read_array(*file, *mesh_arena, Vec2, header.num_vertices);
     normals := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
+    tangents := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
     weights := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
     bone_ids := file_read_array(*file, *mesh_arena, Bone_Ids, header.num_vertices);
     indices := file_read_array(*file, *mesh_arena, u32, header.num_indices);
@@ -255,6 +272,7 @@ load_mesh :: (path: string) -> *Mesh {
     mesh.positions = positions;
     mesh.tex_coords = tex_coords;
     mesh.normals = normals;
+    mesh.tangents = tangents;
     mesh.indices = indices;
     mesh.weights = weights;
     mesh.bone_ids = bone_ids;
@@ -353,13 +371,13 @@ file_read_bones :: (file: *File, arena: *Arena, count: int) -> [] Serialized_Bon
     bones := arena_push_n(arena, Serialized_Bone, xx count);
     
     for 0..count-1 {
+        name := file_read_string(file, arena);
+        
         id: s16;
         file_read(file, *id, size_of(s16));
         
         parent: s16;
         file_read(file, *parent, size_of(s16));
-        
-        name := file_read_string(file, arena);
         
         transform: Mat4;
         file_read(file, transform.floats.data, size_of(float) * 16);

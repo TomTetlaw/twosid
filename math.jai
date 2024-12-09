@@ -8,10 +8,6 @@ rad2turn :: 1.0 / (2 * PI);
 turn2deg :: PI;
 deg2turn :: 1.0 / 360.0;
 
-basis_forward :: Vec3.{1, 0, 0};
-basis_right :: Vec3.{0, -1, 0};
-basis_up :: Vec3.{0, 0, 1};
-
 Vec2 :: Vector2;
 Vec3 :: Vector3;
 Vec4 :: Vector4;
@@ -55,13 +51,12 @@ mat4_identity :: () -> Mat4 {
 }
 
 mat4_look_at :: (pos: Vec3, target: Vec3) -> Mat4 {
-    return make_look_at_matrix(pos, target, .{0, 0, 1}, true);
+    result := make_look_at_matrix(pos, target, .{0, 1, 0}, false);
+    return result;
 }
 
-remap :: (value: float, in_min: float, in_max: float, out_min: float, out_max: float) -> float {
-    return (value - in_min) / (in_max - in_min) * (out_max - out_min) + out_min;
-}
-
+// thanks to this article!
+// https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-projection-matrix/
 mat4_view_to_vulkan_ndc :: () -> Mat4 {
     result: Mat4;
     
@@ -73,30 +68,15 @@ mat4_view_to_vulkan_ndc :: () -> Mat4 {
     return result;
 }
 
-mat4_projection :: (fov: float, aspect: float, near: float, far: float) -> Matrix4 {
+mat4_projection :: (fov: float, aspect: float, near: float, far: float, $transform_from_view_space := true) -> Matrix4 {
     result := make_projection_matrix(fov, aspect, near, far);
-    result = result * mat4_view_to_vulkan_ndc();
+#if transform_from_view_space result = result * mat4_view_to_vulkan_ndc();
     return result;
 }
 
 mat4_ortho :: (left: float, right: float, bottom: float, top: float, near: float, far: float) -> Mat4 {
-    m : Matrix4;
-    
-    m._12 = 2.0 / (right - left);
-    m._14 = -(right + left) / (right - left);
-    
-    m._23 = 2.0 / (top - bottom);
-    m._24 = -(top + bottom) / (top - bottom);
-    
-    m._31 = -2 / (far - near);
-    m._34 = -(far + near) / (far - near);
-    
-    m._44 = 1.0;
-    
-    m._33 = m._33 * 0.5 + m._43 * 0.5;
-    m._34 = m._34 * 0.5 + m._44 * 0.5;
-    
-    return m;
+    result := orthographic_projection_matrix(left, right, bottom, top, near, far);
+    return result;
 }
 
 append :: (v: Vec3, w: float) -> Vec4 {
@@ -114,13 +94,6 @@ mat4_rotation :: (q: Quaternion) -> Mat4 {
 }
 
 mat4_scale :: make_scale_matrix4;
-
-mat4_axis_conversion :: Mat4.{
-    0, 0, 1, 0,
-    -1, 0, 0, 0,
-    0, 1, 0, 0,
-    0, 0, 0, 1,
-};
 
 mat4_transpose :: transpose;
 

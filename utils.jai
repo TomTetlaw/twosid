@@ -20,14 +20,6 @@ file_read_string :: (file: *File, arena: *Arena) -> string {
 file_read_array :: (file: *File, arena: *Arena, $T: Type, count: int) -> [] T {
     out := arena_push_n(arena, T, xx count);
     file_read(file, out.data, count * size_of(T));
-    
-#if 0 {
-        guard: u8;
-        file_read(file, *guard, 1);
-        assert(guard == #char "x");
-    }
-    
-    
     return out;
 }
 

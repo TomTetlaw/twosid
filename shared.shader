@@ -40,28 +40,18 @@ float3 fresnel_schlick(float cos_theta, float3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cos_theta, 5.0);
 }
 
-float3 shadow_projection_coord(float4 light_space_position) {
-    float3 proj_coord = light_space_position.xyz / light_space_position.w;
-	return proj_coord * 0.5 + 0.5;
-}
-
-float shadow_calculation(float shadow_sample, float depth, float3 object_normal, float3 light_dir) {
-    float bias = max(0.005, 0.05 * (1.0 - dot(object_normal, light_dir)));
-    return depth - bias > shadow_sample ? 1.0 : 0.3;
-}
-
-float3 lighting_directional(float shadow, float3 object_pos, float3 object_normal, float3 object_colour, Material material, float3 camera_pos, float3 light_dir, float3 light_colour) {
-    float3 N = object_normal;
-    float3 V = normalize(camera_pos - object_pos);
+float3 lighting_directional(float shadow, float3 tangent_pos, float3 tangent_normal, float3 tangent_space_view_position, float3 light_dir, float3 object_colour, Material material, float3 light_colour) {
+    float3 N = tangent_normal;
+    float3 V = normalize(tangent_space_view_position - tangent_pos);
     
     float3 F0 = float3(.04, .04, .04);
     F0 = lerp(F0, object_colour, material.metallic);
     
     float3 L = normalize(-light_dir);
     float3 H = normalize(V + L);
-    float3 radiance = light_colour; // for directional lights this is equal everywhere
+    float3 radiance = light_colour;
 
-    float NDF = distribution_ggx(N, H, material.roughness);
+    float NDF = distribution_ggx(N, H,  material.roughness);
     float G = geometry_smith(N, V, L, material.roughness);
     float3 F = fresnel_schlick(max(dot(H, V), 0.0), F0);
     
@@ -112,8 +102,6 @@ float3 lighting_point(float shadow, float3 object_pos, float3 object_normal, flo
     
     float NdotL = max(dot(N, L), 0.0);
     float3 Lo = (kD * object_colour / PI + specular) * radiance * NdotL;
-    
-    float shadow = shadow_calculation(light_space_position, object_normal, light_dir);
     
     float3 ambient = float3(0.03) * object_colour * material.ambient_occlusion;
     float3 colour = ambient + Lo * (1.0 - shadow);
@@ -177,22 +165,7 @@ float4 fractal_texture_mip(Texture2D map, SamplerState sampler, float2 tex_coord
     return (tex1 + lerp(tex0, tex2, LOD_fract)) * 0.5;
 }
 
-// http://www.thetenthplanet.de/archives/1180
-float3x3 cotangent_frame(float3 N, float3 V, float2 tex_coord) {
-    float2 t1 = ddx(tex_coord);
-    float2 t2 = ddy(tex_coord);
-    float3 p1 = cross(N, ddx(V));
-	float3 p2 = cross(ddy(V), N);
-
-    float3 T = p2 * t1.x + p1 * t2.x;
-    float3 B = p2 * t1.y + p1 * t2.y;
-
-    float I = rsqrt(max(dot(T, T), dot(B, B)));
-    return float3x3(T * I, B * I, N);
-}
-
-float3 unpack_blend_normal(float3 camera_position, float3 position, float2 tex_coord, float3 N, float3 map_normal) {
-    float3 V = normalize(camera_position - position);
-    float3x3 TBN = cotangent_frame(N, -V, tex_coord);
-    return normalize(mul(TBN, map_normal));
+float random(float4 seed4) {
+	float d = dot(seed4, float4(12.9898, 78.233, 45.164, 94.673));
+    return frac(sin(d) * 43758.5453);
 }

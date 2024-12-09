@@ -1,0 +1,1 @@
+blender --background --python export_all_meshes.py -- source_data/mesh run_tree/meshes
