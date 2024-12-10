@@ -14,7 +14,7 @@ Texture_Format :: enum {
     R;
 }
 
-init_texture_system :: (gpu_device: *SDL_GPUDevice) {
+init_texture_system :: () {
     textures = create_typed_arena(Texture);
     
     files := file_list("./textures");
@@ -38,15 +38,15 @@ init_texture_system :: (gpu_device: *SDL_GPUDevice) {
         texture_info.num_levels = 11;
         texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
         
-        it.gpu_texture = SDL_CreateGPUTexture(gpu_device, *texture_info);
-        SDL_SetGPUTextureName(gpu_device, it.gpu_texture, it.path.data);
+        it.gpu_texture = SDL_CreateGPUTexture(g_device, *texture_info);
+        SDL_SetGPUTextureName(g_device, it.gpu_texture, it.path.data);
     }
     
     create_info: SDL_GPUTransferBufferCreateInfo;
     create_info.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
     create_info.size = xx total_textures_size;
-    transfer_buffer := SDL_CreateGPUTransferBuffer(gpu_device, *create_info);
-    transfer_memory := cast(*u8) SDL_MapGPUTransferBuffer(gpu_device, transfer_buffer, false);
+    transfer_buffer := SDL_CreateGPUTransferBuffer(g_device, *create_info);
+    transfer_memory := cast(*u8) SDL_MapGPUTransferBuffer(g_device, transfer_buffer, false);
     
     cursor := 0;
     for textures {
@@ -55,9 +55,9 @@ init_texture_system :: (gpu_device: *SDL_GPUDevice) {
         cursor += size;
     }
     
-    SDL_UnmapGPUTransferBuffer(gpu_device, transfer_buffer);
+    SDL_UnmapGPUTransferBuffer(g_device, transfer_buffer);
     
-    command_buffer := SDL_AcquireGPUCommandBuffer(gpu_device);
+    command_buffer := SDL_AcquireGPUCommandBuffer(g_device);
     copy_pass := SDL_BeginGPUCopyPass(command_buffer);
     
     cursor = 0;
@@ -86,7 +86,7 @@ init_texture_system :: (gpu_device: *SDL_GPUDevice) {
     }
     
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(gpu_device, transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(g_device, transfer_buffer);
     
     for textures {
         stb_image_free(it.pixels);

@@ -52,25 +52,7 @@ Animation :: struct {
     scales: [] Vec3;
 }
 
-create_vertex_buffer :: (device: *SDL_GPUDevice, stride: int, elements: int, name: string) -> *SDL_GPUBuffer {
-    vertex_create_info: SDL_GPUBufferCreateInfo;
-    vertex_create_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    vertex_create_info.size = xx (stride * elements);
-    buffer := SDL_CreateGPUBuffer(device, *vertex_create_info);
-    SDL_SetGPUBufferName(device, buffer, name.data);
-    return buffer;
-}
-
-create_index_buffer :: (device: *SDL_GPUDevice, elements: int, name: string) -> *SDL_GPUBuffer {
-    index_create_info: SDL_GPUBufferCreateInfo;
-    index_create_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-    index_create_info.size = xx (elements * size_of(u32));
-    buffer := SDL_CreateGPUBuffer(device, *index_create_info);
-    SDL_SetGPUBufferName(device, buffer, name.data);
-    return buffer;
-}
-
-init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
+init_mesh_system :: () {
     meshes = create_typed_arena(Mesh);
     mesh_arena = create_arena();
     
@@ -93,14 +75,14 @@ init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
     vertex_create_info: SDL_GPUBufferCreateInfo;
     vertex_create_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
     for meshes {
-        it.position_buffer = create_vertex_buffer(gpu_device, size_of(Vec3), it.positions.count, tprint("%_position", it.path));
-        it.tex_coord_buffer = create_vertex_buffer(gpu_device, size_of(Vec2), it.positions.count, tprint("%_tex_coord", it.path));
-        it.normal_buffer = create_vertex_buffer(gpu_device, size_of(Vec3), it.positions.count, tprint("%_normal", it.path));
-        it.tangent_buffer = create_vertex_buffer(gpu_device, size_of(Vec3), it.positions.count, tprint("%_tangent", it.path));
-        it.weight_buffer = create_vertex_buffer(gpu_device, size_of(Vec3), it.positions.count, tprint("%_weight", it.path));
-        it.bone_ids_buffer = create_vertex_buffer(gpu_device, size_of(Bone_Ids), it.positions.count, tprint("%_bone_ids", it.path));
+        it.position_buffer = create_vertex_buffer(g_device, tprint("%_position", it.path), size_of(Vec3), it.positions.count);
+        it.tex_coord_buffer = create_vertex_buffer(g_device, tprint("%_tex_coord", it.path), size_of(Vec2), it.positions.count);
+        it.normal_buffer = create_vertex_buffer(g_device, tprint("%_normal", it.path), size_of(Vec3), it.positions.count);
+        it.tangent_buffer = create_vertex_buffer(g_device, tprint("%_tangent", it.path), size_of(Vec3), it.positions.count);
+        it.weight_buffer = create_vertex_buffer(g_device, tprint("%_weight", it.path), size_of(Vec3), it.positions.count);
+        it.bone_ids_buffer = create_vertex_buffer(g_device, tprint("%_bone_ids", it.path), size_of(Bone_Ids), it.positions.count);
         
-        it.index_buffer = create_index_buffer(gpu_device, it.indices.count, tprint("%_index", it.path));
+        it.index_buffer = create_index_buffer(g_device, tprint("%_index", it.path), it.indices.count);
         
         vertex_size :: 14 * size_of(float) + size_of(Bone_Ids);
         total_meshes_size += vertex_size * it.positions.count;
@@ -110,9 +92,9 @@ init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
     create_info: SDL_GPUTransferBufferCreateInfo;
     create_info.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
     create_info.size = xx total_meshes_size;
-    transfer_buffer := SDL_CreateGPUTransferBuffer(gpu_device, *create_info);
+    transfer_buffer := SDL_CreateGPUTransferBuffer(g_device, *create_info);
     
-    transfer_memory := cast (*u8) SDL_MapGPUTransferBuffer(gpu_device, transfer_buffer, false);
+    transfer_memory := cast (*u8) SDL_MapGPUTransferBuffer(g_device, transfer_buffer, false);
     
     cursor := 0;
     for meshes {
@@ -138,9 +120,9 @@ init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
         cursor += it.indices.count * size_of(u32);
     }
     
-    SDL_UnmapGPUTransferBuffer(gpu_device, transfer_buffer);
+    SDL_UnmapGPUTransferBuffer(g_device, transfer_buffer);
     
-    command_buffer := SDL_AcquireGPUCommandBuffer(gpu_device);
+    command_buffer := SDL_AcquireGPUCommandBuffer(g_device);
     copy_pass := SDL_BeginGPUCopyPass(command_buffer);
     
     location: SDL_GPUTransferBufferLocation;
@@ -188,10 +170,12 @@ init_mesh_system :: (gpu_device: *SDL_GPUDevice) {
     
     SDL_EndGPUCopyPass(copy_pass);
     SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(gpu_device, transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(g_device, transfer_buffer);
 }
 
-// @todo: don't load bone ids and weights if not needed
+// @todo: don't load bone ids and weights if not needed;
+//        by which i mean, have two types of mesh:
+//        Static_Mesh and Skeletal_Mesh
 
 load_mesh :: (path: string) -> *Mesh {
     for meshes if equal(it.path, path) return it;

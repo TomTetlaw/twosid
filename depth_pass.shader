@@ -3,7 +3,6 @@
 #ifdef VERTEX_SHADER
 
 cbuffer Constant_Buffer : register(b0, space1) {
-	row_major matrix world;
 	row_major matrix light_matrix;
 };
 
@@ -13,7 +12,15 @@ struct Vertex_Input {
 	short4 bone_ids : TEXCOORD1;
 };
 
+struct Instance_Data {
+	row_major matrix transform;
+	float3 diffuse_colour;
+	float pad0;
+	float4 material_params;
+};
+
 StructuredBuffer<matrix> skinning_transforms: register(t0, space0);
+StructuredBuffer<Instance_Data> instance_data: register(t1, space0);
 
 float3 skinning_contribution(float3 value, float weight, short4 bone_ids, int index) {
 	float mask = max(float(bone_ids[index] + 1), 1.0);
@@ -29,9 +36,10 @@ float3 skinning_calculation(float3 model_value, float3 weights, short4 bone_ids)
 	return model_value;
 }
 
-float4 vertex_main(Vertex_Input input): SV_Position {
+float4 vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId): SV_Position {
+	Instance_Data instance = instance_data[instance_id];
 	float3 model_position = skinning_calculation(input.position, input.bone_weights, input.bone_ids);
-	matrix MVP = mul(light_matrix, world);
+	matrix MVP = mul(light_matrix, instance.transform);
 	return mul(MVP, float4(model_position, 1));
 }
 

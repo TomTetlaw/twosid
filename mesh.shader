@@ -12,21 +12,29 @@ struct Frag_Input {
 	float3 tangent_space_light_dir: TEXCOORD10;
 	float3 tangent_space_position: TEXCOORD11;
 	float3 tangent_space_view_position: TEXCOORD12;
+	nointerpolation float4 material_params: TEXCOORD13;
 };
 
 #ifdef VERTEX_SHADER
 
 cbuffer Constant_Buffer : register(b0, space1) {
-	row_major matrix world;
 	row_major matrix view;
 	row_major matrix projection;
 	float3 camera_position;
 	float pad0;
-	float3 diffuse_colour;
-	float pad1;
 	float3 light_dir;
 	float pad2;
 };
+
+struct Instance_Data {
+	row_major matrix transform;
+	float3 diffuse_colour;
+	float pad0;
+	float4 material_params;
+};
+
+StructuredBuffer<matrix> skinning_transforms: register(t0, space0);
+StructuredBuffer<Instance_Data> instance_data: register(t1, space0);
 
 struct Vertex_Input {
 	float3 position: POSITION;
@@ -36,8 +44,6 @@ struct Vertex_Input {
 	float3 bone_weights: TEXCOORD3;
     short4 bone_ids: TEXCOORD4;
 };
-
-StructuredBuffer<matrix> skinning_transforms: register(t0, space0);
 
 float3 skinning_contribution(float3 value, float weight, short4 bone_ids, int index) {
 	float mask = max(float(bone_ids[index] + 1), 1.0);
@@ -53,14 +59,16 @@ float3 skinning_calculation(float3 model_value, float3 weights, short4 bone_ids)
 	return model_value;
 }
 
-Frag_Input vertex_main(Vertex_Input input) {
+Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
+	Instance_Data instance = instance_data[instance_id];
+
     float3 model_position = skinning_calculation(input.position, input.bone_weights, input.bone_ids);
     float3 model_normal = skinning_calculation(input.normal, input.bone_weights, input.bone_ids);
 	float3 model_tangent = skinning_calculation(input.tangent, input.bone_weights, input.bone_ids);
 
-	matrix M = world;
-	matrix MV = mul(view, world);
-	matrix MVP = mul(projection, mul(view, world));
+	matrix M = instance.transform;
+	matrix MV = mul(view, M);
+	matrix MVP = mul(projection, mul(view, M));
 
 	float3 world_position = mul(M, float4(model_position, 1)).xyz;
 	float3 view_position = mul(MV, float4(model_position, 1)).xyz;
@@ -85,10 +93,11 @@ Frag_Input vertex_main(Vertex_Input input) {
 	output.tex_coord = input.tex_coord;
 	output.world_space_normal = world_normal;
 	output.world_space_tangent = world_tangent;
-	output.colour = diffuse_colour;
+	output.colour = instance.diffuse_colour;
 	output.tangent_space_light_dir = mul(TBN, light_dir);
 	output.tangent_space_position = mul(TBN, world_position);
 	output.tangent_space_view_position = mul(TBN, camera_position);
+	output.material_params = instance.material_params;
 	return output;
 }
 
@@ -99,9 +108,6 @@ Frag_Input vertex_main(Vertex_Input input) {
 cbuffer Constant_Buffer : register(b0, space3) {
 	float3 light_colour;
 	float pad2;
-	float4 material_params;
-	float3 depth_planes;
-	float pad4;
 	row_major matrix light_matrix;
 	int frag_debug_mode;
 	float3 pad5;
@@ -119,11 +125,11 @@ SamplerState rmaoh_sampler: register(s3, space2);
 
 float shadow_calculation(float depth, float2 shadow_tex_coord, float bias) {
 	float4 shadow_sample = shadow_map.Sample(shadow_sampler, shadow_tex_coord);
-	return depth - bias > shadow_sample.r ? 0.0 : -0.2;
+	return depth - bias > shadow_sample.r ? 1.0 : 0.0;
 }
 
 float4 fragment_main(Frag_Input input): SV_Target {
-	float2 tex_coord = input.tex_coord * material_params.w;
+	float2 tex_coord = input.tex_coord * input.material_params.w;
 	
 	float3 diffuse = diffuse_map.Sample(diffuse_sampler, tex_coord).xyz;
 	diffuse = input.colour * pow(diffuse, float3(2.2, 2.2, 2.2));
@@ -134,7 +140,7 @@ float4 fragment_main(Frag_Input input): SV_Target {
 	map_normal = normalize(map_normal);
 
 	float4 rmaoh = rmaoh_map.Sample(rmaoh_sampler, tex_coord);
-	rmaoh = float4(rmaoh.xyz * material_params.xyz, rmaoh.w);
+	rmaoh = float4(rmaoh.xyz * input.material_params.xyz, rmaoh.w);
 
 	Material material;
 	material.roughness = clamp(rmaoh.x, 0.0, 1.0);
@@ -149,22 +155,8 @@ float4 fragment_main(Frag_Input input): SV_Target {
 	float2 shadow_tex_coord = shadow_coord.xy;
 	shadow_tex_coord.y = 1 - shadow_tex_coord.y;
 
-	float spread = 1400.0;
-	float2 poisson0 = float2(-0.94201624, -0.39906216) / spread;
-	float2 poisson1 = float2(0.94558609, -0.76890725) / spread;
-	float2 poisson2 = float2(-0.094184101, -0.92938870) / spread;
-	float2 poisson3 = float2(0.34495938, 0.29387760) / spread;
-
-	int x, y;
-	shadow_map.GetDimensions(x, y);
-	float2 texel_size = 1.0 / float2(x, y);
-
-	float shadow = 1;
-	float bias = max(0.05 * (1.0 - dot(map_normal, input.tangent_space_light_dir)), 0.005);
-	shadow += shadow_calculation(shadow_coord.z, shadow_tex_coord + poisson0 + random(float4(input.world_space_position, 0.0)) * texel_size, bias);
-	shadow += shadow_calculation(shadow_coord.z, shadow_tex_coord + poisson1 + random(float4(input.world_space_position, 1.0)) * texel_size, bias);
-	shadow += shadow_calculation(shadow_coord.z, shadow_tex_coord + poisson2 + random(float4(input.world_space_position, 2.0)) * texel_size, bias);
-	shadow += shadow_calculation(shadow_coord.z, shadow_tex_coord + poisson3 + random(float4(input.world_space_position, 3.0)) * texel_size, bias);
+	float bias = 0.005;
+	float shadow = shadow_calculation(shadow_coord.z, shadow_tex_coord, bias);
 
 	float3 colour = lighting_directional(shadow, input.tangent_space_position, map_normal, input.tangent_space_view_position, input.tangent_space_light_dir, diffuse, material, light_colour);
 

@@ -22,31 +22,34 @@ key_state :: (code: SDL_Scancode) -> float {
     return ifx key_states[code] then 1.0 else 0.0;
 }
 
+g_device: *SDL_GPUDevice;
+g_window: *SDL_Window;
+
 main :: () {
     if !SDL_Init(SDL_INIT_VIDEO) {
         fatal_error("Failed to initialize SDL: %", sdl_get_error());
     }
     
     window_name := "twosid";
-    window := SDL_CreateWindow(window_name.data, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
-    if !window fatal_error("Failed to create window: %", sdl_get_error());
+    g_window = SDL_CreateWindow(window_name.data, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+    if !g_window fatal_error("Failed to create window: %", sdl_get_error());
     
     shader_formats := cast(u32) SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_SPIRV;
-    gpu_device := SDL_CreateGPUDevice(shader_formats, true, null);
-    if !gpu_device fatal_error("Failed to create gpu device: %", sdl_get_error());
+    g_device = SDL_CreateGPUDevice(shader_formats, true, null);
+    if !g_device fatal_error("Failed to create gpu device: %", sdl_get_error());
     
-    if !SDL_ClaimWindowForGPUDevice(gpu_device, window) fatal_error("Failed to claim window for GPU device: %", sdl_get_error());
+    if !SDL_ClaimWindowForGPUDevice(g_device, g_window) fatal_error("Failed to claim window for GPU device: %", sdl_get_error());
     
-    print("SDL_GPU Driver: %\n", sdl_get_gpu_device_driver(gpu_device));
+    print("SDL_GPU Driver: %\n", sdl_get_gpu_device_driver(g_device));
     
     init_memory_system();
-    init_shader_system(gpu_device);
-    init_renderer(gpu_device, window);
-    init_texture_system(gpu_device);
-    init_mesh_system(gpu_device);
+    init_shader_system();
+    init_renderer();
+    init_texture_system();
+    init_mesh_system();
     
     key_states = SDL_GetKeyboardState(null);
-    SDL_SetWindowRelativeMouseMode(window, true);
+    SDL_SetWindowRelativeMouseMode(g_window, true);
     
     camera: Camera;
     

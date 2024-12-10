@@ -8,11 +8,11 @@ shader_mesh: Shader;
 shader_screen_space_mesh: Shader;
 shader_depth_pass: Shader;
 
-init_shader_system :: (gpu_device: *SDL_GPUDevice) {
+init_shader_system :: () {
     shaders = create_typed_arena(Shader);
     shader_arena = create_arena();
     
-    formats := SDL_GetGPUShaderFormats(gpu_device);
+    formats := SDL_GetGPUShaderFormats(g_device);
     if formats & SDL_GPU_SHADERFORMAT_DXIL {
         format_to_load = SDL_GPU_SHADERFORMAT_DXIL;
     } else if formats & SDL_GPU_SHADERFORMAT_DXBC {
@@ -28,16 +28,16 @@ init_shader_system :: (gpu_device: *SDL_GPUDevice) {
     else if format_to_load == SDL_GPU_SHADERFORMAT_SPIRV shader_format = "spirv";
     else fatal_error("Unsupported shader format %", format_to_load);
     
-    mesh_vert := create_shader(gpu_device, "vert", "mesh", 0, 0, 1, 1);
-    mesh_frag := create_shader(gpu_device, "frag", "mesh", 4, 0, 0, 1);
+    mesh_vert := create_shader(g_device, "vert", "mesh", 0, 0, 2, 1);
+    mesh_frag := create_shader(g_device, "frag", "mesh", 4, 0, 0, 1);
     shader_mesh = .{mesh_vert, mesh_frag};
     
-    screen_space_mesh_vert := create_shader(gpu_device, "vert", "screen_space_mesh", 0, 0, 0, 1);
-    screen_space_mesh_frag := create_shader(gpu_device, "frag", "screen_space_mesh", 1, 0, 0, 0);
+    screen_space_mesh_vert := create_shader(g_device, "vert", "screen_space_mesh", 0, 0, 0, 1);
+    screen_space_mesh_frag := create_shader(g_device, "frag", "screen_space_mesh", 1, 0, 0, 0);
     shader_screen_space_mesh = .{screen_space_mesh_vert, screen_space_mesh_frag};
     
-    depth_pass_vert := create_shader(gpu_device, "vert", "depth_pass", 0, 0, 1, 1);
-    depth_pass_frag := create_shader(gpu_device, "frag", "depth_pass", 0, 0, 0, 0);
+    depth_pass_vert := create_shader(g_device, "vert", "depth_pass", 0, 0, 2, 1);
+    depth_pass_frag := create_shader(g_device, "frag", "depth_pass", 0, 0, 0, 0);
     shader_depth_pass = .{depth_pass_vert, depth_pass_frag};
 }
 
@@ -53,7 +53,7 @@ null_shader: Shader;
 format_to_load: SDL_GPUShaderFormat;
 shader_format: string;
 
-create_shader :: (gpu_device: *SDL_GPUDevice, stage: string, name: string, num_samplers: u32, num_storage_textures: u32, num_storage_buffers: u32, num_uniform_buffers: u32) -> *SDL_GPUShader {
+create_shader :: (g_device: *SDL_GPUDevice, stage: string, name: string, num_samplers: u32, num_storage_textures: u32, num_storage_buffers: u32, num_uniform_buffers: u32) -> *SDL_GPUShader {
     
     file_name := tprint("shaders/%.%_%", name, shader_format, stage);
     data, ok := read_entire_file(file_name);
@@ -74,7 +74,7 @@ create_shader :: (gpu_device: *SDL_GPUDevice, stage: string, name: string, num_s
     create_info.num_storage_buffers = num_storage_buffers;
     create_info.num_uniform_buffers = num_uniform_buffers;
     
-    gpu_shader := SDL_CreateGPUShader(gpu_device, *create_info);
+    gpu_shader := SDL_CreateGPUShader(g_device, *create_info);
     if !gpu_shader fatal_error("Failed to load shader %: %", file_name, sdl_get_error());
     
     return gpu_shader;
