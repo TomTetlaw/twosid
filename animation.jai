@@ -17,10 +17,6 @@ Anim_Pose :: struct {
     skinning_transforms: [] Mat4;
 }
 
-init_animation_system :: () {
-    anim_arena = create_arena();
-}
-
 create_anim_player :: (mesh: *Mesh, anim: *Animation) -> Anim_Player {
     player: Anim_Player;
     player.mesh = mesh;
@@ -115,6 +111,6 @@ anim_update :: (player: *Anim_Player) {
 
 #scope_file
 
-anim_arena: Arena;
+anim_arena: Arena("anim_working");
 
 #import "Basic";

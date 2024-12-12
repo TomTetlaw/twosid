@@ -349,6 +349,13 @@ calc_light_space_matrix :: (light_pos: Vec3, light_dir: Vec3, proj: Mat4, view: 
 }
 
 draw_frame :: (camera: *Camera) {
+    if key_pressed(.SDL_SCANCODE_LEFT) {
+        frag_debug_mode = clamp(frag_debug_mode - 1, 0, MAX_FRAG_DEBUG_MODE);
+    }
+    if key_pressed(.SDL_SCANCODE_RIGHT) {
+        frag_debug_mode = clamp(frag_debug_mode + 1, 0, MAX_FRAG_DEBUG_MODE);
+    }
+    
     projection := mat4_projection(45.0 * deg2rad, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
     
     light_pos := Vec3.{0, 0, 10};
@@ -360,6 +367,7 @@ draw_frame :: (camera: *Camera) {
     
     opaque_pass: Draw_Pass;
     depth_pass: Draw_Pass;
+    screen_space_pass: Draw_Pass;
     
     {
         depth_pass.type = .DEPTH;
@@ -367,6 +375,7 @@ draw_frame :: (camera: *Camera) {
         
         depth_vert_constants := arena_push(*frame_arena, CBuffer_Shadow_Vertex);
         depth_vert_constants.light_matrix = light_matrix;
+        depth_vert_constants.time = .{real_time, 0, 0, 0};
         
         depth_pass.vert_constants = depth_vert_constants;
         depth_pass.vert_constants_size = size_of(CBuffer_Shadow_Vertex);
@@ -387,8 +396,9 @@ draw_frame :: (camera: *Camera) {
         opaque_vert_constants := arena_push(*frame_arena, CBuffer_Mesh_Vertex);
         opaque_vert_constants.view = camera.view;
         opaque_vert_constants.projection = projection;
-        opaque_vert_constants.camera_position = camera.position;
+        opaque_vert_constants.view_pos = camera.position;
         opaque_vert_constants.light_dir = light_dir;
+        opaque_vert_constants.time = .{real_time, 0, 0, 0};
         
         opaque_frag_constants := arena_push(*frame_arena, CBuffer_Mesh_Fragment);
         opaque_frag_constants.light_colour = light_colour;
@@ -409,50 +419,34 @@ draw_frame :: (camera: *Camera) {
         opaque_pass.samplers[0] = shadow_sampler;
         
         opaque_pass.colour_target = true;
+        opaque_pass.clear_colour = true;
         opaque_pass.depth_target = depth_texture;
         
         opaque_pass.viewport = .{1366, 768};
     }
     
     {
-        /*
-if frag_debug_mode == 1 {
-        target_info: SDL_GPUColorTargetInfo;
-        target_info.texture = swap_texture;
-        target_info.clear_color = .{0, 0, 0, 1};
-        target_info.load_op = .SDL_GPU_LOADOP_LOAD;
-        target_info.store_op = .SDL_GPU_STOREOP_STORE;
+        screen_space_pass.type = .SCREEN_SPACE;
+        screen_space_pass.pipeline = screen_space_pipeline;
         
-        render_pass := SDL_BeginGPURenderPass(command_buffer, *target_info, 1, null);
+        screen_space_vert_constants := arena_push(*frame_arena, CBuffer_ScreenSpaceMesh_Vertex);
+        screen_space_vert_constants.projection = mat4_ortho(0, 1366, 768, 0, -999.0, 999.0);
         
-        SDL_BindGPUGraphicsPipeline(render_pass, screen_space_pipeline);
+        screen_space_pass.vert_constants = screen_space_vert_constants;
+        screen_space_pass.vert_constants_size = size_of(CBuffer_ScreenSpaceMesh_Vertex);
         
-        {
-            vert_constant_buffer: CBuffer_ScreenSpaceMesh_Vertex;
-            vert_constant_buffer.projection = mat4_ortho(0, 1366, 768, 0, -999.0, 999.0);
-            
-            SDL_PushGPUVertexUniformData(command_buffer, 0, *vert_constant_buffer, size_of(CBuffer_ScreenSpaceMesh_Vertex));
-            
-            vertex_buffers: [2] SDL_GPUBufferBinding;
-            vertex_buffers[0] = .{screen_space_position_buffer, 0};
-            vertex_buffers[1] = .{screen_space_tex_coord_buffer, 0};
-            SDL_BindGPUVertexBuffers(render_pass, 0, vertex_buffers.data, 2);
-            
-            index_buffer := SDL_GPUBufferBinding.{screen_space_index_buffer, 0};
-            SDL_BindGPUIndexBuffer(render_pass, *index_buffer, .SDL_GPU_INDEXELEMENTSIZE_32BIT);
-            
-            samplers: [1] SDL_GPUTextureSamplerBinding;
-            samplers[0] = .{shadow_texture, shadow_sampler};
-            SDL_BindGPUFragmentSamplers(render_pass, 0, samplers.data, 1);
-            
-            SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
-        }
+        screen_space_pass.colour_target = true;
         
-        SDL_EndGPURenderPass(render_pass);
-*/
+        screen_space_pass.viewport = .{1366, 768};
     }
     
     command_buffer := SDL_AcquireGPUCommandBuffer(g_device);
+    
+    SDL_AcquireGPUSwapchainTexture(command_buffer, g_window, *swap_texture, null, null);
+    if !swap_texture {
+        SDL_CancelGPUCommandBuffer(command_buffer);
+        return;
+    }
     
     depth_commands := arena_push_n(*frame_arena, Draw_Command, 1);
     draw_cubes(*depth_pass, *depth_commands[0]);
@@ -464,15 +458,25 @@ if frag_debug_mode == 1 {
     draw_plane(*opaque_pass, *opaque_commands[1]);
     opaque_pass.commands = opaque_commands;
     
+    screen_space_commands := arena_push_n(*frame_arena, Draw_Command, 1);
+    draw_shadow_map(*screen_space_pass, *screen_space_commands[0]);
+    screen_space_pass.commands = screen_space_commands;
+    
     draw_pass(*depth_pass, command_buffer);
     draw_pass(*opaque_pass, command_buffer);
     
+    if frag_debug_mode == 1 {
+        draw_pass(*screen_space_pass, command_buffer);
+    }
+    
     SDL_SubmitGPUCommandBuffer(command_buffer);
+    
+    swap_texture = null;
 }
 
 MAX_BONES :: 1024;
 
-SHADOW_MAP_SIZE :: 4096;
+SHADOW_MAP_SIZE :: 1024;
 
 NEAR_PLANE :: 0.1;
 FAR_PLANE :: 100.0;
@@ -486,15 +490,17 @@ frag_debug_mode: s32;
 
 CBuffer_Shadow_Vertex :: struct {
     light_matrix: Mat4;
+    time: Vec4;
 }
 
 CBuffer_Mesh_Vertex :: struct {
     view: Mat4;
     projection: Mat4;
-    camera_position: Vec3;
+    view_pos: Vec3;
     pad1: float;
     light_dir: Vec3;
     pad2: float;
+    time: Vec4;
 }
 
 CBuffer_Mesh_Fragment :: struct {
@@ -503,6 +509,13 @@ CBuffer_Mesh_Fragment :: struct {
     light_matrix: Mat4;
     frag_debug_mode: s32;
     pad5: Vec3;
+}
+
+IBuffer_Mesh :: struct {
+    transform: Mat4;
+    diffuse_colour: Vec3;
+    pad0: float;
+    material_params: Vec4;
 }
 
 screen_space_position_buffer: *SDL_GPUBuffer;
@@ -514,9 +527,11 @@ CBuffer_ScreenSpaceMesh_Vertex :: struct {
 }
 
 mesh_pipeline: *SDL_GPUGraphicsPipeline;
-
 depth_pipeline: *SDL_GPUGraphicsPipeline;
 screen_space_pipeline: *SDL_GPUGraphicsPipeline;
+
+swap_texture: *SDL_GPUTexture;
+
 shadow_texture: *SDL_GPUTexture;
 
 skinning_matrices_buffer: *SDL_GPUBuffer;
@@ -525,17 +540,11 @@ depth_texture: *SDL_GPUTexture;
 default_sampler: *SDL_GPUSampler;
 shadow_sampler: *SDL_GPUSampler;
 
-IBuffer_Mesh :: struct {
-    transform: Mat4;
-    diffuse_colour: Vec3;
-    pad0: float;
-    material_params: Vec4;
-}
-
 Draw_Pass_Type :: enum {
     DEPTH;
     OPAQUE;
     TRANSLUCENT;
+    SCREEN_SPACE;
 }
 
 Draw_Pass :: struct {
@@ -550,6 +559,7 @@ Draw_Pass :: struct {
     commands: [] Draw_Command;
     
     colour_target: bool;
+    clear_colour: bool;
     colour_target_texture_override: *SDL_GPUTexture;
     depth_target: *SDL_GPUTexture;
     
@@ -579,13 +589,14 @@ draw_pass :: (pass: *Draw_Pass, command_buffer: *SDL_GPUCommandBuffer) {
     if pass.colour_target {
         target_texture: *SDL_GPUTexture;
         if !pass.colour_target_texture_override {
-            SDL_AcquireGPUSwapchainTexture(command_buffer, g_window, *target_texture, null, null);
+            target_texture = swap_texture;
         } else {
             target_texture = pass.colour_target_texture_override;
         }
         
         colour_info.clear_color = .{0, 0, 0, 1};
-        colour_info.load_op = .SDL_GPU_LOADOP_CLEAR;
+        if pass.clear_colour colour_info.load_op = .SDL_GPU_LOADOP_CLEAR;
+        else colour_info.load_op = .SDL_GPU_LOADOP_LOAD;
         colour_info.store_op = .SDL_GPU_STOREOP_STORE;
         colour_info.texture = target_texture;
         colour_target_count = 1;
@@ -649,7 +660,10 @@ draw_pass :: (pass: *Draw_Pass, command_buffer: *SDL_GPUCommandBuffer) {
         SDL_BindGPUVertexBuffers(render_pass, 0, vertex_bindings.data, xx vertex_bindings.count);
         SDL_BindGPUIndexBuffer(render_pass, *index_binding, .SDL_GPU_INDEXELEMENTSIZE_32BIT);
         SDL_BindGPUFragmentSamplers(render_pass, xx pass.textures.count, texture_bindings.data, xx texture_bindings.count);
-        SDL_BindGPUVertexStorageBuffers(render_pass, xx pass.storage_buffers.count, *it.instance_buffer, 1);
+        
+        if it.instance_buffer {
+            SDL_BindGPUVertexStorageBuffers(render_pass, xx pass.storage_buffers.count, *it.instance_buffer, 1);
+        }
         
         SDL_DrawGPUIndexedPrimitives(render_pass, xx it.index_count, xx it.instance_count, 0, 0, 0);
     }
@@ -710,4 +724,23 @@ draw_cubes :: (pass: *Draw_Pass, command: *Draw_Command) {
     textures[2] = load_texture("textures/unit_rmaoh.png");
     
     draw_mesh_instanced(pass, command, mesh, 343, cubes_instance_buffer, textures);
+}
+
+draw_shadow_map :: (pass: *Draw_Pass, command: *Draw_Command) {
+    buffers := arena_push_n(*frame_arena, *SDL_GPUBuffer, 2);
+    buffers[0] = screen_space_position_buffer;
+    buffers[1] = screen_space_tex_coord_buffer;
+    command.vertex_buffers = buffers;
+    
+    command.index_buffer = screen_space_index_buffer;
+    command.index_count = 6;
+    
+    command.textures = arena_push_n(*frame_arena, *SDL_GPUTexture, 1);
+    command.textures[0] = shadow_texture;
+    
+    command.samplers = arena_push_n(*frame_arena, *SDL_GPUSampler, 1);
+    command.samplers[0] = shadow_sampler;
+    
+    command.instance_count = 1;
+    command.instance_buffer = null;
 }

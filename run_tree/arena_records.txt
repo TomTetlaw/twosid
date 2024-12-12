@@ -1,0 +1,5 @@
+name: working, peak usage: 33024, peak capacity: 134217728
+name: frame, peak usage: 1536, peak capacity: 134217728
+name: textures, peak usage: 832, peak capacity: 65536
+name: mesh_working, peak usage: 448024, peak capacity: 454656
+name: meshes, peak usage: 1120, peak capacity: 65536

@@ -1,39 +1,39 @@
 #include "shared.shader"
 
 struct Frag_Input {
-	float4 ndc_position: SV_Position;
-	float3 object_space_position: TEXCOORD0;
-	float3 view_space_position: TEXCOORD1;
-	float3 world_space_position: TEXCOORD2;
-	float2 tex_coord: TEXCOORD6;
-	float3 world_space_normal: TEXCOORD7;
-	float3 world_space_tangent: TEXCOORD8;
-	float3 colour: TEXCOORD9;
-	float3 tangent_space_light_dir: TEXCOORD10;
-	float3 tangent_space_position: TEXCOORD11;
-	float3 tangent_space_view_position: TEXCOORD12;
+	float4 cs_position: SV_Position;
+	float3 os_position: TEXCOORD0;
+	float3 vs_position: TEXCOORD1;
+	float3 ws_position: TEXCOORD2;
+	float3 ts_position: TEXCOORD3;
+	float3 ts_light_dir: TEXCOORD5;
+	float3 ts_view_pos: TEXCOORD6;
+	float2 tex_coord: TEXCOORD7;
+	float3 colour: TEXCOORD8;
+
 	nointerpolation float4 material_params: TEXCOORD13;
 };
 
 #ifdef VERTEX_SHADER
 
 cbuffer Constant_Buffer : register(b0, space1) {
-	row_major matrix view;
-	row_major matrix projection;
-	float3 camera_position;
+	row_major float4x4 view;
+	row_major float4x4 projection;
+	float3 view_pos;
 	float pad0;
 	float3 light_dir;
 	float pad2;
+	float4 time;
 };
 
 struct Instance_Data {
-	row_major matrix transform;
+	row_major float4x4 transform;
 	float3 diffuse_colour;
 	float pad0;
 	float4 material_params;
 };
 
-StructuredBuffer<matrix> skinning_transforms: register(t0, space0);
+StructuredBuffer<float4x4> skinning_transforms: register(t0, space0);
 StructuredBuffer<Instance_Data> instance_data: register(t1, space0);
 
 struct Vertex_Input {
@@ -66,19 +66,17 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
     float3 model_normal = skinning_calculation(input.normal, input.bone_weights, input.bone_ids);
 	float3 model_tangent = skinning_calculation(input.tangent, input.bone_weights, input.bone_ids);
 
-	matrix M = instance.transform;
-	matrix MV = mul(view, M);
-	matrix MVP = mul(projection, mul(view, M));
+	float4x4 M = instance.transform;
+	float4x4 MV = mul(view, M);
+	float4x4 MVP = mul(projection, mul(view, M));
 
 	float3 world_position = mul(M, float4(model_position, 1)).xyz;
 	float3 view_position = mul(MV, float4(model_position, 1)).xyz;
 	float4 ndc_position = mul(MVP, float4(model_position, 1));
 
-	float3x3 linear_model_transform = float3x3(M[0].xyz, M[1].xyz, M[2].xyz);
-    linear_model_transform = transpose(linear_model_transform);
-
-	float3 world_normal = normalize(mul(linear_model_transform, model_normal));
-	float3 world_tangent = normalize(mul(linear_model_transform, model_tangent));
+	float3x3 linear_transform = adjoint(M);
+	float3 world_normal = normalize(mul(linear_transform, model_normal));
+	float3 world_tangent = normalize(mul(linear_transform, model_tangent));
 
 	float3 bitangent = normalize(cross(world_normal, world_tangent));
 	if (dot(world_normal, bitangent) < 0) bitangent = normalize(bitangent * -1);
@@ -86,17 +84,15 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
     float3x3 TBN = transpose(float3x3(world_tangent, bitangent, world_normal));
 
 	Frag_Input output;
-	output.ndc_position = ndc_position;
-	output.object_space_position = model_position;
-	output.world_space_position = world_position;
-	output.view_space_position = view_position;
+	output.cs_position = ndc_position;
+	output.os_position = model_position;
+	output.ws_position = world_position;
+	output.vs_position = view_position;
+	output.ts_light_dir = mul(TBN, light_dir);
+	output.ts_position = mul(TBN, world_position);
+	output.ts_view_pos = mul(TBN, view_pos);
 	output.tex_coord = input.tex_coord;
-	output.world_space_normal = world_normal;
-	output.world_space_tangent = world_tangent;
 	output.colour = instance.diffuse_colour;
-	output.tangent_space_light_dir = mul(TBN, light_dir);
-	output.tangent_space_position = mul(TBN, world_position);
-	output.tangent_space_view_position = mul(TBN, camera_position);
 	output.material_params = instance.material_params;
 	return output;
 }
@@ -108,7 +104,7 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
 cbuffer Constant_Buffer : register(b0, space3) {
 	float3 light_colour;
 	float pad2;
-	row_major matrix light_matrix;
+	row_major float4x4 light_matrix;
 	int frag_debug_mode;
 	float3 pad5;
 };
@@ -130,26 +126,25 @@ float shadow_calculation(float depth, float2 shadow_tex_coord, float bias) {
 
 float4 fragment_main(Frag_Input input): SV_Target {
 	float2 tex_coord = input.tex_coord * input.material_params.w;
-	
+
+	float4 rmaoh = rmaoh_map.Sample(rmaoh_sampler, input.tex_coord);
+	rmaoh = float4(rmaoh.xyz * input.material_params.xyz, rmaoh.w);
+
 	float3 diffuse = diffuse_map.Sample(diffuse_sampler, tex_coord).xyz;
 	diffuse = input.colour * pow(diffuse, float3(2.2, 2.2, 2.2));
 
-	float3 map_normal = normal_map.Sample(normal_sampler, tex_coord).xyz;
-	map_normal = map_normal * 2 - 1;
-	map_normal.x = -map_normal.x;
-	map_normal = normalize(map_normal);
-
-	float4 rmaoh = rmaoh_map.Sample(rmaoh_sampler, tex_coord);
-	rmaoh = float4(rmaoh.xyz * input.material_params.xyz, rmaoh.w);
+	float3 ts_normal = normal_map.Sample(normal_sampler, tex_coord).xyz;
+	ts_normal = ts_normal * 2 - 1;
+	ts_normal.x = -ts_normal.x;
+	ts_normal = normalize(ts_normal);
 
 	Material material;
 	material.roughness = clamp(rmaoh.x, 0.0, 1.0);
 	material.metallic = clamp(rmaoh.y, 0.0, 1.0);
 	material.ambient_occlusion = clamp(rmaoh.z, 0.0, 1.0);
 
-	float4 light_space_position = mul(light_matrix, float4(input.world_space_position, 1));
-
-	float3 shadow_coord = light_space_position.xyz / light_space_position.w;
+	float4 ls_position = mul(light_matrix, float4(input.ws_position, 1));
+	float3 shadow_coord = ls_position.xyz / ls_position.w;
 	shadow_coord = shadow_coord * 0.5 + 0.5;
 
 	float2 shadow_tex_coord = shadow_coord.xy;
@@ -158,7 +153,7 @@ float4 fragment_main(Frag_Input input): SV_Target {
 	float bias = 0.005;
 	float shadow = shadow_calculation(shadow_coord.z, shadow_tex_coord, bias);
 
-	float3 colour = lighting_directional(shadow, input.tangent_space_position, map_normal, input.tangent_space_view_position, input.tangent_space_light_dir, diffuse, material, light_colour);
+	float3 colour = lighting_directional(shadow, input.ts_position, ts_normal, input.ts_view_pos, input.ts_light_dir, diffuse, material, light_colour);
 
 	if (frag_debug_mode == 1) {
 		//colour = float3(shadow_tex_coord, 0);

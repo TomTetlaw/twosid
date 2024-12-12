@@ -1,9 +1,6 @@
 
 #define short4 min16int4
 
-// SDL_shadercross hangs when using the matrix type
-#define matrix float4x4
-
 #define MAX_WEIGHTS 4
 
 #define PI 3.14159265359
@@ -17,6 +14,10 @@ struct Material {
     float metallic;
     float ambient_occlusion;
 };
+
+float3x3 adjoint(float4x4 m) {
+    return float3x3(cross(m[1].xyz, m[2].xyz), cross(m[2].xyz, m[0].xyz), cross(m[0].xyz, m[1].xyz));
+}
 
 float distribution_ggx(float3 N, float3 H, float roughness) {
     float a2 = roughness * roughness * roughness * roughness;

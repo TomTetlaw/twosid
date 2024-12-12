@@ -15,8 +15,6 @@ Texture_Format :: enum {
 }
 
 init_texture_system :: () {
-    textures = create_typed_arena(Texture);
-    
     files := file_list("./textures");
     for files {
         if contains(it, ".png") {
@@ -26,7 +24,7 @@ init_texture_system :: () {
     }
     
     total_textures_size := 0;
-    for textures {
+    for * textures {
         total_textures_size += it.width * it.height * it.pixel_size;
         
         texture_info: SDL_GPUTextureCreateInfo;
@@ -49,7 +47,7 @@ init_texture_system :: () {
     transfer_memory := cast(*u8) SDL_MapGPUTransferBuffer(g_device, transfer_buffer, false);
     
     cursor := 0;
-    for textures {
+    for * textures {
         size := it.width * it.height * it.pixel_size;
         memcpy(transfer_memory + cursor, it.pixels, size);
         cursor += size;
@@ -61,7 +59,7 @@ init_texture_system :: () {
     copy_pass := SDL_BeginGPUCopyPass(command_buffer);
     
     cursor = 0;
-    for textures {
+    for * textures {
         size := it.width * it.height * it.pixel_size;
         info: SDL_GPUTextureTransferInfo;
         info.transfer_buffer = transfer_buffer;
@@ -81,27 +79,25 @@ init_texture_system :: () {
     
     SDL_EndGPUCopyPass(copy_pass);
     
-    for textures {
+    for * textures {
         SDL_GenerateMipmapsForGPUTexture(command_buffer, it.gpu_texture);
     }
     
     SDL_SubmitGPUCommandBuffer(command_buffer);
     SDL_ReleaseGPUTransferBuffer(g_device, transfer_buffer);
     
-    for textures {
+    for * textures {
         stb_image_free(it.pixels);
         it.pixels = null;
     }
 }
 
 load_texture :: (path: string) -> *Texture {
-    for textures {
-        if equal(it.path, path) return it;
-    }
+    for * textures if equal(it.path, path) return it;
     
     width, height, channels: s32;
     pixels := stb_load_image(path.data, *width, *height, *channels, 4);
-    if !pixels return *null_texture;
+    if !pixels return textures.null_value;
     
     texture := arena_push(*textures);
     texture.path = path;
@@ -132,9 +128,7 @@ create_texture :: (name: string, width: int, height: int, pixels: *u8, format: T
 
 #scope_file
 
-textures: Typed_Arena(Texture);
-
-null_texture := Texture.{};
+textures: Arena("textures", Texture);
 
 #import "Basic";
 #import "String";

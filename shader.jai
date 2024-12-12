@@ -9,9 +9,6 @@ shader_screen_space_mesh: Shader;
 shader_depth_pass: Shader;
 
 init_shader_system :: () {
-    shaders = create_typed_arena(Shader);
-    shader_arena = create_arena();
-    
     formats := SDL_GetGPUShaderFormats(g_device);
     if formats & SDL_GPU_SHADERFORMAT_DXIL {
         format_to_load = SDL_GPU_SHADERFORMAT_DXIL;
@@ -46,9 +43,8 @@ init_shader_system :: () {
 #import "Basic";
 #import "File";
 
-shader_arena: Arena;
-shaders: Typed_Arena(Shader);
-null_shader: Shader;
+shader_arena: Arena("shader_working");
+shaders: Arena("shaders", Shader);
 
 format_to_load: SDL_GPUShaderFormat;
 shader_format: string;

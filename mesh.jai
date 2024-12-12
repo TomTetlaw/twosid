@@ -53,12 +53,6 @@ Animation :: struct {
 }
 
 init_mesh_system :: () {
-    meshes = create_typed_arena(Mesh);
-    mesh_arena = create_arena();
-    
-    animations = create_typed_arena(Animation);
-    animation_arena = create_arena();
-    
     arena_push_mark_defer(*mesh_arena);
     
     files := file_list("./meshes");
@@ -74,7 +68,7 @@ init_mesh_system :: () {
     
     vertex_create_info: SDL_GPUBufferCreateInfo;
     vertex_create_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    for meshes {
+    for * meshes {
         it.position_buffer = create_vertex_buffer(g_device, tprint("%_position", it.path), size_of(Vec3), it.positions.count);
         it.tex_coord_buffer = create_vertex_buffer(g_device, tprint("%_tex_coord", it.path), size_of(Vec2), it.positions.count);
         it.normal_buffer = create_vertex_buffer(g_device, tprint("%_normal", it.path), size_of(Vec3), it.positions.count);
@@ -97,7 +91,7 @@ init_mesh_system :: () {
     transfer_memory := cast (*u8) SDL_MapGPUTransferBuffer(g_device, transfer_buffer, false);
     
     cursor := 0;
-    for meshes {
+    for * meshes {
         memcpy(transfer_memory + cursor, it.positions.data, it.positions.count * size_of(Vec3));
         cursor += it.positions.count * size_of(Vec3);
         
@@ -131,7 +125,7 @@ init_mesh_system :: () {
     region: SDL_GPUBufferRegion;
     region.offset = 0;
     
-    for meshes {
+    for * meshes {
         region.buffer = it.position_buffer;
         region.size = xx (it.positions.count * size_of(Vec3));
         SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
@@ -178,17 +172,17 @@ init_mesh_system :: () {
 //        Static_Mesh and Skeletal_Mesh
 
 load_mesh :: (path: string) -> *Mesh {
-    for meshes if equal(it.path, path) return it;
+    for * meshes if equal(it.path, path) return it;
     
     file, success := file_open(path);
     defer if success file_close(*file);
     
-    if !success return *null_mesh;
+    if !success return meshes.null_value;
     
     header := file_read_mesh_header(*file);
     if !equal(header.magic, "MESH") {
         print("Failed to load: % is not a mesh file!", path);
-        return *null_mesh;
+        return meshes.null_value;
     }
     
     positions := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
@@ -220,7 +214,7 @@ load_mesh :: (path: string) -> *Mesh {
         it.* = -1;
     }
     
-    for serialized_bones {
+    for * serialized_bones {
         bone: Bone;
         bone.id = it.id;
         bone.name = it.name;
@@ -276,17 +270,17 @@ find_bone :: (skeleton: *Skeleton, name: string) -> *Bone {
 }
 
 load_animation :: (path: string) -> *Animation {
-    for animations if equal(it.path, path) return it;
+    for * animations if equal(it.path, path) return it;
     
     file, success := file_open(path);
     defer if success file_close(*file);
     
-    if !success return *null_animation;
+    if !success return animations.null_value;
     
     header := file_read_anim_header(*file);
     if !equal(header.magic, "ANIM") {
         print("Failed to load: % is not an anim file!", path);
-        return *null_animation;
+        return animations.null_value;
     }
     
     name := file_read_string(*file, *animation_arena);
@@ -389,11 +383,8 @@ file_read_anim_header :: (file: *File) -> Anim_Header {
     return header;
 }
 
-null_mesh: Mesh;
-null_animation: Animation;
+meshes: Arena("meshes", Mesh);
+mesh_arena: Arena("mesh_working");
 
-meshes: Typed_Arena(Mesh);
-mesh_arena: Arena;
-
-animations: Typed_Arena(Animation);
-animation_arena: Arena;
+animations: Arena("animations", Animation);
+animation_arena: Arena("animation_working");

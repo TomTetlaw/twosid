@@ -20,6 +20,10 @@ set_common_options :: (options: *Build_Options) {
     options.text_output_flags = 0;
 }
 
+set_common_defines :: (workspace: Workspace) {
+    add_build_string("RECORD_ALLOCATIONS :: 0;\n", workspace);
+}
+
 build_linux :: () {
     workspace := compiler_create_workspace("Linux Build");
     options := get_build_options(workspace);
@@ -27,6 +31,8 @@ build_linux :: () {
     
     options.os_target = .LINUX;
     set_build_options(options, workspace);
+    
+    set_common_defines(workspace);
     
     add_all_files(workspace);
 }
@@ -39,6 +45,8 @@ build_windows :: () {
     options.os_target = .WINDOWS;
     options.use_natvis_compatible_types = true;
     set_build_options(options, workspace);
+    
+    set_common_defines(workspace);
     
     add_all_files(workspace);
 }

@@ -26,6 +26,10 @@ g_device: *SDL_GPUDevice;
 g_window: *SDL_Window;
 
 main :: () {
+    game_start_time := current_time_monotonic();
+    
+    init_memory_system();
+    
     if !SDL_Init(SDL_INIT_VIDEO) {
         fatal_error("Failed to initialize SDL: %", sdl_get_error());
     }
@@ -42,7 +46,6 @@ main :: () {
     
     print("SDL_GPU Driver: %\n", sdl_get_gpu_device_driver(g_device));
     
-    init_memory_system();
     init_shader_system();
     init_renderer();
     init_texture_system();
@@ -65,7 +68,7 @@ main :: () {
         
         // update time
         {
-            now := current_time_monotonic();
+            now := current_time_monotonic() - game_start_time;
             delta := now - old_time;
             
             real_time_f64 = to_float64_seconds(now);
@@ -104,6 +107,8 @@ main :: () {
         frame_keys.count = 0;
         arena_reset(*frame_arena);
     }
+    
+    shutdown_memory_system();
 }
 
 process_window_events :: () -> bool {
