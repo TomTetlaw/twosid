@@ -1,56 +1,4 @@
 
-add_all_files :: (workspace: Workspace) {
-    builder: String_Builder;
-    
-    files := file_list("./");
-    for files {
-        if !contains(it, ".jai") continue;
-        if contains(it, "first.jai") continue;
-        add_build_file(it, workspace);
-    }
-}
-
-set_common_options :: (options: *Build_Options) {
-    options.output_path = "run_tree";
-    options.intermediate_path = ".build/";
-    options.backend = .LLVM;
-    options.output_executable_name = "twosid";
-    options.debug_for_expansions = true;
-    set_optimization(options, .VERY_DEBUG);
-    options.text_output_flags = 0;
-}
-
-set_common_defines :: (workspace: Workspace) {
-    add_build_string("RECORD_ALLOCATIONS :: 0;\n", workspace);
-}
-
-build_linux :: () {
-    workspace := compiler_create_workspace("Linux Build");
-    options := get_build_options(workspace);
-    set_common_options(*options);
-    
-    options.os_target = .LINUX;
-    set_build_options(options, workspace);
-    
-    set_common_defines(workspace);
-    
-    add_all_files(workspace);
-}
-
-build_windows :: () {
-    workspace := compiler_create_workspace("Windows Build");
-    options := get_build_options(workspace);
-    set_common_options(*options);
-    
-    options.os_target = .WINDOWS;
-    options.use_natvis_compatible_types = true;
-    set_build_options(options, workspace);
-    
-    set_common_defines(workspace);
-    
-    add_all_files(workspace);
-}
-
 generate_sdl3_bindings :: () -> bool {
     options: Generate_Bindings_Options;
     options.strip_enum_prefixes = false;
@@ -60,7 +8,7 @@ generate_sdl3_bindings :: () -> bool {
     output_filename = "sdl_bindings.jai";
     
 #if OS == .WINDOWS {
-		array_add(*options.libnames, "sdl3.lib");
+        array_add(*options.libnames, "sdl3.lib");
     } else {
         report_error("Platform not supported.");
     }
@@ -142,6 +90,37 @@ compile_shaders_for_format :: (output_format: string) {
     }
 }
 
+build_game :: () {
+    workspace := compiler_create_workspace("Game build");
+    
+    options := get_build_options(workspace);
+    options.output_path = "run_tree";
+    options.intermediate_path = ".build/";
+    options.backend = .LLVM;
+    options.output_executable_name = "twosid";
+    options.debug_for_expansions = true;
+    set_optimization(*options, .VERY_DEBUG);
+    options.text_output_flags = 0;
+    
+#if OS == .WINDOWS {
+        options.use_natvis_compatible_types = true;
+    }
+    else #if OS == .LINUX {
+    }
+    else {
+        report_error("Platform not supported.");
+    }
+    
+    set_build_options(*options, workspace);
+    
+    files := file_list("./");
+    for files {
+        if !contains(it, ".jai") continue;
+        if contains(it, "first.jai") continue;
+        add_build_file(it, workspace);
+    }
+}
+
 build :: () {
     set_build_options_dc(.{do_output = false});
     
@@ -168,15 +147,7 @@ build :: () {
         compile_shaders_for_format("json");
     }
     
-#if OS == .WINDOWS {
-        build_windows();
-    }
-    else #if OS == .LINUX {
-        build_linux();
-    }
-    else {
-        report_error("Platform not supported.");
-    }
+    build_game();
 }
 
 #run build();
@@ -191,3 +162,4 @@ build :: () {
 #import "Process";
 #import "Command_Line";
 #import "Bindings_Generator";
+#import "Hash_Table";

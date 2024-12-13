@@ -1,310 +1,310 @@
 
-Bone_Ids :: struct {
+bone_ids :: struct {
     a, b, c, d: s16;
 }
 
-Bone :: struct {
-    id: int;
-    name: string;
-    local_bind_transform: Mat4;
-    inverse_bind_transform: Mat4;
-    parent: *Bone;
+bone :: struct {
+    Id: int;
+    Name: string;
+    LocalBindTransform: float4x4;
+    InverseBindTransform: float4x4;
+    Parent: *bone;
 }
 
-Skeleton :: struct {
-    bones: [] Bone;
-    bone_name_map: [] int;
+skeleton :: struct {
+    Bones: [] bone;
+    BoneNameMap: [] int;
 }
 
-Mesh :: struct {
-    path: string;
-    positions: [] Vec3;
-    tex_coords: [] Vec2;
-    normals: [] Vec3;
-    tangents: [] Vec3;
-    weights: [] Vec3;
-    bone_ids: [] Bone_Ids;
-    indices: [] u32;
+mesh :: struct {
+    Path: string;
+    Positions: [] float3;
+    TexCoords: [] float2;
+    Normals: [] float3;
+    Tangents: [] float3;
+    Weights: [] float3;
+    BoneIds: [] bone_ids;
+    Indices: [] u32;
     
-    num_indices: int;
-    position_buffer: *SDL_GPUBuffer;
-    tex_coord_buffer: *SDL_GPUBuffer;
-    normal_buffer: *SDL_GPUBuffer;
-    tangent_buffer: *SDL_GPUBuffer;
-    weight_buffer: *SDL_GPUBuffer;
-    bone_ids_buffer: *SDL_GPUBuffer;
-    index_buffer: *SDL_GPUBuffer;
+    NumIndices: int;
+    PositionBuffer: *SDL_GPUBuffer;
+    TexCoordBuffer: *SDL_GPUBuffer;
+    NormalBuffer: *SDL_GPUBuffer;
+    TangentBuffer: *SDL_GPUBuffer;
+    WeightBuffer: *SDL_GPUBuffer;
+    BoneIdsBuffer: *SDL_GPUBuffer;
+    IndexBuffer: *SDL_GPUBuffer;
     
-    skeleton: *Skeleton;
+    Skeleton: *skeleton;
     
-    min_bounds: Vec3;
-    max_bounds: Vec3;
+    MinBounds: float3;
+    MaxBounds: float3;
 }
 
-Animation :: struct {
-    path: string;
-    name: string;
-    bone_names: [] string;
-    bone_count: int;
-    sample_count: int;
-    positions: [] Vec3;
-    rotations: [] Quaternion;
-    scales: [] Vec3;
+animation :: struct {
+    Path: string;
+    Name: string;
+    BoneNames: [] string;
+    BoneCount: int;
+    SampleCount: int;
+    Positions: [] float3;
+    Rotations: [] quat;
+    Scales: [] float3;
 }
 
-init_mesh_system :: () {
-    arena_push_mark_defer(*mesh_arena);
+InitMeshSystem :: () {
+    ArenaPushMarkDefer(*MeshArena);
     
-    files := file_list("./meshes");
-    for files {
+    Files := file_list("./Meshes");
+    for Files {
         if contains(it, ".mesh_text") continue;
         if contains(it, ".mesh") {
             path, base_name, ext := path_decomp(it);
-            load_mesh(tprint("meshes/%.%", base_name, ext));
+            LoadMesh(tprint("Meshes/%.%", base_name, ext));
         }
     }
     
-    total_meshes_size := 0;
+    TotalMeshesSize := 0;
     
-    vertex_create_info: SDL_GPUBufferCreateInfo;
-    vertex_create_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    for * meshes {
-        it.position_buffer = create_vertex_buffer(g_device, tprint("%_position", it.path), size_of(Vec3), it.positions.count);
-        it.tex_coord_buffer = create_vertex_buffer(g_device, tprint("%_tex_coord", it.path), size_of(Vec2), it.positions.count);
-        it.normal_buffer = create_vertex_buffer(g_device, tprint("%_normal", it.path), size_of(Vec3), it.positions.count);
-        it.tangent_buffer = create_vertex_buffer(g_device, tprint("%_tangent", it.path), size_of(Vec3), it.positions.count);
-        it.weight_buffer = create_vertex_buffer(g_device, tprint("%_weight", it.path), size_of(Vec3), it.positions.count);
-        it.bone_ids_buffer = create_vertex_buffer(g_device, tprint("%_bone_ids", it.path), size_of(Bone_Ids), it.positions.count);
+    VertexCreateInfo: SDL_GPUBufferCreateInfo;
+    VertexCreateInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+    for * Meshes {
+        it.PositionBuffer = CreateVertexBuffer(GDevice, tprint("%_position", it.Path), size_of(float3), it.Positions.count);
+        it.TexCoordBuffer = CreateVertexBuffer(GDevice, tprint("%_tex_coord", it.Path), size_of(float2), it.Positions.count);
+        it.NormalBuffer = CreateVertexBuffer(GDevice, tprint("%_normal", it.Path), size_of(float3), it.Positions.count);
+        it.TangentBuffer = CreateVertexBuffer(GDevice, tprint("%_tangent", it.Path), size_of(float3), it.Positions.count);
+        it.WeightBuffer = CreateVertexBuffer(GDevice, tprint("%_weight", it.Path), size_of(float3), it.Positions.count);
+        it.BoneIdsBuffer = CreateVertexBuffer(GDevice, tprint("%_bone_ids", it.Path), size_of(bone_ids), it.Positions.count);
         
-        it.index_buffer = create_index_buffer(g_device, tprint("%_index", it.path), it.indices.count);
+        it.IndexBuffer = CreateIndexBuffer(GDevice, tprint("%_index", it.Path), it.Indices.count);
         
-        vertex_size :: 14 * size_of(float) + size_of(Bone_Ids);
-        total_meshes_size += vertex_size * it.positions.count;
-        total_meshes_size += size_of(u32) * it.indices.count;
+        VERTEX_SIZE :: 14 * size_of(float) + size_of(bone_ids);
+        TotalMeshesSize += VERTEX_SIZE * it.Positions.count;
+        TotalMeshesSize += size_of(u32) * it.Indices.count;
     }
     
-    create_info: SDL_GPUTransferBufferCreateInfo;
-    create_info.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    create_info.size = xx total_meshes_size;
-    transfer_buffer := SDL_CreateGPUTransferBuffer(g_device, *create_info);
+    CreateInfo: SDL_GPUTransferBufferCreateInfo;
+    CreateInfo.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    CreateInfo.size = xx TotalMeshesSize;
+    TransferBuffer := SDL_CreateGPUTransferBuffer(GDevice, *CreateInfo);
     
-    transfer_memory := cast (*u8) SDL_MapGPUTransferBuffer(g_device, transfer_buffer, false);
+    TransferMemory := cast (*u8) SDL_MapGPUTransferBuffer(GDevice, TransferBuffer, false);
     
-    cursor := 0;
-    for * meshes {
-        memcpy(transfer_memory + cursor, it.positions.data, it.positions.count * size_of(Vec3));
-        cursor += it.positions.count * size_of(Vec3);
+    Cursor := 0;
+    for * Meshes {
+        memcpy(TransferMemory + Cursor, it.Positions.data, it.Positions.count * size_of(float3));
+        Cursor += it.Positions.count * size_of(float3);
         
-        memcpy(transfer_memory + cursor, it.tex_coords.data, it.positions.count * size_of(Vec2));
-        cursor += it.positions.count * size_of(Vec2);
+        memcpy(TransferMemory + Cursor, it.TexCoords.data, it.Positions.count * size_of(float2));
+        Cursor += it.Positions.count * size_of(float2);
         
-        memcpy(transfer_memory + cursor, it.normals.data, it.positions.count * size_of(Vec3));
-        cursor += it.positions.count * size_of(Vec3);
+        memcpy(TransferMemory + Cursor, it.Normals.data, it.Positions.count * size_of(float3));
+        Cursor += it.Positions.count * size_of(float3);
         
-        memcpy(transfer_memory + cursor, it.tangents.data, it.positions.count * size_of(Vec4));
-        cursor += it.positions.count * size_of(Vec3);
+        memcpy(TransferMemory + Cursor, it.Tangents.data, it.Positions.count * size_of(float4));
+        Cursor += it.Positions.count * size_of(float3);
         
-        memcpy(transfer_memory + cursor, it.weights.data, it.positions.count * size_of(Vec3));
-        cursor += it.positions.count * size_of(Vec3);
+        memcpy(TransferMemory + Cursor, it.Weights.data, it.Positions.count * size_of(float3));
+        Cursor += it.Positions.count * size_of(float3);
         
-        memcpy(transfer_memory + cursor, it.bone_ids.data, it.positions.count * size_of(Bone_Ids));
-        cursor += it.positions.count * size_of(Bone_Ids);
+        memcpy(TransferMemory + Cursor, it.BoneIds.data, it.Positions.count * size_of(bone_ids));
+        Cursor += it.Positions.count * size_of(bone_ids);
         
-        memcpy(transfer_memory + cursor, it.indices.data, it.indices.count * size_of(u32));
-        cursor += it.indices.count * size_of(u32);
+        memcpy(TransferMemory + Cursor, it.Indices.data, it.Indices.count * size_of(u32));
+        Cursor += it.Indices.count * size_of(u32);
     }
     
-    SDL_UnmapGPUTransferBuffer(g_device, transfer_buffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, TransferBuffer);
     
-    command_buffer := SDL_AcquireGPUCommandBuffer(g_device);
-    copy_pass := SDL_BeginGPUCopyPass(command_buffer);
+    CommandBuffer := SDL_AcquireGPUCommandBuffer(GDevice);
+    CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
     
-    location: SDL_GPUTransferBufferLocation;
-    location.transfer_buffer = transfer_buffer;
+    Location: SDL_GPUTransferBufferLocation;
+    Location.transfer_buffer = TransferBuffer;
     
-    region: SDL_GPUBufferRegion;
-    region.offset = 0;
+    Region: SDL_GPUBufferRegion;
+    Region.offset = 0;
     
-    for * meshes {
-        region.buffer = it.position_buffer;
-        region.size = xx (it.positions.count * size_of(Vec3));
-        SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
-        location.offset += xx (it.positions.count * size_of(Vec3));
+    for * Meshes {
+        Region.buffer = it.PositionBuffer;
+        Region.size = xx (it.Positions.count * size_of(float3));
+        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
+        Location.offset += xx (it.Positions.count * size_of(float3));
         
-        region.buffer = it.tex_coord_buffer;
-        region.size = xx (it.positions.count * size_of(Vec2));
-        SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
-        location.offset += xx (it.positions.count * size_of(Vec2));
+        Region.buffer = it.TexCoordBuffer;
+        Region.size = xx (it.Positions.count * size_of(float2));
+        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
+        Location.offset += xx (it.Positions.count * size_of(float2));
         
-        region.buffer = it.normal_buffer;
-        region.size = xx (it.positions.count * size_of(Vec3));
-        SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
-        location.offset += xx (it.positions.count * size_of(Vec3));
+        Region.buffer = it.NormalBuffer;
+        Region.size = xx (it.Positions.count * size_of(float3));
+        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
+        Location.offset += xx (it.Positions.count * size_of(float3));
         
-        region.buffer = it.tangent_buffer;
-        region.size = xx (it.positions.count * size_of(Vec3));
-        SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
-        location.offset += xx (it.positions.count * size_of(Vec3));
+        Region.buffer = it.TangentBuffer;
+        Region.size = xx (it.Positions.count * size_of(float3));
+        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
+        Location.offset += xx (it.Positions.count * size_of(float3));
         
-        region.buffer = it.weight_buffer;
-        region.size = xx (it.positions.count * size_of(Vec3));
-        SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
-        location.offset += xx (it.positions.count * size_of(Vec3));
+        Region.buffer = it.WeightBuffer;
+        Region.size = xx (it.Positions.count * size_of(float3));
+        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
+        Location.offset += xx (it.Positions.count * size_of(float3));
         
-        region.buffer = it.bone_ids_buffer;
-        region.size = xx (it.positions.count * size_of(Bone_Ids));
-        SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
-        location.offset += xx (it.positions.count * size_of(Bone_Ids));
+        Region.buffer = it.BoneIdsBuffer;
+        Region.size = xx (it.Positions.count * size_of(bone_ids));
+        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
+        Location.offset += xx (it.Positions.count * size_of(bone_ids));
         
-        region.buffer = it.index_buffer;
-        region.size = xx (it.indices.count * size_of(u32));
-        SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
-        location.offset += xx (it.indices.count * size_of(u32));
+        Region.buffer = it.IndexBuffer;
+        Region.size = xx (it.Indices.count * size_of(u32));
+        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
+        Location.offset += xx (it.Indices.count * size_of(u32));
     }
     
-    SDL_EndGPUCopyPass(copy_pass);
-    SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(g_device, transfer_buffer);
+    SDL_EndGPUCopyPass(CopyPass);
+    SDL_SubmitGPUCommandBuffer(CommandBuffer);
+    SDL_ReleaseGPUTransferBuffer(GDevice, TransferBuffer);
 }
 
-// @todo: don't load bone ids and weights if not needed;
-//        by which i mean, have two types of mesh:
+// @todo: don't load bone ids and Weights if not needed;
+//        by which i mean, have two types of Mesh:
 //        Static_Mesh and Skeletal_Mesh
 
-load_mesh :: (path: string) -> *Mesh {
-    for * meshes if equal(it.path, path) return it;
+LoadMesh :: (Path: string) -> *mesh {
+    for * Meshes if equal(it.Path, Path) return it;
     
-    file, success := file_open(path);
-    defer if success file_close(*file);
+    File, Success := file_open(Path);
+    defer if Success file_close(*File);
     
-    if !success return meshes.null_value;
+    if !Success return *Meshes.NullValue;
     
-    header := file_read_mesh_header(*file);
-    if !equal(header.magic, "MESH") {
-        print("Failed to load: % is not a mesh file!", path);
-        return meshes.null_value;
+    Header := FileReadMeshHeader(*File);
+    if !equal(Header.Magic, "MESH") {
+        print("Failed to load: % is not a mesh File!", Path);
+        return *Meshes.NullValue;
     }
     
-    positions := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
-    tex_coords := file_read_array(*file, *mesh_arena, Vec2, header.num_vertices);
-    normals := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
-    tangents := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
-    weights := file_read_array(*file, *mesh_arena, Vec3, header.num_vertices);
-    bone_ids := file_read_array(*file, *mesh_arena, Bone_Ids, header.num_vertices);
-    indices := file_read_array(*file, *mesh_arena, u32, header.num_indices);
-    serialized_bones := file_read_bones(*file, *mesh_arena, header.num_bones);
+    Positions := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
+    TexCoords := FileReadArray(*File, *MeshArena, float2, Header.NumVertices);
+    Normals := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
+    Tangents := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
+    Weights := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
+    BoneIds := FileReadArray(*File, *MeshArena, bone_ids, Header.NumVertices);
+    Indices := FileReadArray(*File, *MeshArena, u32, Header.NumIndices);
+    SerializedBones := FileReadBones(*File, *MeshArena, Header.NumBones);
     
-    min_bounds := Vec3.{FLOAT32_MAX, FLOAT32_MAX, FLOAT32_MAX};
-    max_bounds := Vec3.{FLOAT32_MIN, FLOAT32_MIN, FLOAT32_MIN};
+    MinBounds := float3.{FLOAT32_MAX, FLOAT32_MAX, FLOAT32_MAX};
+    MaxBounds := float3.{FLOAT32_MIN, FLOAT32_MIN, FLOAT32_MIN};
     
-    for positions {
-        min_bounds.x = min(min_bounds.x, it.x);
-        min_bounds.y = min(min_bounds.y, it.y);
-        min_bounds.z = min(min_bounds.z, it.z);
+    for Positions {
+        MinBounds.x = min(MinBounds.x, it.x);
+        MinBounds.y = min(MinBounds.y, it.y);
+        MinBounds.z = min(MinBounds.z, it.z);
         
-        max_bounds.x = max(max_bounds.x, it.x);
-        max_bounds.y = max(max_bounds.y, it.y);
-        max_bounds.z = max(max_bounds.z, it.z);
+        MaxBounds.x = max(MaxBounds.x, it.x);
+        MaxBounds.y = max(MaxBounds.y, it.y);
+        MaxBounds.z = max(MaxBounds.z, it.z);
     }
     
-    bones := arena_push_n(*mesh_arena, Bone, xx header.num_bones);
-    bone_name_map := arena_push_n(*mesh_arena, int, BONE_NAME_MAP_SIZE);
+    Bones := ArenaPushN(*MeshArena, bone, xx Header.NumBones);
+    BoneNameMap := ArenaPushN(*MeshArena, int, BONE_NAME_MAP_SIZE);
     
-    for * bone_name_map {
+    for * BoneNameMap {
         it.* = -1;
     }
     
-    for * serialized_bones {
-        bone: Bone;
-        bone.id = it.id;
-        bone.name = it.name;
+    for * SerializedBones {
+        Bone: bone;
+        Bone.Id = it.Id;
+        Bone.Name = it.Name;
         
-        bone.local_bind_transform = it.transform;
+        Bone.LocalBindTransform = it.Transform;
         
-        if it.parent == -1 {
-            bone.parent = null;
-            bone.inverse_bind_transform = bone.local_bind_transform;
+        if it.Parent == -1 {
+            Bone.Parent = null;
+            Bone.InverseBindTransform = Bone.LocalBindTransform;
         } else {
-            bone.parent = *bones[it.parent];
-            bone.inverse_bind_transform = bone.parent.inverse_bind_transform * bone.local_bind_transform;
+            Bone.Parent = *Bones[it.Parent];
+            Bone.InverseBindTransform = Bone.Parent.InverseBindTransform * Bone.LocalBindTransform;
         }
         
-        hash := djb2_hash(it.name) % BONE_NAME_MAP_SIZE;
-        assert(bone_name_map[hash] == -1);
+        Hash := djb2_hash(it.Name) % BONE_NAME_MAP_SIZE;
+        assert(BoneNameMap[Hash] == -1);
         
-        bone_name_map[hash] = it_index;
+        BoneNameMap[Hash] = it_index;
         
-        bones[it_index] = bone;
+        Bones[it_index] = Bone;
     }
     
-    for * bones {
-        it.inverse_bind_transform = mat4_inverse(it.inverse_bind_transform);
+    for * Bones {
+        it.InverseBindTransform = Mat4Inverse(it.InverseBindTransform);
     }
     
-    skeleton := arena_push(*mesh_arena, Skeleton);
-    skeleton.bones = bones;
-    skeleton.bone_name_map = bone_name_map;
+    Skeleton := ArenaPush(*MeshArena, skeleton);
+    Skeleton.Bones = Bones;
+    Skeleton.BoneNameMap = BoneNameMap;
     
-    mesh := arena_push(*meshes);
+    Mesh := ArenaPush(*Meshes);
     
-    mesh.positions = positions;
-    mesh.tex_coords = tex_coords;
-    mesh.normals = normals;
-    mesh.tangents = tangents;
-    mesh.indices = indices;
-    mesh.weights = weights;
-    mesh.bone_ids = bone_ids;
+    Mesh.Positions = Positions;
+    Mesh.TexCoords = TexCoords;
+    Mesh.Normals = Normals;
+    Mesh.Tangents = Tangents;
+    Mesh.Indices = Indices;
+    Mesh.Weights = Weights;
+    Mesh.BoneIds = BoneIds;
     
-    mesh.path = path;
-    mesh.skeleton = skeleton;
-    mesh.num_indices = indices.count;
-    mesh.min_bounds = min_bounds;
-    mesh.max_bounds = max_bounds;
+    Mesh.Path = Path;
+    Mesh.Skeleton = Skeleton;
+    Mesh.NumIndices = Indices.count;
+    Mesh.MinBounds = MinBounds;
+    Mesh.MaxBounds = MaxBounds;
     
-    return mesh;
+    return Mesh;
 }
 
-find_bone :: (skeleton: *Skeleton, name: string) -> *Bone {
-    hash := djb2_hash(name) % BONE_NAME_MAP_SIZE;
-    return *skeleton.bones[skeleton.bone_name_map[hash]];
+FindBone :: (Skeleton: *skeleton, Name: string) -> *bone {
+    Hash := djb2_hash(Name) % BONE_NAME_MAP_SIZE;
+    return *Skeleton.Bones[Skeleton.BoneNameMap[Hash]];
 }
 
-load_animation :: (path: string) -> *Animation {
-    for * animations if equal(it.path, path) return it;
+LoadAnimation :: (Path: string) -> *animation {
+    for * Animations if equal(it.Path, Path) return it;
     
-    file, success := file_open(path);
-    defer if success file_close(*file);
+    File, Success := file_open(Path);
+    defer if Success file_close(*File);
     
-    if !success return animations.null_value;
+    if !Success return *Animations.NullValue;
     
-    header := file_read_anim_header(*file);
-    if !equal(header.magic, "ANIM") {
-        print("Failed to load: % is not an anim file!", path);
-        return animations.null_value;
+    Header := FileReadAnimHeader(*File);
+    if !equal(Header.Magic, "ANIM") {
+        print("Failed to load: % is not an Anim File!", Path);
+        return *Animations.NullValue;
     }
     
-    name := file_read_string(*file, *animation_arena);
+    Name := FileReadString(*File, *AnimationArena);
     
-    bone_names := arena_push_n(*animation_arena, string, xx header.bone_count);
-    for 0..header.bone_count-1 {
-        bone_names[it] = file_read_string(*file, *animation_arena);
+    BoneNames := ArenaPushN(*AnimationArena, string, xx Header.BoneCount);
+    for 0..Header.BoneCount-1 {
+        BoneNames[it] = FileReadString(*File, *AnimationArena);
     }
     
-    positions := file_read_array(*file, *animation_arena, Vec3, header.bone_count * header.sample_count);
-    rotations := file_read_array(*file, *animation_arena, Quaternion, header.bone_count * header.sample_count);
-    scales := file_read_array(*file, *animation_arena, Vec3, header.bone_count * header.sample_count);
+    Positions := FileReadArray(*File, *AnimationArena, float3, Header.BoneCount * Header.SampleCount);
+    Rotations := FileReadArray(*File, *AnimationArena, quat, Header.BoneCount * Header.SampleCount);
+    Scales := FileReadArray(*File, *AnimationArena, float3, Header.BoneCount * Header.SampleCount);
     
-    anim := arena_push(*animations);
-    anim.name = name;
-    anim.path = path;
-    anim.sample_count = header.sample_count;
-    anim.bone_count = header.bone_count;
-    anim.bone_names = bone_names;
-    anim.positions = positions;
-    anim.rotations = rotations;
-    anim.scales = scales;
+    Anim := ArenaPush(*Animations);
+    Anim.Name = Name;
+    Anim.Path = Path;
+    Anim.SampleCount = Header.SampleCount;
+    Anim.BoneCount = Header.BoneCount;
+    Anim.BoneNames = BoneNames;
+    Anim.Positions = Positions;
+    Anim.Rotations = Rotations;
+    Anim.Scales = Scales;
     
-    return anim;
+    return Anim;
 }
 
 #scope_file
@@ -316,75 +316,75 @@ load_animation :: (path: string) -> *Animation {
 
 BONE_NAME_MAP_SIZE :: 2048;
 
-Mesh_Header :: struct {
-    magic: string;
-    num_vertices: int;
-    num_indices: int;
-    num_bones: int;
+mesh_header :: struct {
+    Magic: string;
+    NumVertices: int;
+    NumIndices: int;
+    NumBones: int;
 }
 
-Anim_Header :: struct {
-    magic: string;
-    sample_count: int;
-    bone_count: int;
+anim_header :: struct {
+    Magic: string;
+    SampleCount: int;
+    BoneCount: int;
 }
 
-Serialized_Bone :: struct {
-    id: s16;
-    parent: s16;
-    name: string;
-    transform: Mat4;
+serialized_bone :: struct {
+    Id: s16;
+    Parent: s16;
+    Name: string;
+    Transform: float4x4;
 }
 
-Serialized_Animation :: struct {
-    name: string;
-    sample_count: int;
-    bone_names: [..] string;
-    positions: [..] Vec3;
-    rotations: [..] Quaternion;
-    scales: [..] Vec3;
+serialized_animation :: struct {
+    Name: string;
+    SampleCount: int;
+    BoneNames: [..] string;
+    Positions: [..] float3;
+    Rotations: [..] quat;
+    Scales: [..] float3;
 }
 
-file_read_bones :: (file: *File, arena: *Arena, count: int) -> [] Serialized_Bone {
-    bones := arena_push_n(arena, Serialized_Bone, xx count);
+FileReadBones :: (f: *File, Arena: *arena, Count: int) -> [] serialized_bone {
+    Bones := ArenaPushN(Arena, serialized_bone, xx Count);
     
-    for 0..count-1 {
-        name := file_read_string(file, arena);
+    for 0..Count-1 {
+        Name := FileReadString(f, Arena);
         
-        id: s16;
-        file_read(file, *id, size_of(s16));
+        Id: s16;
+        file_read(f, *Id, size_of(s16));
         
-        parent: s16;
-        file_read(file, *parent, size_of(s16));
+        Parent: s16;
+        file_read(f, *Parent, size_of(s16));
         
-        transform: Mat4;
-        file_read(file, transform.floats.data, size_of(float) * 16);
+        Transform: float4x4;
+        file_read(f, Transform.floats.data, size_of(float) * 16);
         
-        bones[it] = Serialized_Bone.{id, parent, name, transform};
+        Bones[it] = serialized_bone.{Id, Parent, Name, Transform};
     }
     
-    return bones;
+    return Bones;
 }
 
-file_read_mesh_header :: (file: *File) -> Mesh_Header {
-    header: Mesh_Header;
-    header.magic = file_read_string(file, *mesh_arena);
-    file_read(file, *header.num_vertices, size_of(int));
-    file_read(file, *header.num_indices, size_of(int));
-    file_read(file, *header.num_bones, size_of(int));
-    return header;
+FileReadMeshHeader :: (f: *File) -> mesh_header {
+    Header: mesh_header;
+    Header.Magic = FileReadString(f, *MeshArena);
+    file_read(f, *Header.NumVertices, size_of(int));
+    file_read(f, *Header.NumIndices, size_of(int));
+    file_read(f, *Header.NumBones, size_of(int));
+    return Header;
 }
 
-file_read_anim_header :: (file: *File) -> Anim_Header {
-    header: Anim_Header;
-    header.magic = file_read_string(file, *animation_arena);
-    file_read(file, *header.sample_count, size_of(int));
-    file_read(file, *header.bone_count, size_of(int));
-    return header;
+FileReadAnimHeader :: (f: *File) -> anim_header {
+    Header: anim_header;
+    Header.Magic = FileReadString(f, *AnimationArena);
+    file_read(f, *Header.SampleCount, size_of(int));
+    file_read(f, *Header.BoneCount, size_of(int));
+    return Header;
 }
 
-meshes: Arena("meshes", Mesh);
-mesh_arena: Arena("mesh_working");
+Meshes: arena(mesh);
+MeshArena: arena;
 
-animations: Arena("animations", Animation);
-animation_arena: Arena("animation_working");
+Animations: arena(animation);
+AnimationArena: arena;

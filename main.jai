@@ -1,127 +1,126 @@
 
-real_time, game_time, real_delta_time, delta_time: float;
-game_paused := false;
+RealTime, GameTime, RealDeltaTime, DeltaTime: float;
+GamePaused := false;
 
 WINDOW_WIDTH :: 1366;
 WINDOW_HEIGHT :: 768;
 
-Mouse :: struct {
-    delta: Vec2;
-    position: Vec2;
+mouse :: struct {
+    Delta: float2;
+    Position: float2;
 }
 
-frame_keys: [..] SDL_Scancode;
-mouse: Mouse;
+FrameKeys: [..] SDL_Scancode;
+Mouse: mouse;
 
-key_pressed :: (code: SDL_Scancode) -> bool {
-    for frame_keys if it == code return true;
+KeyPressed :: (c: SDL_Scancode) -> bool {
+    for FrameKeys if it == c return true;
     return false;
 }
 
-key_state :: (code: SDL_Scancode) -> float {
-    return ifx key_states[code] then 1.0 else 0.0;
+KeyState :: (c: SDL_Scancode) -> float {
+    if KeyStates[c] return 1.0;
+    return 0.0;
 }
 
-g_device: *SDL_GPUDevice;
-g_window: *SDL_Window;
+GDevice: *SDL_GPUDevice;
+GWindow: *SDL_Window;
 
 main :: () {
-    game_start_time := current_time_monotonic();
+    GameStartTime := current_time_monotonic();
     
-    init_memory_system();
+    InitMemorySystem();
     
     if !SDL_Init(SDL_INIT_VIDEO) {
-        fatal_error("Failed to initialize SDL: %", sdl_get_error());
+        FatalError("Failed to initialize SDL: %", SdlGetError());
     }
     
-    window_name := "twosid";
-    g_window = SDL_CreateWindow(window_name.data, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
-    if !g_window fatal_error("Failed to create window: %", sdl_get_error());
+    WindowName := "twosid";
+    GWindow = SDL_CreateWindow(WindowName.data, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+    if !GWindow FatalError("Failed to create window: %", SdlGetError());
     
-    shader_formats := cast(u32) SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_SPIRV;
-    g_device = SDL_CreateGPUDevice(shader_formats, true, null);
-    if !g_device fatal_error("Failed to create gpu device: %", sdl_get_error());
+    ShaderFormats := cast(u32) SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_SPIRV;
+    GDevice = SDL_CreateGPUDevice(ShaderFormats, true, null);
+    if !GDevice FatalError("Failed to create gpu Device: %", SdlGetError());
     
-    if !SDL_ClaimWindowForGPUDevice(g_device, g_window) fatal_error("Failed to claim window for GPU device: %", sdl_get_error());
+    if !SDL_ClaimWindowForGPUDevice(GDevice, GWindow) FatalError("Failed to claim window for GPU Device: %", SdlGetError());
     
-    print("SDL_GPU Driver: %\n", sdl_get_gpu_device_driver(g_device));
+    print("SDL_GPU Driver: %\n", SdlGetGpuDeviceDriver());
     
-    init_shader_system();
-    init_renderer();
-    init_texture_system();
-    init_mesh_system();
+    InitShaderSystem();
+    InitRenderer();
+    InitTextureSystem();
+    InitMeshSystem();
     
-    key_states = SDL_GetKeyboardState(null);
-    SDL_SetWindowRelativeMouseMode(g_window, true);
+    KeyStates = SDL_GetKeyboardState(null);
+    SDL_SetWindowRelativeMouseMode(GWindow, true);
     
-    camera: Camera;
+    Camera: camera;
     
-    old_time = current_time_monotonic();
-    quit := false;
-    while !quit {
-        // reset to zero so the event can fill these for just one frame
-        mouse.delta.x = 0;
-        mouse.delta.y = 0;
+    OldTime = current_time_monotonic();
+    Quit := false;
+    while !Quit {
+        // reset to Zero so the Event can fill these for just one frame
+        Mouse.Delta.x = 0;
+        Mouse.Delta.y = 0;
         
-        quit = process_window_events();
-        if quit break;
+        Quit = ProcessWindowEvents();
+        if Quit break;
         
-        // update time
+        // update Time
         {
-            now := current_time_monotonic() - game_start_time;
-            delta := now - old_time;
+            Now := current_time_monotonic() - GameStartTime;
+            Delta := Now - OldTime;
             
-            real_time_f64 = to_float64_seconds(now);
-            real_delta_time_f64 = to_float64_seconds(delta);
+            RealTimeF64 = to_float64_seconds(Now);
+            RealDeltaTimeF64 = to_float64_seconds(Delta);
             
-            if game_paused {
-                delta_time_f64 = 0.0;
+            if GamePaused {
+                DeltaTimeF64 = 0.0;
             } else {
-                delta_time_f64 = real_delta_time_f64;
-                game_time_f64 += delta_time_f64;
+                DeltaTimeF64 = RealDeltaTimeF64;
+                GameTimeF64 += DeltaTimeF64;
             }
             
-            real_time = xx real_time_f64;
-            game_time = xx game_time_f64;
-            real_delta_time = xx real_delta_time_f64;
-            delta_time = xx delta_time_f64;
+            RealTime = xx RealTimeF64;
+            GameTime = xx GameTimeF64;
+            RealDeltaTime = xx RealDeltaTimeF64;
+            DeltaTime = xx DeltaTimeF64;
             
-            old_time = now;
+            OldTime = Now;
         }
         
-        // update mouse
+        // update Mouse
         {
             x, y: float;
             SDL_GetMouseState(*x, *y);
             
-            pos := Vec2.{xx x, xx y};
+            Pos := float2.{xx x, xx y};
             
-            mouse.position.x = pos.x;
-            mouse.position.y = pos.y;
+            Mouse.Position.x = Pos.x;
+            Mouse.Position.y = Pos.y;
         }
         
-        update_camera(*camera);
+        UpdateCamera(*Camera);
         
-        draw_frame(*camera);
+        DrawFrame(*Camera);
         
-        frame_keys.count = 0;
-        arena_reset(*frame_arena);
+        FrameKeys.count = 0;
+        ArenaReset(*FrameArena);
     }
-    
-    shutdown_memory_system();
 }
 
-process_window_events :: () -> bool {
-    event: SDL_Event;
-    while SDL_PollEvent(*event) {
-        if is_event_type(*event, .SDL_EVENT_QUIT) return true;
+ProcessWindowEvents :: () -> bool {
+    Event: SDL_Event;
+    while SDL_PollEvent(*Event) {
+        if IsEventType(*Event, .SDL_EVENT_QUIT) return true;
         
-        if is_event_type(*event, .SDL_EVENT_KEY_DOWN) {
-            if event.key.scancode == .ESCAPE return true;
-            array_add(*frame_keys, event.key.scancode);
-        } else if is_event_type(*event, .MOUSE_MOTION) {
-            mouse.delta.x = xx event.motion.xrel;
-            mouse.delta.y = xx event.motion.yrel;
+        if IsEventType(*Event, .SDL_EVENT_KEY_DOWN) {
+            if Event.key.scancode == .ESCAPE return true;
+            array_add(*FrameKeys, Event.key.scancode);
+        } else if IsEventType(*Event, .MOUSE_MOTION) {
+            Mouse.Delta.x = xx Event.motion.xrel;
+            Mouse.Delta.y = xx Event.motion.yrel;
         }
     }
     
@@ -137,7 +136,7 @@ process_window_events :: () -> bool {
 #import "Process";
 #import "Print_Vars";
 
-key_states: *bool;
+KeyStates: *bool;
 
-old_time: Apollo_Time;
-real_time_f64, game_time_f64, real_delta_time_f64, delta_time_f64: float64;
+OldTime: Apollo_Time;
+RealTimeF64, GameTimeF64, RealDeltaTimeF64, DeltaTimeF64: float64;

@@ -1,41 +1,41 @@
 
-Shader :: struct {
-    vert: *SDL_GPUShader;
-    frag: *SDL_GPUShader;
+shader :: struct {
+    Vert: *SDL_GPUShader;
+    Frag: *SDL_GPUShader;
 }
 
-shader_mesh: Shader;
-shader_screen_space_mesh: Shader;
-shader_depth_pass: Shader;
+ShaderMesh: shader;
+ShaderScreenSpaceMesh: shader;
+ShaderDepthPass: shader;
 
-init_shader_system :: () {
-    formats := SDL_GetGPUShaderFormats(g_device);
-    if formats & SDL_GPU_SHADERFORMAT_DXIL {
-        format_to_load = SDL_GPU_SHADERFORMAT_DXIL;
-    } else if formats & SDL_GPU_SHADERFORMAT_DXBC {
-        format_to_load = SDL_GPU_SHADERFORMAT_DXBC;
-    } else if formats & SDL_GPU_SHADERFORMAT_SPIRV {
-        format_to_load = SDL_GPU_SHADERFORMAT_SPIRV;
+InitShaderSystem :: () {
+    Formats := SDL_GetGPUShaderFormats(GDevice);
+    if Formats & SDL_GPU_SHADERFORMAT_DXIL {
+        FormatToLoad = SDL_GPU_SHADERFORMAT_DXIL;
+    } else if Formats & SDL_GPU_SHADERFORMAT_DXBC {
+        FormatToLoad = SDL_GPU_SHADERFORMAT_DXBC;
+    } else if Formats & SDL_GPU_SHADERFORMAT_SPIRV {
+        FormatToLoad = SDL_GPU_SHADERFORMAT_SPIRV;
     } else {
-        fatal_error("Failed to find suitable shader format");
+        FatalError("Failed to find suitable shader Format");
     }
     
-    if format_to_load == SDL_GPU_SHADERFORMAT_DXIL shader_format = "dxil";
-    else if format_to_load == SDL_GPU_SHADERFORMAT_DXBC shader_format = "dxbc";
-    else if format_to_load == SDL_GPU_SHADERFORMAT_SPIRV shader_format = "spirv";
-    else fatal_error("Unsupported shader format %", format_to_load);
+    if FormatToLoad == SDL_GPU_SHADERFORMAT_DXIL ShaderFormat = "dxil";
+    else if FormatToLoad == SDL_GPU_SHADERFORMAT_DXBC ShaderFormat = "dxbc";
+    else if FormatToLoad == SDL_GPU_SHADERFORMAT_SPIRV ShaderFormat = "spirv";
+    else FatalError("Unsupported shader Format %", FormatToLoad);
     
-    mesh_vert := create_shader(g_device, "vert", "mesh", 0, 0, 2, 1);
-    mesh_frag := create_shader(g_device, "frag", "mesh", 4, 0, 0, 1);
-    shader_mesh = .{mesh_vert, mesh_frag};
+    MeshVert := CreateShader(GDevice, "vert", "mesh", 0, 0, 2, 1);
+    MeshFrag := CreateShader(GDevice, "frag", "mesh", 4, 0, 0, 1);
+    ShaderMesh = .{MeshVert, MeshFrag};
     
-    screen_space_mesh_vert := create_shader(g_device, "vert", "screen_space_mesh", 0, 0, 0, 1);
-    screen_space_mesh_frag := create_shader(g_device, "frag", "screen_space_mesh", 1, 0, 0, 0);
-    shader_screen_space_mesh = .{screen_space_mesh_vert, screen_space_mesh_frag};
+    ScreenSpaceMeshVert := CreateShader(GDevice, "vert", "screen_space_mesh", 0, 0, 0, 1);
+    ScreenSpaceMeshFrag := CreateShader(GDevice, "frag", "screen_space_mesh", 1, 0, 0, 0);
+    ShaderScreenSpaceMesh = .{ScreenSpaceMeshVert, ScreenSpaceMeshFrag};
     
-    depth_pass_vert := create_shader(g_device, "vert", "depth_pass", 0, 0, 2, 1);
-    depth_pass_frag := create_shader(g_device, "frag", "depth_pass", 0, 0, 0, 0);
-    shader_depth_pass = .{depth_pass_vert, depth_pass_frag};
+    DepthPassVert := CreateShader(GDevice, "vert", "depth_pass", 0, 0, 2, 1);
+    DepthPassFrag := CreateShader(GDevice, "frag", "depth_pass", 0, 0, 0, 0);
+    ShaderDepthPass = .{DepthPassVert, DepthPassFrag};
 }
 
 #scope_file
@@ -43,35 +43,35 @@ init_shader_system :: () {
 #import "Basic";
 #import "File";
 
-shader_arena: Arena("shader_working");
-shaders: Arena("shaders", Shader);
+ShaderArena: arena;
+Shaders: arena(shader);
 
-format_to_load: SDL_GPUShaderFormat;
-shader_format: string;
+FormatToLoad: SDL_GPUShaderFormat;
+ShaderFormat: string;
 
-create_shader :: (g_device: *SDL_GPUDevice, stage: string, name: string, num_samplers: u32, num_storage_textures: u32, num_storage_buffers: u32, num_uniform_buffers: u32) -> *SDL_GPUShader {
+CreateShader :: (GDevice: *SDL_GPUDevice, Stage: string, Name: string, NumSamplers: u32, NumStorageTextures: u32, NumStorageBuffers: u32, NumUniformBuffers: u32) -> *SDL_GPUShader {
     
-    file_name := tprint("shaders/%.%_%", name, shader_format, stage);
-    data, ok := read_entire_file(file_name);
-    if !ok return null;
+    FileName := tprint("shaders/%.%_%", Name, ShaderFormat, Stage);
+    Data, Ok := read_entire_file(FileName);
+    if !Ok return null;
     
-    entry_point := "";
-    if equal(stage, "vert") entry_point = "vertex_main";
-    else if equal(stage, "frag") entry_point = "fragment_main";
-    else fatal_error("Unsupported shader stage %", stage);
+    EntryPoint := "";
+    if equal(Stage, "vert") EntryPoint = "vertex_main";
+    else if equal(Stage, "frag") EntryPoint = "fragment_main";
+    else FatalError("Unsupported shader Stage %", Stage);
     
-    create_info: SDL_GPUShaderCreateInfo;
-    create_info.code_size = xx data.count;
-    create_info.code = data.data;
-    create_info.entrypoint = entry_point.data;
-    create_info.format = format_to_load;
-    create_info.num_samplers = num_samplers;
-    create_info.num_storage_textures = num_storage_textures;
-    create_info.num_storage_buffers = num_storage_buffers;
-    create_info.num_uniform_buffers = num_uniform_buffers;
+    CreateInfo: SDL_GPUShaderCreateInfo;
+    CreateInfo.code_size = xx Data.count;
+    CreateInfo.code = Data.data;
+    CreateInfo.entrypoint = EntryPoint.data;
+    CreateInfo.format = FormatToLoad;
+    CreateInfo.num_samplers = NumSamplers;
+    CreateInfo.num_storage_textures = NumStorageTextures;
+    CreateInfo.num_storage_buffers = NumStorageBuffers;
+    CreateInfo.num_uniform_buffers = NumUniformBuffers;
     
-    gpu_shader := SDL_CreateGPUShader(g_device, *create_info);
-    if !gpu_shader fatal_error("Failed to load shader %: %", file_name, sdl_get_error());
+    GpuShader := SDL_CreateGPUShader(GDevice, *CreateInfo);
+    if !GpuShader FatalError("Failed to load shader %: %", FileName, SdlGetError());
     
-    return gpu_shader;
+    return GpuShader;
 }

@@ -1,43 +1,43 @@
 
-Camera :: struct {
+camera :: struct {
 	FLY_SPEED :: 1.0;
     ROTATION_SPEED :: 0.3;
     ROTATION_SMOOTHING :: 0.3;
     
-    yaw, pitch: float;
-    rotation_input: Vec2;
-    position: Vec3;
+    Yaw, Pitch: float;
+    RotationInput: float2;
+    Position: float3;
     
-    rotation: Quaternion;
-    neg_rotation: Mat4;
-    view: Mat4;
+    Rotation: quat;
+    NegRotation: float4x4;
+    View: float4x4;
 };
 
-update_camera :: (camera : *Camera) {
-	move_input: Vec3;
+UpdateCamera :: (Camera: *camera) {
+	MoveInput: float3;
     
-    move_speed := Camera.FLY_SPEED;
-    if key_state(.SDL_SCANCODE_LSHIFT) move_speed *= 10;
+    MoveSpeed := Camera.FLY_SPEED;
+    if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed *= 10;
     
-    move_input.x = key_state(.SDL_SCANCODE_S) - key_state(.SDL_SCANCODE_W);
-    move_input.y = key_state(.SDL_SCANCODE_A) - key_state(.SDL_SCANCODE_D);
-    move_input.z = key_state(.SDL_SCANCODE_E) - key_state(.SDL_SCANCODE_Q);
-    move_input = vec3_rotate(normalize(move_input), camera.rotation);
+    MoveInput.x = KeyState(.SDL_SCANCODE_S) - KeyState(.SDL_SCANCODE_W);
+    MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
+    MoveInput.z = KeyState(.SDL_SCANCODE_E) - KeyState(.SDL_SCANCODE_Q);
+    MoveInput = Vec3Rotate(normalize(MoveInput), Camera.Rotation);
     
-	camera.position += move_input * move_speed * delta_time;
+	Camera.Position += MoveInput * MoveSpeed * DeltaTime;
     
-    camera.rotation_input = lerp(camera.rotation_input, mouse.delta, Camera.ROTATION_SMOOTHING);
-    delta := camera.rotation_input * Camera.ROTATION_SPEED;
-    camera.yaw += delta.x * deg2turn;
-    camera.pitch += delta.y * deg2turn;
-    camera.pitch = clamp(camera.pitch, -89.0 * deg2turn, 89.0 * deg2turn);
+    Camera.RotationInput = Lerp(Camera.RotationInput, Mouse.Delta, Camera.ROTATION_SMOOTHING);
+    Delta := Camera.RotationInput * Camera.ROTATION_SPEED;
+    Camera.Yaw += Delta.x * Deg2Turn;
+    Camera.Pitch += Delta.y * Deg2Turn;
+    Camera.Pitch = clamp(Camera.Pitch, -89.0 * Deg2Turn, 89.0 * Deg2Turn);
     
-    yaw := quat_axis_angle(.{0, 0, 1}, camera.yaw);
-    pitch := quat_axis_angle(.{0, -1, 0}, camera.pitch);
-    camera.rotation = yaw * pitch;
+    Yaw := QuatAxisAngle(.{0, 0, 1}, Camera.Yaw);
+    Pitch := QuatAxisAngle(.{0, -1, 0}, Camera.Pitch);
+    Camera.Rotation = Yaw * Pitch;
     
-    transform := mat4_translation(camera.position) * mat4_rotation(camera.rotation);
-    camera.view = mat4_inverse(transform);
+    Transform := Mat4Translation(Camera.Position) * Mat4Rotation(Camera.Rotation);
+    Camera.View = Mat4Inverse(Transform);
 }
 
 #scope_file

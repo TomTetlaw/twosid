@@ -1,116 +1,116 @@
 
-Anim_Player :: struct {
-    mesh: *Mesh;
-    anim: *Animation;
+anim_player :: struct {
+    Mesh: *mesh;
+    Anim: *animation;
     
-    playing: bool;
-    anim_time: float;
-    pose: Anim_Pose;
+    Playing: bool;
+    AnimTime: float;
+    Pose: anim_pose;
     
-    fps := 30;
+    Fps := 30;
 }
 
-Anim_Pose :: struct {
-    bone_names: [] string;
-    model_space_transforms: [] Mat4;
-    parent_model_space_transforms: [] Mat4;
-    skinning_transforms: [] Mat4;
+anim_pose :: struct {
+    BoneNames: [] string;
+    ModelSpaceTransforms: [] float4x4;
+    ParentModelSpaceTransforms: [] float4x4;
+    SkinningTransforms: [] float4x4;
 }
 
-create_anim_player :: (mesh: *Mesh, anim: *Animation) -> Anim_Player {
-    player: Anim_Player;
-    player.mesh = mesh;
-    player.anim = anim;
-    player.pose.bone_names = anim.bone_names;
+CreateAnimPlayer :: (Mesh: *mesh, Anim: *animation) -> anim_player {
+    Player: anim_player;
+    Player.Mesh = Mesh;
+    Player.Anim = Anim;
+    Player.Pose.BoneNames = Anim.BoneNames;
     
-    player.pose.parent_model_space_transforms = arena_push_n(*anim_arena, Mat4, xx anim.bone_count);
-    player.pose.model_space_transforms = arena_push_n(*anim_arena, Mat4, xx anim.bone_count);
-    player.pose.skinning_transforms = arena_push_n(*anim_arena, Mat4, xx anim.bone_count);
+    Player.Pose.ParentModelSpaceTransforms = ArenaPushN(*AnimArena, float4x4, xx Anim.BoneCount);
+    Player.Pose.ModelSpaceTransforms = ArenaPushN(*AnimArena, float4x4, xx Anim.BoneCount);
+    Player.Pose.SkinningTransforms = ArenaPushN(*AnimArena, float4x4, xx Anim.BoneCount);
     
-    return player;
+    return Player;
 }
 
-anim_play :: (player: *Anim_Player) {
-    player.anim_time = 0;
-    player.playing = true;
+AnimPlay :: (Player: *anim_player) {
+    Player.AnimTime = 0;
+    Player.Playing = true;
 }
 
-anim_stop :: (player: *Anim_Player) {
-    player.playing = false;
+AnimStop :: (Player: *anim_player) {
+    Player.Playing = false;
 }
 
-anim_update :: (player: *Anim_Player) {
-    if !player.playing return;
+AnimUpdate :: (Player: *anim_player) {
+    if !Player.Playing return;
     
-    pose := player.pose;
-    mesh := player.mesh;
-    anim := player.anim;
+    Pose := Player.Pose;
+    Mesh := Player.Mesh;
+    Anim := Player.Anim;
     
-    player.anim_time += delta_time * player.fps;
-    player.anim_time = fmod_cycling(player.anim_time, xx anim.sample_count);
-    frame_index := cast(int) player.anim_time;
-    lerp_t := player.anim_time - frame_index;
+    Player.AnimTime += DeltaTime * Player.Fps;
+    Player.AnimTime = fmod_cycling(Player.AnimTime, xx Anim.SampleCount);
+    FrameIndex := cast(int) Player.AnimTime;
+    LerpT := Player.AnimTime - FrameIndex;
     
-    for anim.bone_names {
-        bone := find_bone(player.mesh.skeleton, it);
-        player.pose.model_space_transforms[bone.id] = bone.local_bind_transform;
+    for Anim.BoneNames {
+        Bone := FindBone(Player.Mesh.Skeleton, it);
+        Player.Pose.ModelSpaceTransforms[Bone.Id] = Bone.LocalBindTransform;
     }
     
-    arena_push_mark_defer(*frame_arena);
+    ArenaPushMarkDefer(*FrameArena);
     
-    positions := arena_push_n(*frame_arena, Vec3, xx anim.bone_names.count);
-    rotations := arena_push_n(*frame_arena, Quaternion, xx anim.bone_names.count);
-    scales := arena_push_n(*frame_arena, Vec3, xx anim.bone_names.count);
+    Positions := ArenaPushN(*FrameArena, float3, xx Anim.BoneNames.count);
+    Rotations := ArenaPushN(*FrameArena, quat, xx Anim.BoneNames.count);
+    Scales := ArenaPushN(*FrameArena, float3, xx Anim.BoneNames.count);
     
-    for anim.bone_names {
-        bone := find_bone(player.mesh.skeleton, it);
+    for Anim.BoneNames {
+        Bone := FindBone(Player.Mesh.Skeleton, it);
         
-        base_index := bone.id * anim.sample_count;
-        i0 := base_index + frame_index;
-        i1 := base_index + ((frame_index + 1) % anim.sample_count);
+        BaseIndex := Bone.Id * Anim.SampleCount;
+        i0 := BaseIndex + FrameIndex;
+        i1 := BaseIndex + ((FrameIndex + 1) % Anim.SampleCount);
         
         /*
-        if lerp_t < 0.5 {
-            positions[bone.id] = anim.positions[i0];
-            rotations[bone.id] = anim.rotations[i0];
-            scales[bone.id] = anim.scales[i0];
+        if LerpT < 0.5 {
+            Positions[Bone.Id] = Anim.Positions[i0];
+            Rotations[Bone.Id] = Anim.Rotations[i0];
+            Scales[Bone.Id] = Anim.Scales[i0];
         } else {
-            positions[bone.id] = anim.positions[i1];
-            rotations[bone.id] = anim.rotations[i1];
-            scales[bone.id] = anim.scales[i1];
+            Positions[Bone.Id] = Anim.Positions[i1];
+            Rotations[Bone.Id] = Anim.Rotations[i1];
+            Scales[Bone.Id] = Anim.Scales[i1];
         }
 */
         
-        positions[bone.id] = lerp(anim.positions[i0], anim.positions[i1], lerp_t);
-        rotations[bone.id] = nlerp_shortest(anim.rotations[i0], anim.rotations[i1], lerp_t);
-        scales[bone.id] = lerp(anim.scales[i0], anim.scales[i1], lerp_t);
+        Positions[Bone.Id] = Lerp(Anim.Positions[i0], Anim.Positions[i1], LerpT);
+        Rotations[Bone.Id] = NLerpShortest(Anim.Rotations[i0], Anim.Rotations[i1], LerpT);
+        Scales[Bone.Id] = Lerp(Anim.Scales[i0], Anim.Scales[i1], LerpT);
     }
     
-    for anim.bone_names {
-        bone := find_bone(player.mesh.skeleton, it);
+    for Anim.BoneNames {
+        Bone := FindBone(Player.Mesh.Skeleton, it);
         
-        local_transform := mat4_translation(positions[bone.id]) *
-            mat4_rotation(rotations[bone.id]) * mat4_scale(scales[bone.id]);
+        LocalTransform := Mat4Translation(Positions[Bone.Id]) *
+            Mat4Rotation(Rotations[Bone.Id]) * Mat4Scale(Scales[Bone.Id]);
         
-        if bone.parent {
-            pose.model_space_transforms[bone.id] = pose.model_space_transforms[bone.parent.id] * local_transform;
-            pose.parent_model_space_transforms[bone.id] = pose.model_space_transforms[bone.parent.id];
+        if Bone.Parent {
+            Pose.ModelSpaceTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Parent.Id] * LocalTransform;
+            Pose.ParentModelSpaceTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Parent.Id];
         }
         else {
-            pose.model_space_transforms[bone.id] = local_transform;
-            pose.parent_model_space_transforms[bone.id] = mat4_identity();
+            Pose.ModelSpaceTransforms[Bone.Id] = LocalTransform;
+            Pose.ParentModelSpaceTransforms[Bone.Id] = Mat4Identity();
         }
     }
     
-    for anim.bone_names {
-        bone := find_bone(player.mesh.skeleton, it);
-        pose.skinning_transforms[bone.id] = pose.model_space_transforms[bone.id] * bone.inverse_bind_transform;
-        pose.skinning_transforms[bone.id] = mat4_transpose(pose.skinning_transforms[bone.id]);
+    for Anim.BoneNames {
+        Bone := FindBone(Player.Mesh.Skeleton, it);
+        Pose.SkinningTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Id] * Bone.InverseBindTransform;
+        Pose.SkinningTransforms[Bone.Id] = Mat4Transpose(Pose.SkinningTransforms[Bone.Id]);
     }
 }
 
 #scope_file
 
-anim_arena: Arena("anim_working");
+AnimArena: arena;
 
 #import "Basic";

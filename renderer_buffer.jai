@@ -1,63 +1,63 @@
 
-create_and_map_buffer :: (device: *SDL_GPUDevice, name: string, size: int, usage: SDL_GPUBufferUsageFlags) -> *SDL_GPUBuffer, *SDL_GPUTransferBuffer, *u8 {
-    create_info: SDL_GPUBufferCreateInfo;
-    create_info.usage = usage;
-    create_info.size = xx size;
-    buffer := SDL_CreateGPUBuffer(device, *create_info);
-    SDL_SetGPUBufferName(device, buffer, name.data);
+CreateAndMapBuffer :: (Device: *SDL_GPUDevice, Name: string, Size: int, Usage: SDL_GPUBufferUsageFlags) -> *SDL_GPUBuffer, *SDL_GPUTransferBuffer, *u8 {
+    CreateInfo: SDL_GPUBufferCreateInfo;
+    CreateInfo.usage = Usage;
+    CreateInfo.size = xx Size;
+    Buffer := SDL_CreateGPUBuffer(Device, *CreateInfo);
+    SDL_SetGPUBufferName(Device, Buffer, Name.data);
     
-    transfer_create_info: SDL_GPUTransferBufferCreateInfo;
-    transfer_create_info.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    transfer_create_info.size = xx size;
-    transfer_buffer := SDL_CreateGPUTransferBuffer(device, *transfer_create_info);
+    TransferCreateInfo: SDL_GPUTransferBufferCreateInfo;
+    TransferCreateInfo.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    TransferCreateInfo.size = xx Size;
+    TransferBuffer := SDL_CreateGPUTransferBuffer(Device, *TransferCreateInfo);
     
-    memory := SDL_MapGPUTransferBuffer(g_device, transfer_buffer, false);
-    return buffer, transfer_buffer, memory;
+    Memory := SDL_MapGPUTransferBuffer(GDevice, TransferBuffer, false);
+    return Buffer, TransferBuffer, Memory;
 }
 
-commit_mapped_buffer :: (device: *SDL_GPUDevice, buffer: *SDL_GPUBuffer, transfer_buffer: *SDL_GPUTransferBuffer, size: int) {
-    SDL_UnmapGPUTransferBuffer(device, transfer_buffer);
+CommitMappedBuffer :: (Device: *SDL_GPUDevice, Buffer: *SDL_GPUBuffer, TransferBuffer: *SDL_GPUTransferBuffer, Size: int) {
+    SDL_UnmapGPUTransferBuffer(Device, TransferBuffer);
     
-    command_buffer := SDL_AcquireGPUCommandBuffer(device);
-    copy_pass := SDL_BeginGPUCopyPass(command_buffer);
+    CommandBuffer := SDL_AcquireGPUCommandBuffer(Device);
+    CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
     
-    location: SDL_GPUTransferBufferLocation;
-    location.transfer_buffer = transfer_buffer;
-    location.offset = 0;
+    Location: SDL_GPUTransferBufferLocation;
+    Location.transfer_buffer = TransferBuffer;
+    Location.offset = 0;
     
-    region: SDL_GPUBufferRegion;
-    region.buffer = buffer;
-    region.offset = 0;
-    region.size = xx size;
+    Region: SDL_GPUBufferRegion;
+    Region.buffer = Buffer;
+    Region.offset = 0;
+    Region.size = xx Size;
     
-    SDL_UploadToGPUBuffer(copy_pass, *location, *region, false);
+    SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
     
-    SDL_EndGPUCopyPass(copy_pass);
-    SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(device, transfer_buffer);
+    SDL_EndGPUCopyPass(CopyPass);
+    SDL_SubmitGPUCommandBuffer(CommandBuffer);
+    SDL_ReleaseGPUTransferBuffer(Device, TransferBuffer);
 }
 
-create_vertex_buffer :: (device: *SDL_GPUDevice, name: string, stride: int, elements: int) -> *SDL_GPUBuffer {
-    vertex_create_info: SDL_GPUBufferCreateInfo;
-    vertex_create_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    vertex_create_info.size = xx (stride * elements);
-    buffer := SDL_CreateGPUBuffer(device, *vertex_create_info);
-    SDL_SetGPUBufferName(device, buffer, name.data);
-    return buffer;
+CreateVertexBuffer :: (Device: *SDL_GPUDevice, Name: string, Stride: int, Elements: int) -> *SDL_GPUBuffer {
+    VertexCreateInfo: SDL_GPUBufferCreateInfo;
+    VertexCreateInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+    VertexCreateInfo.size = xx (Stride * Elements);
+    Buffer := SDL_CreateGPUBuffer(Device, *VertexCreateInfo);
+    SDL_SetGPUBufferName(Device, Buffer, Name.data);
+    return Buffer;
 }
 
-create_index_buffer :: (device: *SDL_GPUDevice, name: string, elements: int) -> *SDL_GPUBuffer {
-    index_create_info: SDL_GPUBufferCreateInfo;
-    index_create_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-    index_create_info.size = xx (elements * size_of(u32));
-    buffer := SDL_CreateGPUBuffer(device, *index_create_info);
-    SDL_SetGPUBufferName(device, buffer, name.data);
-    return buffer;
+CreateIndexBuffer :: (Device: *SDL_GPUDevice, Name: string, Elements: int) -> *SDL_GPUBuffer {
+    IndexCreateInfo: SDL_GPUBufferCreateInfo;
+    IndexCreateInfo.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+    IndexCreateInfo.size = xx (Elements * size_of(u32));
+    Buffer := SDL_CreateGPUBuffer(Device, *IndexCreateInfo);
+    SDL_SetGPUBufferName(Device, Buffer, Name.data);
+    return Buffer;
 }
 
-create_instance_buffer :: (device: *SDL_GPUDevice, name: string, data: [] $T) -> *SDL_GPUBuffer {
-    instance_buffer, transfer_buffer, memory := create_and_map_buffer(device, name, size_of(T) * MAX_INSTANCES, SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ);
-    memcpy(memory, data.data, size_of(T) * data.count);
-    commit_mapped_buffer(device, instance_buffer, transfer_buffer, size_of(T) * data.count);
-    return instance_buffer;
+CreateInstanceBuffer :: (Device: *SDL_GPUDevice, Name: string, Data: [] $T) -> *SDL_GPUBuffer {
+    InstanceBuffer, TransferBuffer, Memory := CreateAndMapBuffer(Device, Name, size_of(T) * MAX_INSTANCES, SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ);
+    memcpy(Memory, Data.data, size_of(T) * Data.count);
+    CommitMappedBuffer(Device, InstanceBuffer, TransferBuffer, size_of(T) * Data.count);
+    return InstanceBuffer;
 }

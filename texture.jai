@@ -1,134 +1,118 @@
 
-Texture :: struct {
-    path: string;
-    width, height: int;
-    pixels: *u8;
-    pixel_size: int;
-    format: Texture_Format;
-    gpu_texture: *SDL_GPUTexture;
+texture :: struct {
+    Path: string;
+    Width, Height: int;
+    Pixels: *u8;
+    PixelSize: int;
+    Format: texture_format;
+    GpuTexture: *SDL_GPUTexture;
 }
 
-Texture_Format :: enum {
+texture_format :: enum {
     RGBA;
     RGB;
     R;
 }
 
-init_texture_system :: () {
-    files := file_list("./textures");
-    for files {
+InitTextureSystem :: () {
+    Files := file_list("textures");
+    for Files {
         if contains(it, ".png") {
-            path, base_name, ext := path_decomp(it);
-            load_texture(tprint("textures/%.%", base_name, ext));
+            Path, base_name, ext := path_decomp(it);
+            LoadTexture(tprint("Textures/%.%", base_name, ext));
         }
     }
     
-    total_textures_size := 0;
-    for * textures {
-        total_textures_size += it.width * it.height * it.pixel_size;
+    TotalTexturesSize := 0;
+    for * Textures {
+        TotalTexturesSize += it.Width * it.Height * it.PixelSize;
         
-        texture_info: SDL_GPUTextureCreateInfo;
-        texture_info.type = .SDL_GPU_TEXTURETYPE_2D;
-        texture_info.format = .SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-        texture_info.width = xx it.width;
-        texture_info.height = xx it.height;
-        texture_info.layer_count_or_depth = 1;
-        texture_info.num_levels = 11;
-        texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+        TextureInfo: SDL_GPUTextureCreateInfo;
+        TextureInfo.type = .SDL_GPU_TEXTURETYPE_2D;
+        TextureInfo.format = .SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        TextureInfo.width = xx it.Width;
+        TextureInfo.height = xx it.Height;
+        TextureInfo.layer_count_or_depth = 1;
+        TextureInfo.num_levels = 11;
+        TextureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
         
-        it.gpu_texture = SDL_CreateGPUTexture(g_device, *texture_info);
-        SDL_SetGPUTextureName(g_device, it.gpu_texture, it.path.data);
+        it.GpuTexture = SDL_CreateGPUTexture(GDevice, *TextureInfo);
+        SDL_SetGPUTextureName(GDevice, it.GpuTexture, it.Path.data);
     }
     
-    create_info: SDL_GPUTransferBufferCreateInfo;
-    create_info.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    create_info.size = xx total_textures_size;
-    transfer_buffer := SDL_CreateGPUTransferBuffer(g_device, *create_info);
-    transfer_memory := cast(*u8) SDL_MapGPUTransferBuffer(g_device, transfer_buffer, false);
+    CreateInfo: SDL_GPUTransferBufferCreateInfo;
+    CreateInfo.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    CreateInfo.size = xx TotalTexturesSize;
+    TransferBuffer := SDL_CreateGPUTransferBuffer(GDevice, *CreateInfo);
+    TransferMemory := cast(*u8) SDL_MapGPUTransferBuffer(GDevice, TransferBuffer, false);
     
-    cursor := 0;
-    for * textures {
-        size := it.width * it.height * it.pixel_size;
-        memcpy(transfer_memory + cursor, it.pixels, size);
-        cursor += size;
+    Cursor := 0;
+    for * Textures {
+        Size := it.Width * it.Height * it.PixelSize;
+        memcpy(TransferMemory + Cursor, it.Pixels, Size);
+        Cursor += Size;
     }
     
-    SDL_UnmapGPUTransferBuffer(g_device, transfer_buffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, TransferBuffer);
     
-    command_buffer := SDL_AcquireGPUCommandBuffer(g_device);
-    copy_pass := SDL_BeginGPUCopyPass(command_buffer);
+    CommandBuffer := SDL_AcquireGPUCommandBuffer(GDevice);
+    CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
     
-    cursor = 0;
-    for * textures {
-        size := it.width * it.height * it.pixel_size;
-        info: SDL_GPUTextureTransferInfo;
-        info.transfer_buffer = transfer_buffer;
-        info.offset = xx cursor;
-        info.pixels_per_row = xx it.width;
-        info.rows_per_layer = xx it.height;
+    Cursor = 0;
+    for * Textures {
+        Size := it.Width * it.Height * it.PixelSize;
+        Info: SDL_GPUTextureTransferInfo;
+        Info.transfer_buffer = TransferBuffer;
+        Info.offset = xx Cursor;
+        Info.pixels_per_row = xx it.Width;
+        Info.rows_per_layer = xx it.Height;
         
-        region: SDL_GPUTextureRegion;
-        region.texture = it.gpu_texture;
-        region.w = xx it.width;
-        region.h = xx it.height;
-        region.d = 1;
+        Region: SDL_GPUTextureRegion;
+        Region.texture = it.GpuTexture;
+        Region.w = xx it.Width;
+        Region.h = xx it.Height;
+        Region.d = 1;
         
-        SDL_UploadToGPUTexture(copy_pass, *info, *region, false);
-        cursor += size;
+        SDL_UploadToGPUTexture(CopyPass, *Info, *Region, false);
+        Cursor += Size;
     }
     
-    SDL_EndGPUCopyPass(copy_pass);
+    SDL_EndGPUCopyPass(CopyPass);
     
-    for * textures {
-        SDL_GenerateMipmapsForGPUTexture(command_buffer, it.gpu_texture);
+    for * Textures {
+        SDL_GenerateMipmapsForGPUTexture(CommandBuffer, it.GpuTexture);
     }
     
-    SDL_SubmitGPUCommandBuffer(command_buffer);
-    SDL_ReleaseGPUTransferBuffer(g_device, transfer_buffer);
+    SDL_SubmitGPUCommandBuffer(CommandBuffer);
+    SDL_ReleaseGPUTransferBuffer(GDevice, TransferBuffer);
     
-    for * textures {
-        stb_image_free(it.pixels);
-        it.pixels = null;
+    for * Textures {
+        stb_image_free(it.Pixels);
+        it.Pixels = null;
     }
 }
 
-load_texture :: (path: string) -> *Texture {
-    for * textures if equal(it.path, path) return it;
+LoadTexture :: (Path: string) -> *texture {
+    for * Textures if equal(it.Path, Path) return it;
     
-    width, height, channels: s32;
-    pixels := stb_load_image(path.data, *width, *height, *channels, 4);
-    if !pixels return textures.null_value;
+    Width, Height, Channels: s32;
+    Pixels := stb_load_image(Path.data, *Width, *Height, *Channels, 4);
+    if !Pixels return *Textures.NullValue;
     
-    texture := arena_push(*textures);
-    texture.path = path;
-    texture.width = xx width;
-    texture.height = xx height;
-    texture.pixels = pixels;
-    texture.format = .RGBA;
-    texture.pixel_size = 4;
+    Texture := ArenaPush(*Textures);
+    Texture.Path = Path;
+    Texture.Width = xx Width;
+    Texture.Height = xx Height;
+    Texture.Pixels = Pixels;
+    Texture.Format = .RGBA;
+    Texture.PixelSize = 4;
     
-    return texture;
-}
-
-create_texture :: (name: string, width: int, height: int, pixels: *u8, format: Texture_Format = .RGBA) -> *Texture {
-    assert(false);
-    
-    texture := arena_push(*textures);
-    texture.path = name;
-    texture.width = width;
-    texture.height = height;
-    texture.format = format;
-    if #complete format == {
-        case .RGBA; texture.pixel_size = 4;
-        case .RGB; texture.pixel_size = 3;
-        case .R; texture.pixel_size = 1;
-    }
-    return texture;
+    return Texture;
 }
 
 #scope_file
 
-textures: Arena("textures", Texture);
+Textures: arena(texture);
 
 #import "Basic";
 #import "String";

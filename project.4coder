@@ -28,7 +28,7 @@ command_list = {
         .out = "*compilation*",
         .footer_panel = true,
         .save_dirty_files = true,
-        .cursor_at_end = false,
+        .cursor_at_end = true,
         .cmd = {
             { "build.bat compile_shaders", .os = "win" },
 		},
@@ -38,7 +38,7 @@ command_list = {
         .out = "*compilation*",
         .footer_panel = true,
         .save_dirty_files = true,
-        .cursor_at_end = false,
+        .cursor_at_end = true,
         .cmd = {
             { "build.bat generate_sdl_bindings", .os = "win" },
 		},
@@ -48,7 +48,7 @@ command_list = {
 		.out = "*compilation*",
 		.footer_panel = true,
 		.save_dirty_files = true,
-		.cursor_at_end = false,
+		.cursor_at_end = true,
 		.cmd = {
 			{"run.bat", .os = "win"},
 		},

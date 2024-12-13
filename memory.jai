@@ -1,354 +1,208 @@
 
-Arena :: struct ($N: string, $T: Type = u8) {
-    memory: *T;
-    used, cap: u64;
-    peak: u64;
-    initialized: bool;
-    name := N;
-    _null_value: T;
-    null_value: *T;
+arena :: struct ($T: Type = u8) {
+    Base: *u8;
+	TypedBase: *T;
+    Used: u64;
+	Capacity: u64;
+    Initialized: bool;
+    NullValue: T;
 }
 
-init_arena :: (arena: *$A/Arena, initial_cap: u64 = 0, $location := #caller_location) {
-    if arena.initialized return;
+InitArena :: (Arena: *$A/arena, InitialCapacity: u64 = 0, $Location := #caller_location) {
+    if Arena.Initialized return;
     
-    memory := cast (*A.T) platform_reserve(max_committed_size);
-    if !memory {
-        value, text := get_error_value_and_string();
-        fatal_error(tprint("Failed to create arena \"%\": error_code=%, error_string=%", A.N, value, text));
+    Base := cast (*u8) PlatformReserve(MaxCommittedSize);
+    if !Base {
+        Value, text := get_error_value_and_string();
+        FatalError(tprint("Failed to create arena: error_code=%, error_string=%", Value, text));
     }
     
-    if !initial_cap initial_cap = commit_expand_amount;
-    initial_cap = align(initial_cap);
+    if !InitialCapacity InitialCapacity = CommitExpandAmount;
+	InitialCapacity += size_of(A.T);
+    InitialCapacity = Align(InitialCapacity);
     
-    platform_commit(cast (*u8) memory, 0, initial_cap);
-    
-    arena.memory = memory;
-    arena.cap = initial_cap;
-    arena.initialized = true;
-    
-    arena.null_value = *arena._null_value;
-    memset(arena.null_value, 0, size_of(A.T)); //@todo: make this a one page circular mapping
-    
-#if RECORD_ALLOCATIONS {
-        record: Commit_Record;
-        record.location = location;
-        record.arena_name = arena.name;
-        record.commit_size = initial_cap;
-        record.stack_trace = get_stack_trace_string(context.stack_trace);
-        add_commit_record(record);
-        
-        arena_record: Arena_Record;
-        arena_record.name = arena.name;
-        arena_record.cap = *arena.cap;
-        arena_record.peak = *arena.peak;
-        array_add(*all_arenas, arena_record);
-    }
+    PlatformCommit(Base, 0, InitialCapacity);
+	
+    Arena.Base = Base;
+	Arena.TypedBase = cast (*A.T) Base;
+	Arena.Used = 0;
+    Arena.Capacity = InitialCapacity;
+    Arena.Initialized = true;
+	memset(*Arena.NullValue, 0, size_of(A.T));
 }
 
-arena_alloc :: (arena: *$A/Arena, size: u64, $zero := true, $type_override: Type = u8, $location := #caller_location) -> *A.T {
-    aligned_size := align(size);
+ArenaAlloc :: (Arena: *$A/arena, Size: u64, $Zero := true) -> *u8 {
+    AlignedSize := Align(Size);
     
-    if !arena.initialized init_arena(arena, max(aligned_size, commit_expand_amount));
+    if !Arena.Initialized InitArena(Arena, max(AlignedSize, CommitExpandAmount));
     
-    if arena.used + aligned_size >= arena.cap {
-        if arena.cap + commit_expand_amount >= max_committed_size {
-            fatal_error("Arena exceded max committed size");
+    if Arena.Used + AlignedSize >= Arena.Capacity {
+        if Arena.Capacity + CommitExpandAmount >= MaxCommittedSize {
+            FatalError("arena exceded max committed Size %! Wow!", MaxCommittedSize);
         }
         
-        platform_commit(cast (*u8) arena.memory, arena.cap, aligned_size);
-        arena.cap += aligned_size;
-        
-#if RECORD_ALLOCATIONS {
-            record: Commit_Record;
-            record.location = location;
-            record.arena_name = arena.name;
-            record.commit_size = aligned_size;
-            record.stack_trace = get_stack_trace_string(context.stack_trace);
-            add_commit_record(record);
-        }
+        PlatformCommit(Arena.Base, Arena.Capacity, AlignedSize);
+        Arena.Capacity += AlignedSize;
     }
     
-    memory := arena.memory + (arena.used / size_of(A.T));
-    arena.used += size;
-    arena.peak = max(arena.peak, arena.used);
+    Memory := Arena.Base + Arena.Used;
+    Arena.Used += Size;
     
-#if zero memset(memory, 0, xx size);
+#if Zero memset(Memory, 0, xx Size);
     
-#if RECORD_ALLOCATIONS {
-        record: Alloc_Record;
-        record.location = location;
-        record.type_name = #run -> string { return tprint("%", type_override); }
-        record.arena_name = arena.name;
-        record.alloc_size = size;
-        record.alloc_elements = size / size_of(type_override);
-        record.arena_cap = arena.cap;
-        record.arena_used = arena.used;
-        record.stack_trace = get_stack_trace_string(context.stack_trace);
-        add_alloc_record(record);
+    return Memory;
+}
+
+ArenaPush :: (Arena: *$A/arena, $InitValue := true) -> *A.T {
+    Init :: initializer_of(A.T);
+    Zero :: !InitValue || !Init;
+    
+    Out := cast(*A.T) ArenaAlloc(Arena, size_of(A.T), Zero);
+    
+#if !Zero Init(Out);
+    
+    return Out;
+}
+
+ArenaPush :: (Arena: *$A/arena, $T: Type, $InitValue := true) -> *T {
+#run #if A.T != u8 && T != u8 { compiler_report(tprint("Cannot push a Value of Type % to an arena of non-default Type %.\n", tprint("%", T), tprint("%", A.T)), Location, .ERROR);
     }
     
-    return memory;
+    Init :: initializer_of(T);
+    Zero :: !InitValue || !Init;
+    
+    Out := cast (*T) ArenaAlloc(Arena, size_of(T), Zero);
+    
+#if !Zero Init(Out);
+    
+    return Out;
 }
 
-arena_push :: (arena: *$A/Arena, $init_value := true, $location := #caller_location) -> *A.T {
-    init :: initializer_of(A.T);
-    zero :: !init_value || !init;
+ArenaPushN :: (Arena: *$A/arena, n: u64, $InitValue := true) -> [] A.T {
+    Init :: initializer_of(A.T);
+    Zero :: !InitValue || !Init;
     
-    out := arena_alloc(arena, size_of(A.T), zero, A.T, location);
+    Memory := cast (*A.T) ArenaAlloc(Arena, size_of(A.T) * n, !InitValue);
+    Out := []T.{xx n, Memory};
     
-#if !zero init(out);
+#if !Zero for * Out Init(it);
     
-    return out;
+    return Out;
 }
 
-arena_push :: (arena: *$A/Arena, $T: Type, $init_value := true, $location := #caller_location) -> *T {
-#run #if A.T != u8 && T != u8 { compiler_report(tprint("Cannot push a value of type % to an arena of non-default type %.\n", tprint("%", T), tprint("%", A.T)), location, .ERROR);
+ArenaPushN :: (Arena: *$A/arena, $T: Type, n: u64, $InitValue := true) -> [] T {
+#run #if A.T != u8 && T != u8 { compiler_report(tprint("Cannot push a Value of Type % to an arena of non-default Type %.\n", tprint("%", T), tprint("%", A.T)), Location, .ERROR);
     }
     
-    init :: initializer_of(T);
-    zero :: !init_value || !init;
+    Init :: initializer_of(T);
+    Zero :: !InitValue || !Init;
     
-    out := cast (*T) arena_alloc(arena, size_of(T), zero, T, location);
+    Memory := cast (*T) ArenaAlloc(Arena, size_of(T) * n, !InitValue);
+    Out := []T.{xx n, Memory};
     
-#if !zero init(out);
+#if !Zero for * Out Init(it);
     
-    return out;
+    return Out;
 }
 
-arena_push_n :: (arena: *$A/Arena, n: u64, $init_value := true, $location := #caller_location) -> [] A.T {
-    init :: initializer_of(A.T);
-    zero :: !init_value || !init;
-    
-    memory := cast (*A.T) arena_alloc(arena, size_of(A.T) * n, !init_value, A.T, location);
-    out := []T.{xx n, memory};
-    
-#if !zero for * out init(it);
-    
-    return out;
+operator [] :: (Arena: $A/arena, Index: int) -> A.T {
+    return Arena.Memory[Index];
 }
 
-arena_push_n :: (arena: *$A/Arena, $T: Type, n: u64, $init_value := true, $location := #caller_location) -> [] T {
-#run #if A.T != u8 && T != u8 { compiler_report(tprint("Cannot push a value of type % to an arena of non-default type %.\n", tprint("%", T), tprint("%", A.T)), location, .ERROR);
-    }
-    
-    init :: initializer_of(T);
-    zero :: !init_value || !init;
-    
-    memory := cast (*T) arena_alloc(arena, size_of(T) * n, !init_value, T, location);
-    out := []T.{xx n, memory};
-    
-#if !zero for * out init(it);
-    
-    return out;
+operator []= :: (Arena: *$A/arena, Index: int, Value: A.T) {
+    Arena.Memory[Index] = A.T;
 }
 
-operator [] :: (arena: $A/Arena, index: int) -> A.T {
-    return arena.memory[index];
-}
-
-operator []= :: (arena: *$A/Arena, index: int, value: A.T) {
-    arena.memory[index] = A.T;
-}
-
-for_expansion :: (arena: *$A/Arena, body: Code, flags: For_Flags) #expand {
-    num := cast(int) (arena.used / size_of(A.T));
+for_expansion :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
+    num := cast(int) (Arena.Used / size_of(A.T));
     
-    for index: 0..num-1 {
-#if flags & .POINTER `it := *arena.memory[index];
+    for Index: 0..num-1 {
+#if Flags & .POINTER `it := *Arena.TypedBase[Index];
         else {
-            print("arena % for by copy\n", arena.name);
-            `it := arena.memory[index];
+            print("arena % for by copy\n", Arena.Name);
+            `it := Arena.TypedBase[Index];
         }
         
-        `it_index := index;
+        `it_index := Index;
         
-#insert body;
+#insert Body;
     }
 }
 
-arena_push_mark :: (arena: *Arena, $location := #caller_location) -> u64 { return arena.used; }
-arena_pop_mark :: (arena: *Arena, mark: u64, $location := #caller_location) { arena.used = mark; }
-
-arena_push_mark_defer :: (arena: *Arena, $location := #caller_location) #expand {
+ArenaPushMarkDefer :: (Arena: *arena, $Location := #caller_location) #expand {
 #insert,scope() -> string {
-        builder: String_Builder;
-        print_to_builder(*builder, "__arena_mark_% := arena_push_mark(arena);\n", location.line_number);
-        print_to_builder(*builder, "defer arena_pop_mark(arena, __arena_mark_%);\n", location.line_number);
-        return builder_to_string(*builder);
+        Builder: String_Builder;
+        print_to_builder(*Builder, "__arena_mark_% := Arena.Used;\n", Location.line_number);
+        print_to_builder(*Builder, "defer Arena.Used = __arena_mark_%;\n", Location.line_number);
+        return builder_to_string(*Builder);
     }
 }
 
-arena_reset :: (arena: *Arena) { arena.used = 0; }
+ArenaReset :: (Arena: *arena) { Arena.Used = 0; }
 
-init_memory_system :: () {
-    platform_memory_init();
+InitMemorySystem :: () {
+    PlatformMemoryInit();
     
-#if RECORD_ALLOCATIONS {
-        file_delete("memory_records.txt");
-    }
-    
-    init_arena(*working_arena, MB(128));
-    init_arena(*frame_arena, MB(128));
+    InitArena(*WorkingArena, MB(128));
+    InitArena(*FrameArena, MB(128));
 }
 
-shutdown_memory_system :: () {
-#if RECORD_ALLOCATIONS {
-        flush_records();
-        
-        builder: String_Builder;
-        for all_arenas {
-            format :: "name: %, peak usage: %, peak capacity: %\n";
-            print_to_builder(*builder, format, it.name, <<(it.peak), <<(it.cap));
-        }
-        
-        write_entire_file("arena_records.txt", builder_to_string(*builder));
-    }
-}
-
-working_arena: Arena("working");
-frame_arena: Arena("frame");
+WorkingArena: arena;
+FrameArena: arena;
 
 #scope_file
-
-Alloc_Record :: struct {
-    location: Source_Code_Location;
-    stack_trace: string;
-    
-    type_name: string;
-    
-    arena_name: string;
-    
-    alloc_size: u64;
-    alloc_elements: u64;
-    
-    arena_cap: u64;
-    arena_used: u64;
-}
-
-Commit_Record :: struct {
-    location: Source_Code_Location;
-    stack_trace: string;
-    
-    arena_name: string;
-    commit_size: u64;
-}
-
-lines_buffer: String_Builder;
-
-Arena_Record :: struct {
-    name: string;
-    peak: *u64;
-    cap: *u64;
-}
-
-all_arenas: [..] Arena_Record;
-
-#if RECORD_ALLOCATIONS {
-    flush_records :: (force := false) {
-        if !force {
-            total_size := STRING_BUILDER_BUFFER_SIZE;
-            buffer := get_base_buffer(*lines_buffer);
-            while (buffer) {
-                total_size += buffer.count;
-                buffer = buffer.next;
-            }
-            
-            if total_size < STRING_BUILDER_BUFFER_SIZE * 128 {
-                return;
-            }
-        }
-        
-        file, ok := file_open("memory_records.txt", true, true);
-        if !ok return;
-        
-        length := file_length(file);
-        file_set_position(file, length);
-        
-        file_write(*file, builder_to_string(*lines_buffer));
-        
-        file_close(*file);
-    }
-    
-    add_alloc_record :: (record: Alloc_Record) {
-        path, base, ext := path_decomp(record.location.fully_pathed_filename);
-        if equal(base, "memory") return;
-        
-        format :: "Allocation at t=%s, %.jai line %: arena name: %, type_name: %, alloc size: %, alloc n elements: %, arena used: %, arena capacity: %\n";
-        
-        print_to_builder(*lines_buffer, format, real_time, base, record.location.line_number, record.arena_name, record.type_name, record.alloc_size, record.alloc_elements, record.arena_used, record.arena_cap);
-        print_to_builder(*lines_buffer, "Stack trace:\n%\n", record.stack_trace);
-        
-        flush_records();
-    }
-    
-    add_commit_record :: (record: Commit_Record) {
-        path, base, ext := path_decomp(record.location.fully_pathed_filename);
-        
-        format :: "Commit at t=%s, %.jai line %: arena name: %, commit size: %\n";
-        print_to_builder(*lines_buffer, format, real_time, base, record.location.line_number, record.arena_name, record.commit_size);
-        print_to_builder(*lines_buffer, "Stack trace:\n%\n", record.stack_trace);
-        
-        flush_records();
-    }
-} else {
-    flush_records :: (force := false) {}
-    add_alloc_record :: (record: Alloc_Record) {}
-    add_commit_record :: (record: Commit_Record) {}
-}
 
 KB :: ($n: u64) -> u64 #expand { return n * 1024; }
 MB :: ($n: u64) -> u64 #expand { return n * KB(1024); }
 GB :: ($n: u64) -> u64 #expand { return n * MB(1024); }
 
-align :: n => (n + (page_size - 1)) & ~(page_size - 1);
+Align :: n => (n + (PageSize - 1)) & ~(PageSize - 1);
 
 #if OS == .WINDOWS {
     
-    Windows :: #import "Windows";
+    windows :: #import "Windows";
     
-    page_size: u64;
-    max_committed_size: u64;
-    commit_expand_amount: u64;
+    PageSize: u64;
+    MaxCommittedSize: u64;
+    CommitExpandAmount: u64;
     
-    platform_memory_init :: () {
-        info: Windows.SYSTEM_INFO;
-        Windows.GetSystemInfo(*info);
+    PlatformMemoryInit :: () {
+        Info: windows.SYSTEM_INFO;
+        windows.GetSystemInfo(*Info);
         
-        page_size = info.dwPageSize;
-        max_committed_size = align(GB(64));
-        commit_expand_amount = page_size * 16;
+        PageSize = Info.dwPageSize;
+        MaxCommittedSize = Align(GB(64));
+        CommitExpandAmount = PageSize * 16;
     }
     
-    platform_reserve :: (cap: u64) -> *u8 {
-        memory := Windows.VirtualAlloc(null, cap, Windows.MEM_RESERVE, Windows.PAGE_READWRITE);
-        return memory;
+    PlatformReserve :: (Capacity: u64) -> *u8 {
+        Memory := windows.VirtualAlloc(null, Capacity, windows.MEM_RESERVE, windows.PAGE_READWRITE);
+        return Memory;
     }
     
-    platform_commit :: (memory: *u8, base: u64, size: u64) {
-        
-        Windows.VirtualAlloc(memory + base, size, Windows.MEM_COMMIT, Windows.PAGE_READWRITE);
+    PlatformCommit :: (Memory: *u8, Offset: u64, Size: u64) {
+        windows.VirtualAlloc(Memory + Offset, Size, windows.MEM_COMMIT, windows.PAGE_READWRITE);
     }
     
 } else #if OS == .LINUX {
     
 #import "POSIX";
     
-    page_size: s32;
+    PageSize: s32;
     
-    platform_memory_init :: () {
-        page_size = getpagesize();
-        max_committed_size = align(GB(64));
-        commit_expand_amount = page_size * 16;
+    PlatformMemoryInit :: () {
+        PageSize = getpagesize();
+        MaxCommittedSize = Align(GB(64));
+        CommitExpandAmount = PageSize * 16;
     }
     
-    platform_reserve :: (cap: u64) -> *u8 {
-        memory := mmap(null, cap, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-        if memory == (cast(*void)-1) return null; // linux uses a different return value for failed
-        return memory;
+    PlatformReserve :: (Capacity: u64) -> *u8 {
+        Memory := mmap(null, Capacity, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+        if Memory == (cast(*void)-1) return null; // linux uses a different return Value for failed
+        return Memory;
     }
     
-    platform_commit :: (memory: *u8, base: u64, size: u64) {
+    PlatformCommit :: (Memory: *u8, Offset: u64, Size: u64) {
         // linux does this automatically i think?
     }
     
