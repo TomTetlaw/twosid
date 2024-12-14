@@ -138,37 +138,6 @@ InitRenderer :: () {
         MeshCreateInfo.fragment_shader = ShaderMesh.Frag;
         
         MeshPipeline = SDL_CreateGPUGraphicsPipeline(GDevice, *MeshCreateInfo);
-        
-        {
-            ArenaPushMarkDefer(*WorkingArena);
-            Instances := ArenaPushN(*WorkingArena, ibuffer_mesh, 343);
-            
-            i := 0;
-            for x: -3..3 {
-                for y: -3..3 {
-                    for z: -3..3 {
-                        Instance := *Instances[i];
-                        Instance.Transform = TranslationMatrix(.{xx (x*10), xx (y*10), xx (z*10)});
-                        Instance.DiffuseColour = .{1, 1, 1};
-                        Instance.MaterialParams = float4.{1, 1, 1, 1};
-                        i += 1;
-                    }
-                }
-            }
-            
-            CubesInstanceBuffer = CreateInstanceBuffer(GDevice, "CubesInstanceBuffer", Instances); 
-        }
-        
-        {
-            ArenaPushMarkDefer(*WorkingArena);
-            Instances := ArenaPushN(*WorkingArena, ibuffer_mesh, 1);
-            
-            Instances[0].Transform = TranslationMatrix(.{0, 0, -1});
-            Instances[0].DiffuseColour = .{1, 1, 1};
-            Instances[0].MaterialParams = .{1, 1, 1, 8};
-            
-            PlaneInstanceBuffer = CreateInstanceBuffer(GDevice, "PlaneInstanceBuffer", Instances);
-        }
     }
     
     {
@@ -295,6 +264,8 @@ InitRenderer :: () {
     SamplerInfo.address_mode_v = .SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT;
     SamplerInfo.address_mode_w = .SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT;
     ShadowSampler = SDL_CreateGPUSampler(GDevice, *SamplerInfo);
+    
+    InitPasses();
 }
 
 CalcLightSpaceMatrix :: (LightPos: float3, LightDir: float3, Proj: float4x4, View: float4x4) -> float4x4 {
@@ -348,6 +319,70 @@ CalcLightSpaceMatrix :: (LightPos: float3, LightDir: float3, Proj: float4x4, Vie
     return LightProj * LightView;
 }
 
+ibuffer_empty :: struct {}
+
+OpaquePass: *draw_pass(ibuffer_mesh);
+DepthPass: *draw_pass(ibuffer_mesh);
+ScreenSpacePass: *draw_pass(ibuffer_empty);
+
+InitPasses :: () {
+    {
+        DepthPass = ArenaPush(*RendererArena, draw_pass(ibuffer_mesh));
+        DepthPass.Type = .DEPTH;
+        DepthPass.Pipeline = DepthPipeline;
+        
+        DepthPass.VertConstants = ArenaPush(*RendererArena, cbuffer_shadow_vertex);
+        DepthPass.VertConstantsSize = size_of(cbuffer_shadow_vertex);
+        
+        DepthPass.StorageBuffers = ArenaPushN(*RendererArena, *SDL_GPUBuffer, 1);
+        DepthPass.StorageBuffers[0] = SkinningMatricesBuffer;
+        
+        DepthPass.ColourTarget = false;
+        DepthPass.DepthTarget = ShadowTexture;
+        DepthPass.Viewport = .{SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
+        
+        DepthPass.InstanceBuffer = CreateInstanceBufferForPass(DepthPass, "depth_instance");
+    }
+    
+    {
+        OpaquePass = ArenaPush(*RendererArena, draw_pass(ibuffer_mesh));
+        OpaquePass.Type = .OPAQUE;
+        OpaquePass.Pipeline = MeshPipeline;
+        
+        OpaquePass.VertConstants = ArenaPush(*RendererArena, cbuffer_mesh_vertex);
+        OpaquePass.VertConstantsSize = size_of(cbuffer_mesh_vertex);
+        OpaquePass.FragConstants = ArenaPush(*RendererArena, cbuffer_mesh_fragment);
+        OpaquePass.FragConstantsSize = size_of(cbuffer_mesh_fragment);
+        
+        OpaquePass.StorageBuffers = ArenaPushN(*RendererArena, *SDL_GPUBuffer, 1);
+        OpaquePass.StorageBuffers[0] = SkinningMatricesBuffer;
+        
+        OpaquePass.Textures = ArenaPushN(*RendererArena, *SDL_GPUTexture, 1);
+        OpaquePass.Textures[0] = ShadowTexture;
+        OpaquePass.Samplers = ArenaPushN(*RendererArena, *SDL_GPUSampler, 1);
+        OpaquePass.Samplers[0] = ShadowSampler;
+        
+        OpaquePass.ColourTarget = true;
+        OpaquePass.ClearColour = true;
+        OpaquePass.DepthTarget = DepthTexture;
+        OpaquePass.Viewport = .{1366, 768};
+        
+        OpaquePass.InstanceBuffer = CreateInstanceBufferForPass(OpaquePass, "opaque_instance");
+    }
+    
+    {
+        ScreenSpacePass = ArenaPush(*RendererArena, draw_pass(ibuffer_empty));
+        ScreenSpacePass.Type = .SCREEN_SPACE;
+        ScreenSpacePass.Pipeline = ScreenSpacePipeline;
+        
+        ScreenSpacePass.VertConstants = ArenaPush(*RendererArena, cbuffer_screenspacemesh_vertex);
+        ScreenSpacePass.VertConstantsSize = size_of(cbuffer_screenspacemesh_vertex);
+        
+        ScreenSpacePass.ColourTarget = true;
+        ScreenSpacePass.Viewport = .{1366, 768};
+    }
+}
+
 DrawFrame :: (Camera: *camera) {
     if KeyPressed(.SDL_SCANCODE_LEFT) {
         FragDebugMode = clamp(FragDebugMode - 1, 0, MAX_FRAG_DEBUG_MODE);
@@ -365,79 +400,34 @@ DrawFrame :: (Camera: *camera) {
     LightColour := float3.{1.0, 1.0, 0.8};
     LightMatrix := CalcLightSpaceMatrix(LightPos, LightDir, Projection, Camera.View);
     
-    OpaquePass: draw_pass;
-    DepthPass: draw_pass;
-    ScreenSpacePass: draw_pass;
-    
     {
-        DepthPass.Type = .DEPTH;
-        DepthPass.Pipeline = DepthPipeline;
-        
-        DepthVertConstants := ArenaPush(*FrameArena, cbuffer_shadow_vertex);
-        DepthVertConstants.LightMatrix = LightMatrix;
-        DepthVertConstants.Time = .{RealTime, 0, 0, 0};
-        
-        DepthPass.VertConstants = DepthVertConstants;
-        DepthPass.VertConstantsSize = size_of(cbuffer_shadow_vertex);
-        
-        DepthPass.StorageBuffers = ArenaPushN(*FrameArena, *SDL_GPUBuffer, 1);
-        DepthPass.StorageBuffers[0] = SkinningMatricesBuffer;
-        
-        DepthPass.ColourTarget = false;
-        DepthPass.DepthTarget = ShadowTexture;
-        
-        DepthPass.Viewport = .{SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
+        VertConstants: cbuffer_shadow_vertex;
+        VertConstants.LightMatrix = LightMatrix;
+        VertConstants.Time = .{RealTime, 0, 0, 0};
+        memcpy(DepthPass.VertConstants, *VertConstants, size_of(cbuffer_shadow_vertex));
     }
     
     {
-        OpaquePass.Type = .OPAQUE;
-        OpaquePass.Pipeline = MeshPipeline;
+        VertConstants: cbuffer_mesh_vertex;
+        VertConstants.View = Camera.View;
+        VertConstants.Projection = Projection;
+        VertConstants.ViewPos = Camera.Position;
+        VertConstants.LightDir = LightDir;
+        VertConstants.Time = .{RealTime, 0, 0, 0};
         
-        OpaqueVertConstants := ArenaPush(*FrameArena, cbuffer_mesh_vertex);
-        OpaqueVertConstants.View = Camera.View;
-        OpaqueVertConstants.Projection = Projection;
-        OpaqueVertConstants.ViewPos = Camera.Position;
-        OpaqueVertConstants.LightDir = LightDir;
-        OpaqueVertConstants.Time = .{RealTime, 0, 0, 0};
+        FragConstants: cbuffer_mesh_fragment;
+        FragConstants.LightColour = LightColour;
+        FragConstants.LightMatrix = LightMatrix;
+        FragConstants.FragDebugMode = FragDebugMode;
         
-        OpaqueFragConstants := ArenaPush(*FrameArena, cbuffer_mesh_fragment);
-        OpaqueFragConstants.LightColour = LightColour;
-        OpaqueFragConstants.LightMatrix = LightMatrix;
-        OpaqueFragConstants.FragDebugMode = FragDebugMode;
-        
-        OpaquePass.VertConstants = OpaqueVertConstants;
-        OpaquePass.VertConstantsSize = size_of(cbuffer_mesh_vertex);
-        OpaquePass.FragConstants = OpaqueFragConstants;
-        OpaquePass.FragConstantsSize = size_of(cbuffer_mesh_fragment);
-        
-        OpaquePass.StorageBuffers = ArenaPushN(*FrameArena, *SDL_GPUBuffer, 1);
-        OpaquePass.StorageBuffers[0] = SkinningMatricesBuffer;
-        
-        OpaquePass.Textures = ArenaPushN(*FrameArena, *SDL_GPUTexture, 1);
-        OpaquePass.Textures[0] = ShadowTexture;
-        OpaquePass.Samplers = ArenaPushN(*FrameArena, *SDL_GPUSampler, 1);
-        OpaquePass.Samplers[0] = ShadowSampler;
-        
-        OpaquePass.ColourTarget = true;
-        OpaquePass.ClearColour = true;
-        OpaquePass.DepthTarget = DepthTexture;
-        
-        OpaquePass.Viewport = .{1366, 768};
+        memcpy(OpaquePass.VertConstants, *VertConstants, size_of(cbuffer_mesh_vertex));
+        memcpy(OpaquePass.FragConstants, *FragConstants, size_of(cbuffer_mesh_fragment));
     }
     
     {
-        ScreenSpacePass.Type = .SCREEN_SPACE;
-        ScreenSpacePass.Pipeline = ScreenSpacePipeline;
-        
-        ScreenSpaceVertConstants := ArenaPush(*FrameArena, cbuffer_screenspacemesh_vertex);
-        ScreenSpaceVertConstants.Projection = OrthoProjectionMatrix(0, 1366, 768, 0, -999.0, 999.0);
-        
-        ScreenSpacePass.VertConstants = ScreenSpaceVertConstants;
-        ScreenSpacePass.VertConstantsSize = size_of(cbuffer_screenspacemesh_vertex);
-        
-        ScreenSpacePass.ColourTarget = true;
-        
-        ScreenSpacePass.Viewport = .{1366, 768};
+        VertConstants: cbuffer_screenspacemesh_vertex;
+        VertConstants.Projection = OrthoProjectionMatrix(0, 1366, 768, 0, -999.0, 999.0);
+        memcpy(ScreenSpacePass.VertConstants, *VertConstants, size_of(cbuffer_screenspacemesh_vertex));
     }
     
     CommandBuffer := SDL_AcquireGPUCommandBuffer(GDevice);
@@ -448,25 +438,38 @@ DrawFrame :: (Camera: *camera) {
         return;
     }
     
+    MapInstanceBuffer(DepthPass.InstanceBuffer);
+    MapInstanceBuffer(OpaquePass.InstanceBuffer);
+    MapInstanceBuffer(ScreenSpacePass.InstanceBuffer);
+    
     DepthCommands := ArenaPushN(*FrameArena, draw_command, 1);
-    DrawCubes(*DepthPass, *DepthCommands[0]);
+    DrawCubes(DepthPass, *DepthCommands[0]);
     //DrawPlane(*DepthPass, *DepthCommands[1]);
     DepthPass.Commands = DepthCommands;
     
     OpaqueCommands := ArenaPushN(*FrameArena, draw_command, 2);
-    DrawCubes(*OpaquePass, *OpaqueCommands[0]);
-    DrawPlane(*OpaquePass, *OpaqueCommands[1]);
+    DrawCubes(OpaquePass, *OpaqueCommands[0]);
+    DrawPlane(OpaquePass, *OpaqueCommands[1]);
     OpaquePass.Commands = OpaqueCommands;
     
     ScreenSpaceCommands := ArenaPushN(*FrameArena, draw_command, 1);
-    DrawShadowMap(*ScreenSpacePass, *ScreenSpaceCommands[0]);
+    DrawShadowMap(ScreenSpacePass, *ScreenSpaceCommands[0]);
     ScreenSpacePass.Commands = ScreenSpaceCommands;
     
-    DrawPass(*DepthPass, CommandBuffer);
-    DrawPass(*OpaquePass, CommandBuffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.InstanceBuffer.TransferBuffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.InstanceBuffer.TransferBuffer);
+    
+    CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
+    CommitInstanceBuffer(DepthPass.InstanceBuffer, CopyPass);
+    CommitInstanceBuffer(OpaquePass.InstanceBuffer, CopyPass);
+    CommitInstanceBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
+    SDL_EndGPUCopyPass(CopyPass);
+    
+    DrawPass(DepthPass, CommandBuffer);
+    DrawPass(OpaquePass, CommandBuffer);
     
     if FragDebugMode == 1 {
-        DrawPass(*ScreenSpacePass, CommandBuffer);
+        DrawPass(ScreenSpacePass, CommandBuffer);
     }
     
     SDL_SubmitGPUCommandBuffer(CommandBuffer);
@@ -476,7 +479,7 @@ DrawFrame :: (Camera: *camera) {
 
 MAX_BONES :: 1024;
 
-SHADOW_MAP_SIZE :: 1024;
+SHADOW_MAP_SIZE :: 8192*2;
 
 NEAR_PLANE :: 0.1;
 FAR_PLANE :: 100.0;
@@ -540,6 +543,8 @@ DepthTexture: *SDL_GPUTexture;
 DefaultSampler: *SDL_GPUSampler;
 ShadowSampler: *SDL_GPUSampler;
 
+RendererArena: arena;
+
 draw_pass_type :: enum {
     DEPTH;
     OPAQUE;
@@ -547,7 +552,7 @@ draw_pass_type :: enum {
     SCREEN_SPACE;
 }
 
-draw_pass :: struct {
+draw_pass :: struct ($T: Type) {
     Type: draw_pass_type;
     Pipeline: *SDL_GPUGraphicsPipeline;
     
@@ -568,6 +573,8 @@ draw_pass :: struct {
     StorageBuffers: [] *SDL_GPUBuffer;
     
     Viewport: float2;
+    
+    InstanceBuffer: *instance_buffer(T);
 }
 
 draw_command :: struct {
@@ -577,8 +584,6 @@ draw_command :: struct {
     Samplers: [] *SDL_GPUSampler;
     
     IndexCount: int;
-    
-    InstanceBuffer: *SDL_GPUBuffer;
     InstanceCount: int;
 }
 
@@ -644,6 +649,11 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
     SDL_PushGPUVertexUniformData(CommandBuffer, 0, Pass.VertConstants, xx Pass.VertConstantsSize);
     SDL_PushGPUFragmentUniformData(CommandBuffer, 0, Pass.FragConstants, xx Pass.FragConstantsSize);
     
+    if Pass.InstanceBuffer {
+        SDL_BindGPUVertexStorageBuffers(RenderPass, xx Pass.StorageBuffers.count, *Pass.InstanceBuffer.Buffer, 1);
+    }
+    
+    BaseInstance := 0;
     for Pass.Commands {
         VertexBindings := ArenaPushN(*FrameArena, SDL_GPUBufferBinding, xx it.VertexBuffers.count);
         for Buffer: it.VertexBuffers {
@@ -661,26 +671,19 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
         SDL_BindGPUIndexBuffer(RenderPass, *IndexBinding, .SDL_GPU_INDEXELEMENTSIZE_32BIT);
         SDL_BindGPUFragmentSamplers(RenderPass, xx Pass.Textures.count, TextureBindings.data, xx TextureBindings.count);
         
-        if it.InstanceBuffer {
-            SDL_BindGPUVertexStorageBuffers(RenderPass, xx Pass.StorageBuffers.count, *it.InstanceBuffer, 1);
-        }
-        
-        SDL_DrawGPUIndexedPrimitives(RenderPass, xx it.IndexCount, xx it.InstanceCount, 0, 0, 0);
+        SDL_DrawGPUIndexedPrimitives(RenderPass, xx it.IndexCount, xx it.InstanceCount, 0, 0, xx BaseInstance);
+        BaseInstance += it.InstanceCount;
     }
     
     SDL_EndGPURenderPass(RenderPass);
 }
 
-CubesInstanceBuffer: *SDL_GPUBuffer;
-PlaneInstanceBuffer: *SDL_GPUBuffer;
-
-DrawMeshInstanced :: (Pass: *draw_pass, Command: *draw_command, Mesh: *mesh, InstanceCount: int, InstanceBuffer: *SDL_GPUBuffer, Textures: [] *texture) {
+DrawMeshInstanced :: (Pass: *draw_pass, Command: *draw_command, Mesh: *mesh, InstanceCount: int, Textures: [] *texture) {
     if Pass.Type == .DEPTH {
         Buffers := ArenaPushN(*FrameArena, *SDL_GPUBuffer, 3);
         Buffers[0] = Mesh.PositionBuffer;
         Buffers[1] = Mesh.WeightBuffer;
         Buffers[2] = Mesh.BoneIdsBuffer;
-        Command.IndexBuffer = Mesh.IndexBuffer;
         Command.VertexBuffers = Buffers;
     } else if Pass.Type == .OPAQUE || Pass.Type == .TRANSLUCENT {
         Buffers := ArenaPushN(*FrameArena, *SDL_GPUBuffer, 6);
@@ -691,8 +694,10 @@ DrawMeshInstanced :: (Pass: *draw_pass, Command: *draw_command, Mesh: *mesh, Ins
         Buffers[4] = Mesh.WeightBuffer;
         Buffers[5] = Mesh.BoneIdsBuffer;
         Command.VertexBuffers = Buffers;
-        Command.IndexBuffer = Mesh.IndexBuffer;
     }
+    
+    Command.IndexBuffer = Mesh.IndexBuffer;
+    Command.IndexCount = Mesh.NumIndices;
     
     Command.Textures = ArenaPushN(*FrameArena, *SDL_GPUTexture, xx Textures.count);
     Command.Samplers = ArenaPushN(*FrameArena, *SDL_GPUSampler, xx Textures.count);
@@ -701,9 +706,6 @@ DrawMeshInstanced :: (Pass: *draw_pass, Command: *draw_command, Mesh: *mesh, Ins
         Command.Samplers[it_index] = DefaultSampler;
     }
     
-    Command.IndexCount = Mesh.NumIndices;
-    
-    Command.InstanceBuffer = InstanceBuffer;
     Command.InstanceCount = InstanceCount;
 }
 
@@ -714,7 +716,15 @@ DrawPlane :: (Pass: *draw_pass, Command: *draw_command) {
     Textures[1] = LoadTexture("Textures/floor_normal.png");
     Textures[2] = LoadTexture("Textures/floor_rmaoh.png");
     
-    DrawMeshInstanced(Pass, Command, Mesh, 1, PlaneInstanceBuffer, Textures);
+    Instances := ArenaPushN(*WorkingArena, ibuffer_mesh, 1);
+    
+    Instances[0].Transform = TranslationMatrix(.{0, 0, -1});
+    Instances[0].DiffuseColour = .{1, 1, 1};
+    Instances[0].MaterialParams = .{1, 1, 1, 8};
+    
+    WriteInstanceBuffer(Pass.InstanceBuffer, Instances);
+    
+    DrawMeshInstanced(Pass, Command, Mesh, 1, Textures);
 }
 
 DrawCubes :: (Pass: *draw_pass, Command: *draw_command) {
@@ -724,7 +734,27 @@ DrawCubes :: (Pass: *draw_pass, Command: *draw_command) {
     Textures[1] = LoadTexture("Textures/unit_normal.png");
     Textures[2] = LoadTexture("Textures/unit_rmaoh.png");
     
-    DrawMeshInstanced(Pass, Command, Mesh, 343, CubesInstanceBuffer, Textures);
+    ArenaPushMarkDefer(*WorkingArena);
+    Instances := ArenaPushN(*WorkingArena, ibuffer_mesh, 343);
+    
+    Rotation := RotationMatrix(QuatFromAxisAngle(.{0, 0, 1}, fmod_cycling(GameTime*0.03, 1.0)));
+    
+    i := 0;
+    for x: -3..3 {
+        for y: -3..3 {
+            for z: -3..3 {
+                Instance := *Instances[i];
+                Instance.Transform = Rotation * TranslationMatrix(.{xx (x*10), xx (y*10), xx (z*10)});
+                Instance.DiffuseColour = .{1, 1, 1};
+                Instance.MaterialParams = float4.{1, 1, 1, 1};
+                i += 1;
+            }
+        }
+    }
+    
+    WriteInstanceBuffer(Pass.InstanceBuffer, Instances);
+    
+    DrawMeshInstanced(Pass, Command, Mesh, 343, Textures);
 }
 
 DrawShadowMap :: (Pass: *draw_pass, Command: *draw_command) {
@@ -743,5 +773,50 @@ DrawShadowMap :: (Pass: *draw_pass, Command: *draw_command) {
     Command.Samplers[0] = ShadowSampler;
     
     Command.InstanceCount = 1;
-    Command.InstanceBuffer = null;
+}
+
+instance_buffer :: struct ($T: Type) {
+    Buffer: *SDL_GPUBuffer;
+    TransferBuffer: *SDL_GPUTransferBuffer;
+    Used: int;
+    Capacity: int;
+    Mapping: *T;
+}
+
+CreateInstanceBufferForPass :: (Pass: *draw_pass($T), Name: string) -> *instance_buffer(T) {
+    InstanceBuffer := ArenaPush(*RendererArena, instance_buffer(T));
+    InstanceBuffer.Buffer = CreateBuffer(Name, size_of(T) * MAX_INSTANCES, SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ);
+    InstanceBuffer.TransferBuffer = CreateTransferBuffer(size_of(T) * MAX_INSTANCES);
+    InstanceBuffer.Capacity = MAX_INSTANCES;
+    return InstanceBuffer;
+}
+
+MapInstanceBuffer :: (InstanceBuffer: *$T/instance_buffer) {
+    if !InstanceBuffer return;
+    
+    InstanceBuffer.Mapping = SDL_MapGPUTransferBuffer(GDevice, InstanceBuffer.TransferBuffer, false);
+    InstanceBuffer.Used = 0;
+}
+
+WriteInstanceBuffer :: (InstanceBuffer: *$I/instance_buffer, Data: [] $T) {
+    if !InstanceBuffer return;
+    
+    if InstanceBuffer.Used + Data.count >= InstanceBuffer.Capacity return;
+    memcpy(InstanceBuffer.Mapping + InstanceBuffer.Used, Data.data, Data.count * size_of(T));
+    InstanceBuffer.Used += Data.count;
+}
+
+CommitInstanceBuffer :: (InstanceBuffer: *$I/instance_buffer, CopyPass: *SDL_GPUCopyPass) {
+    if !InstanceBuffer return;
+    
+    Location: SDL_GPUTransferBufferLocation;
+    Location.transfer_buffer = InstanceBuffer.TransferBuffer;
+    Location.offset = 0;
+    
+    Region: SDL_GPUBufferRegion;
+    Region.buffer = InstanceBuffer.Buffer;
+    Region.offset = 0;
+    Region.size = xx (size_of(I.T) * InstanceBuffer.Used);
+    
+    SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
 }

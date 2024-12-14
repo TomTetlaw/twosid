@@ -30,7 +30,7 @@ struct Instance_Data {
 	row_major float4x4 transform;
 	float3 diffuse_colour;
 	float pad0;
-	float4 material_params;
+	float4 material_params; 
 };
 
 StructuredBuffer<float4x4> skinning_transforms: register(t0, space0);
