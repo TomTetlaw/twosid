@@ -22,7 +22,7 @@ UpdateCamera :: (Camera: *camera) {
     MoveInput.x = KeyState(.SDL_SCANCODE_S) - KeyState(.SDL_SCANCODE_W);
     MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
     MoveInput.z = KeyState(.SDL_SCANCODE_E) - KeyState(.SDL_SCANCODE_Q);
-    MoveInput = Vec3Rotate(normalize(MoveInput), Camera.Rotation);
+    MoveInput = RotateVector(MoveInput, Camera.Rotation);
     
 	Camera.Position += MoveInput * MoveSpeed * DeltaTime;
     
@@ -32,12 +32,12 @@ UpdateCamera :: (Camera: *camera) {
     Camera.Pitch += Delta.y * Deg2Turn;
     Camera.Pitch = clamp(Camera.Pitch, -89.0 * Deg2Turn, 89.0 * Deg2Turn);
     
-    Yaw := QuatAxisAngle(.{0, 0, 1}, Camera.Yaw);
-    Pitch := QuatAxisAngle(.{0, -1, 0}, Camera.Pitch);
+    Yaw := QuatFromAxisAngle(.{0, 0, 1}, Camera.Yaw);
+    Pitch := QuatFromAxisAngle(.{0, -1, 0}, Camera.Pitch);
     Camera.Rotation = Yaw * Pitch;
     
-    Transform := Mat4Translation(Camera.Position) * Mat4Rotation(Camera.Rotation);
-    Camera.View = Mat4Inverse(Transform);
+    Transform := TranslationMatrix(Camera.Position) * RotationMatrix(Camera.Rotation);
+    Camera.View = InverseMatrix(Transform);
 }
 
 #scope_file

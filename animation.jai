@@ -89,8 +89,8 @@ AnimUpdate :: (Player: *anim_player) {
     for Anim.BoneNames {
         Bone := FindBone(Player.Mesh.Skeleton, it);
         
-        LocalTransform := Mat4Translation(Positions[Bone.Id]) *
-            Mat4Rotation(Rotations[Bone.Id]) * Mat4Scale(Scales[Bone.Id]);
+        LocalTransform := TranslationMatrix(Positions[Bone.Id]) *
+            RotationMatrix(Rotations[Bone.Id]) * ScaleMatrix(Scales[Bone.Id]);
         
         if Bone.Parent {
             Pose.ModelSpaceTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Parent.Id] * LocalTransform;
@@ -98,14 +98,14 @@ AnimUpdate :: (Player: *anim_player) {
         }
         else {
             Pose.ModelSpaceTransforms[Bone.Id] = LocalTransform;
-            Pose.ParentModelSpaceTransforms[Bone.Id] = Mat4Identity();
+            Pose.ParentModelSpaceTransforms[Bone.Id] = IdentityMatrix();
         }
     }
     
     for Anim.BoneNames {
         Bone := FindBone(Player.Mesh.Skeleton, it);
         Pose.SkinningTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Id] * Bone.InverseBindTransform;
-        Pose.SkinningTransforms[Bone.Id] = Mat4Transpose(Pose.SkinningTransforms[Bone.Id]);
+        Pose.SkinningTransforms[Bone.Id] = TransposeMatrix(Pose.SkinningTransforms[Bone.Id]);
     }
 }
 

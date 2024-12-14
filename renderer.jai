@@ -148,7 +148,7 @@ InitRenderer :: () {
                 for y: -3..3 {
                     for z: -3..3 {
                         Instance := *Instances[i];
-                        Instance.Transform = Mat4Translation(.{xx (x*10), xx (y*10), xx (z*10)});
+                        Instance.Transform = TranslationMatrix(.{xx (x*10), xx (y*10), xx (z*10)});
                         Instance.DiffuseColour = .{1, 1, 1};
                         Instance.MaterialParams = float4.{1, 1, 1, 1};
                         i += 1;
@@ -163,7 +163,7 @@ InitRenderer :: () {
             ArenaPushMarkDefer(*WorkingArena);
             Instances := ArenaPushN(*WorkingArena, ibuffer_mesh, 1);
             
-            Instances[0].Transform = Mat4Translation(.{0, 0, -1});
+            Instances[0].Transform = TranslationMatrix(.{0, 0, -1});
             Instances[0].DiffuseColour = .{1, 1, 1};
             Instances[0].MaterialParams = .{1, 1, 1, 8};
             
@@ -252,7 +252,7 @@ InitRenderer :: () {
     
     TransferMemory := cast (*float4x4) SDL_MapGPUTransferBuffer(GDevice, TransferBuffer, false);
     for 0..MAX_BONES-1 {
-        TransferMemory[it] = Mat4Identity();
+        TransferMemory[it] = IdentityMatrix();
     }
     
     SDL_UnmapGPUTransferBuffer(GDevice, TransferBuffer);
@@ -298,7 +298,7 @@ InitRenderer :: () {
 }
 
 CalcLightSpaceMatrix :: (LightPos: float3, LightDir: float3, Proj: float4x4, View: float4x4) -> float4x4 {
-    Inverse := Mat4Inverse(Proj * View);
+    Inverse := InverseMatrix(Proj * View);
     
     Corners: [8] float4;
     Corners[0] = Inverse * .{-1, -1, -1, 1};
@@ -321,7 +321,7 @@ CalcLightSpaceMatrix :: (LightPos: float3, LightDir: float3, Proj: float4x4, Vie
     Center /= 8;
     
     Dir := float3.{-LightDir.y, LightDir.z, LightDir.x};
-    LightView := Mat4LookAt(Center + LightDir, Center);
+    LightView := LookAtMatrix(Center + LightDir, Center);
     
     Right, Top, Far := FLOAT32_MIN;
     Left, Bottom, Near := FLOAT32_MAX;
@@ -343,7 +343,7 @@ CalcLightSpaceMatrix :: (LightPos: float3, LightDir: float3, Proj: float4x4, Vie
     if Far < 0 Far *= ZPad;
     else Far /= ZPad;
     
-    LightProj := Mat4Ortho(Left, Right, Bottom, Top, Near, Far);
+    LightProj := OrthoProjectionMatrix(Left, Right, Bottom, Top, Near, Far);
     
     return LightProj * LightView;
 }
@@ -356,11 +356,11 @@ DrawFrame :: (Camera: *camera) {
         FragDebugMode = clamp(FragDebugMode + 1, 0, MAX_FRAG_DEBUG_MODE);
     }
     
-    Projection := Mat4Projection(45.0 * Deg2Rad, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
+    Projection := ProjectionMatrix(45.0 * Deg2Rad, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
     
     LightPos := float3.{0, 0, 10};
     LightTarget := float3.{1, -1, 1};
-    LightDir := normalize(LightTarget - LightPos);
+    LightDir := Normalize(LightTarget - LightPos);
     
     LightColour := float3.{1.0, 1.0, 0.8};
     LightMatrix := CalcLightSpaceMatrix(LightPos, LightDir, Projection, Camera.View);
@@ -430,7 +430,7 @@ DrawFrame :: (Camera: *camera) {
         ScreenSpacePass.Pipeline = ScreenSpacePipeline;
         
         ScreenSpaceVertConstants := ArenaPush(*FrameArena, cbuffer_screenspacemesh_vertex);
-        ScreenSpaceVertConstants.Projection = Mat4Ortho(0, 1366, 768, 0, -999.0, 999.0);
+        ScreenSpaceVertConstants.Projection = OrthoProjectionMatrix(0, 1366, 768, 0, -999.0, 999.0);
         
         ScreenSpacePass.VertConstants = ScreenSpaceVertConstants;
         ScreenSpacePass.VertConstantsSize = size_of(cbuffer_screenspacemesh_vertex);
@@ -675,12 +675,12 @@ CubesInstanceBuffer: *SDL_GPUBuffer;
 PlaneInstanceBuffer: *SDL_GPUBuffer;
 
 DrawMeshInstanced :: (Pass: *draw_pass, Command: *draw_command, Mesh: *mesh, InstanceCount: int, InstanceBuffer: *SDL_GPUBuffer, Textures: [] *texture) {
-    Command.IndexBuffer = Mesh.IndexBuffer;
     if Pass.Type == .DEPTH {
         Buffers := ArenaPushN(*FrameArena, *SDL_GPUBuffer, 3);
         Buffers[0] = Mesh.PositionBuffer;
         Buffers[1] = Mesh.WeightBuffer;
         Buffers[2] = Mesh.BoneIdsBuffer;
+        Command.IndexBuffer = Mesh.IndexBuffer;
         Command.VertexBuffers = Buffers;
     } else if Pass.Type == .OPAQUE || Pass.Type == .TRANSLUCENT {
         Buffers := ArenaPushN(*FrameArena, *SDL_GPUBuffer, 6);
@@ -691,6 +691,7 @@ DrawMeshInstanced :: (Pass: *draw_pass, Command: *draw_command, Mesh: *mesh, Ins
         Buffers[4] = Mesh.WeightBuffer;
         Buffers[5] = Mesh.BoneIdsBuffer;
         Command.VertexBuffers = Buffers;
+        Command.IndexBuffer = Mesh.IndexBuffer;
     }
     
     Command.Textures = ArenaPushN(*FrameArena, *SDL_GPUTexture, xx Textures.count);

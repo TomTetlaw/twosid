@@ -27,8 +27,6 @@ GDevice: *SDL_GPUDevice;
 GWindow: *SDL_Window;
 
 main :: () {
-    GameStartTime := current_time_monotonic();
-    
     InitMemorySystem();
     
     if !SDL_Init(SDL_INIT_VIDEO) {
@@ -57,20 +55,16 @@ main :: () {
     
     Camera: camera;
     
-    OldTime = current_time_monotonic();
+    GameStartTime := current_time_monotonic();
+    OldTime: Apollo_Time;
+    
     Quit := false;
     while !Quit {
-        // reset to Zero so the Event can fill these for just one frame
-        Mouse.Delta.x = 0;
-        Mouse.Delta.y = 0;
-        
-        Quit = ProcessWindowEvents();
-        if Quit break;
-        
         // update Time
         {
             Now := current_time_monotonic() - GameStartTime;
             Delta := Now - OldTime;
+            OldTime = Now;
             
             RealTimeF64 = to_float64_seconds(Now);
             RealDeltaTimeF64 = to_float64_seconds(Delta);
@@ -86,8 +80,6 @@ main :: () {
             GameTime = xx GameTimeF64;
             RealDeltaTime = xx RealDeltaTimeF64;
             DeltaTime = xx DeltaTimeF64;
-            
-            OldTime = Now;
         }
         
         // update Mouse
@@ -100,6 +92,13 @@ main :: () {
             Mouse.Position.x = Pos.x;
             Mouse.Position.y = Pos.y;
         }
+        
+        // reset to Zero so the event can fill these for just one frame
+        Mouse.Delta.x = 0;
+        Mouse.Delta.y = 0;
+        
+        Quit = ProcessWindowEvents();
+        if Quit break;
         
         UpdateCamera(*Camera);
         
@@ -138,5 +137,4 @@ ProcessWindowEvents :: () -> bool {
 
 KeyStates: *bool;
 
-OldTime: Apollo_Time;
 RealTimeF64, GameTimeF64, RealDeltaTimeF64, DeltaTimeF64: float64;

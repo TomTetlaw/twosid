@@ -25,6 +25,7 @@ mesh :: struct {
     Weights: [] float3;
     BoneIds: [] bone_ids;
     Indices: [] u32;
+    ShadowIndices: [] u32;
     
     NumIndices: int;
     PositionBuffer: *SDL_GPUBuffer;
@@ -34,6 +35,7 @@ mesh :: struct {
     WeightBuffer: *SDL_GPUBuffer;
     BoneIdsBuffer: *SDL_GPUBuffer;
     IndexBuffer: *SDL_GPUBuffer;
+    ShadowIndexBuffer: *SDL_GPUBuffer;
     
     Skeleton: *skeleton;
     
@@ -77,10 +79,12 @@ InitMeshSystem :: () {
         it.BoneIdsBuffer = CreateVertexBuffer(GDevice, tprint("%_bone_ids", it.Path), size_of(bone_ids), it.Positions.count);
         
         it.IndexBuffer = CreateIndexBuffer(GDevice, tprint("%_index", it.Path), it.Indices.count);
+        //it.ShadowIndexBuffer = CreateIndexBuffer(GDevice, tprint("%_shadow_index", it.Path), it.ShadowIndices.count);
         
         VERTEX_SIZE :: 14 * size_of(float) + size_of(bone_ids);
         TotalMeshesSize += VERTEX_SIZE * it.Positions.count;
         TotalMeshesSize += size_of(u32) * it.Indices.count;
+        //TotalMeshesSize += size_of(u32) * it.ShadowIndices.count;
     }
     
     CreateInfo: SDL_GPUTransferBufferCreateInfo;
@@ -112,6 +116,9 @@ InitMeshSystem :: () {
         
         memcpy(TransferMemory + Cursor, it.Indices.data, it.Indices.count * size_of(u32));
         Cursor += it.Indices.count * size_of(u32);
+        
+        /*memcpy(TransferMemory + Cursor, it.ShadowIndices.data, it.ShadowIndices.count * size_of(u32));
+        Cursor += it.ShadowIndices.count * size_of(u32);*/
     }
     
     SDL_UnmapGPUTransferBuffer(GDevice, TransferBuffer);
@@ -160,6 +167,11 @@ InitMeshSystem :: () {
         Region.size = xx (it.Indices.count * size_of(u32));
         SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
         Location.offset += xx (it.Indices.count * size_of(u32));
+        
+        /*Region.buffer = it.ShadowIndexBuffer;
+        Region.size = xx (it.ShadowIndices.count * size_of(u32));
+        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
+        Location.offset += xx (it.ShadowIndices.count * size_of(u32));*/
     }
     
     SDL_EndGPUCopyPass(CopyPass);
@@ -185,14 +197,60 @@ LoadMesh :: (Path: string) -> *mesh {
         return *Meshes.NullValue;
     }
     
-    Positions := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
-    TexCoords := FileReadArray(*File, *MeshArena, float2, Header.NumVertices);
-    Normals := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
-    Tangents := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
-    Weights := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
-    BoneIds := FileReadArray(*File, *MeshArena, bone_ids, Header.NumVertices);
-    Indices := FileReadArray(*File, *MeshArena, u32, Header.NumIndices);
+    Mark := ArenaPushMark(*WorkingArena);
+    
+    Positions := FileReadArray(*File, *WorkingArena, float3, Header.NumVertices);
+    TexCoords := FileReadArray(*File, *WorkingArena, float2, Header.NumVertices);
+    Normals := FileReadArray(*File, *WorkingArena, float3, Header.NumVertices);
+    Tangents := FileReadArray(*File, *WorkingArena, float3, Header.NumVertices);
+    Weights := FileReadArray(*File, *WorkingArena, float3, Header.NumVertices);
+    BoneIds := FileReadArray(*File, *WorkingArena, bone_ids, Header.NumVertices);
+    Indices := FileReadArray(*File, *WorkingArena, u32, Header.NumIndices);
     SerializedBones := FileReadBones(*File, *MeshArena, Header.NumBones);
+    
+    /*
+    // This should be done at build time!
+    IndexRemap := ArenaPushN(*MeshArena, u32, xx Positions.count);
+    Streams := ArenaPushN(*MeshArena, meshopt_Stream, 6);
+    Streams[0] = .{Positions.data, size_of(float3), size_of(float3)};
+    Streams[1] = .{TexCoords.data, size_of(float2), size_of(float2)};
+    Streams[2] = .{Normals.data, size_of(float3), size_of(float3)};
+    Streams[3] = .{Tangents.data, size_of(float3), size_of(float3)};
+    Streams[4] = .{Weights.data, size_of(float3), size_of(float3)};
+    Streams[5] = .{BoneIds.data, size_of(bone_ids), size_of(bone_ids)};
+    VertexCount := meshopt_generateVertexRemapMulti(IndexRemap.data, Indices.data, xx Indices.count, xx Positions.count, Streams.data, 6);
+    
+    OptimizedPositions := ArenaPushN(*MeshArena, float3, VertexCount);
+    OptimizedTexCoords := ArenaPushN(*MeshArena, float2, VertexCount);
+    OptimizedNormals := ArenaPushN(*MeshArena, float3, VertexCount);
+    OptimizedTangents := ArenaPushN(*MeshArena, float3, VertexCount);
+    OptimizedWeights := ArenaPushN(*MeshArena, float3, VertexCount);
+    OptimizedBoneIds := ArenaPushN(*MeshArena, bone_ids, VertexCount);
+    OptimizedIndices := ArenaPushN(*MeshArena, u32, VertexCount);
+    ShadowIndices := ArenaPushN(*MeshArena, u32, VertexCount);
+    
+    meshopt_remapVertexBuffer(OptimizedPositions.data, Positions.data, xx Positions.count, size_of(float3), OptimizedIndices.data);
+    meshopt_remapVertexBuffer(OptimizedTexCoords.data, TexCoords.data, xx TexCoords.count, size_of(float2), OptimizedIndices.data);
+    meshopt_remapVertexBuffer(OptimizedNormals.data, Normals.data, xx Normals.count, size_of(float3), OptimizedIndices.data);
+    meshopt_remapVertexBuffer(OptimizedTangents.data, Tangents.data, xx Tangents.count, size_of(float3), OptimizedIndices.data);
+    meshopt_remapVertexBuffer(OptimizedWeights.data, Weights.data, xx Weights.count, size_of(float3), OptimizedIndices.data);
+    meshopt_remapVertexBuffer(OptimizedBoneIds.data, BoneIds.data, xx BoneIds.count, size_of(bone_ids), OptimizedIndices.data);
+    meshopt_remapIndexBuffer(OptimizedIndices.data, Indices.data, xx Indices.count, IndexRemap.data);
+    
+    meshopt_generateShadowIndexBufferMulti(ShadowIndices.data, OptimizedIndices.data, VertexCount, VertexCount, Streams.data, 6);
+    
+    meshopt_optimizeVertexCache(OptimizedIndices.data, xx OptimizedIndices.count, VertexCount, VertexCount);
+    
+    Positions = OptimizedPositions;
+    TexCoords = OptimizedTexCoords;
+    Normals = OptimizedNormals;
+    Tangents = OptimizedTangents;
+    Weights = OptimizedWeights;
+    BoneIds = OptimizedBoneIds;
+    Indices = OptimizedIndices;
+    
+    ArenaPopMark(*WorkingArena);
+    */
     
     MinBounds := float3.{FLOAT32_MAX, FLOAT32_MAX, FLOAT32_MAX};
     MaxBounds := float3.{FLOAT32_MIN, FLOAT32_MIN, FLOAT32_MIN};
@@ -238,7 +296,7 @@ LoadMesh :: (Path: string) -> *mesh {
     }
     
     for * Bones {
-        it.InverseBindTransform = Mat4Inverse(it.InverseBindTransform);
+        it.InverseBindTransform = InverseMatrix(it.InverseBindTransform);
     }
     
     Skeleton := ArenaPush(*MeshArena, skeleton);
@@ -252,6 +310,7 @@ LoadMesh :: (Path: string) -> *mesh {
     Mesh.Normals = Normals;
     Mesh.Tangents = Tangents;
     Mesh.Indices = Indices;
+    //Mesh.ShadowIndices = ShadowIndices;
     Mesh.Weights = Weights;
     Mesh.BoneIds = BoneIds;
     
@@ -309,11 +368,6 @@ LoadAnimation :: (Path: string) -> *animation {
 
 #scope_file
 
-#import "Basic";
-#import "Sort";
-#import "File";
-#import "Hash";
-
 BONE_NAME_MAP_SIZE :: 2048;
 
 mesh_header :: struct {
@@ -358,7 +412,7 @@ FileReadBones :: (f: *File, Arena: *arena, Count: int) -> [] serialized_bone {
         file_read(f, *Parent, size_of(s16));
         
         Transform: float4x4;
-        file_read(f, Transform.floats.data, size_of(float) * 16);
+        file_read(f, Transform.Floats.data, size_of(float) * 16);
         
         Bones[it] = serialized_bone.{Id, Parent, Name, Transform};
     }
@@ -388,3 +442,9 @@ MeshArena: arena;
 
 Animations: arena(animation);
 AnimationArena: arena;
+
+#import "Basic";
+#import "Sort";
+#import "File";
+#import "Hash";
+#import "meshoptimizer";

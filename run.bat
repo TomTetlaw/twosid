@@ -1,3 +1,1 @@
-pushd run_tree
-twosid
-popd
+remedybg.exe start-debugging

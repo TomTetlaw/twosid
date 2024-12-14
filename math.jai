@@ -8,34 +8,27 @@ Rad2Turn :: 1.0 / (2 * PI);
 Turn2Deg :: PI;
 Deg2Turn :: 1.0 / 360.0;
 
-float2 :: Vector2;
-float3 :: Vector3;
-float4 :: Vector4;
-float4x4 :: Matrix4;
-quat :: Quaternion;
-
-Dot :: (a: float3, b: float3) -> float {
-    return a.x*b.x + a.y*b.y + a.z*b.z;
-}
-
-Dot :: (a: quat, b: quat) -> float {
-    return a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
-}
-
-Length :: (v: float3) -> float {
-    return sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
-}
-
 Lerp :: (a: float, b: float, t: float) -> float {
     return a + (b - a) * t;
 }
 
-Lerp :: (a: float2, b: float2, t: float) -> float2 {
-    return .{Lerp(a.x, b.x, t), Lerp(a.y, b.y, t)};
+Abs :: (f: float) -> float {
+    if f < 0.0 return f * -1.0;
+    return f;
 }
 
-Lerp :: (a: float3, b: float3, t: float) -> float3 {
-    return .{Lerp(a.x, b.x, t), Lerp(a.y, b.y, t), Lerp(a.z, b.z, t)};
+Min :: (a: float, b: float) -> float {
+    if a < b return a;
+    return b;
+}
+
+Max :: (a: float, b: float) -> float {
+    if a > b return a;
+    return b;
+}
+
+Saturate :: (f: float) -> float {
+    return Max(Min(f, 1.0), 0.0);
 }
 
 CosTurns :: (t: float) -> float {
@@ -49,119 +42,283 @@ SinTurns :: (t: float) -> float {
     return CosTurns(0.25 - t);
 }
 
-TanTurnsSafe :: (t: float) -> float {
-    CosValue := CosTurns(t);
-    if CosValue == 0.0 return ifx t > 0.0 then FLOAT32_INFINITY else -FLOAT32_INFINITY;
-    return SinTurns(t) / CosValue;
-}
-
-TanTurns :: (t: float) -> float {
-    CosValue := CosTurns(t);
-    return SinTurns(t) / CosValue;
-}
-
-v4 :: (v: float3, w: float) -> float4 {
-    return .{v.x, v.y, v.z, w};
-}
-
-Vec3Rotate :: (v: float3, q: quat) -> float3 {
-    rotate(*v, q);
-    return v;
-}
-
-Mat4Identity :: () -> float4x4 {
-    m: float4x4 = ---;
-    identity(*m);
-    return m;
-}
-
-Mat4LookAt :: (Pos: float3, Target: float3) -> float4x4 {
-    Result := make_look_at_matrix(Pos, Target, .{0, 1, 0}, false);
-    return Result;
-}
-
-// thanks to this article!
-// https://johannesugb.github.io/gpu-programming/setting-up-a-proper-vulkan-Projection-matrix/
-Mat4ViewToVulkanNdc :: () -> float4x4 {
-    Result: float4x4;
+float2 :: struct {
+    x, y: float;
     
-    Result._12 = -1;
-    Result._23 = 1;
-    Result._31 = 1;
-    Result._44 = 1;
+#place x;
+    Components: [2] float;
+}
+
+float3 :: struct {
+    x, y, z: float;
     
-    return Result;
+#place x;
+    Components: [3] float;
+    
+#place x;
+    xy: float2;
 }
 
-Mat4Projection :: (Fov: float, Aspect: float, Near: float, Far: float, $TransformFromViewSpace := true) -> Matrix4 {
-    Result := make_projection_matrix(Fov, Aspect, Near, Far);
-#if TransformFromViewSpace Result = Result * Mat4ViewToVulkanNdc();
-    return Result;
+float4 :: struct {
+    x, y, z, w: float;
+    
+#place x;
+    Components: [4] float;
+    
+#place x;
+    xy: float2;
+    
+#place x;
+    xyz: float3;
 }
 
-Mat4Ortho :: (Left: float, Right: float, Bottom: float, Top: float, Near: float, Far: float) -> float4x4 {
-    Result := orthographic_projection_matrix(Left, Right, Bottom, Top, Near, Far);
-    return Result;
+quat :: struct {
+    x, y, z: float;
+    w := 1.0;
+    
+#place x;
+    Components: [4] float;
+    
+#place x;
+    xyz: float3 = ---;
+};
+
+Dot :: (a: float2, b: float2) -> float {
+    return a.x*b.x + a.y*b.y;
 }
 
-Append :: (v: float3, w: float) -> float4 {
-    return float4.{v.x, v.y, v.z, w};
+Dot :: (a: float3, b: float3) -> float {
+    return a.x*b.x + a.y*b.y + a.z*b.z;
 }
 
-Mat4Inverse :: inverse;
-
-Mat4Translation :: make_translation_matrix4;
-
-Mat4Rotation :: (q: quat) -> float4x4 {
-    m := Mat4Identity();
-    set_rotation(*m, q);
-    return m;
+Dot :: (a: quat, b: quat) -> float {
+    return a.x*b.x + a.y*b.y + a.z*b.z + a.w*b.w;
 }
 
-Mat4Scale :: make_scale_matrix4;
+Length :: (v: float2) -> float {
+    return sqrt(v.x*v.x + v.y*v.y);
+}
 
-Mat4Transpose :: transpose;
+Length :: (v: float3) -> float {
+    return sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+}
 
-QuatFromMatrix :: get_rotation;
+LengthSquared :: (v: float2) -> float {
+    return v.x*v.x + v.y*v.y;
+}
+
+LengthSquared :: (v: float3) -> float {
+    return v.x*v.x + v.y*v.y + v.z*v.z;
+}
+
+Normalize :: (v: float2) -> float2 {
+    L := Length(v);
+    if L == 0.0 return .{1.0, 0.0};
+    
+    iL := 1.0 / L;
+    return v * iL;
+}
+
+Normalize :: (v: float3) -> float3 {
+    L := Length(v);
+    if L == 0.0 return .{1.0, 0.0, 0.0};
+    
+    iL := 1.0 / L;
+    return v * iL;
+}
+
+Cross :: (a: float3, b: float3) -> float3 {
+    return float3.{
+        a.y*b.z - a.z*b.y,
+        a.z*b.x - a.x*b.z,
+        a.x*b.y - a.y*b.x
+    };
+}
+
+Distance :: (a: float2, b: float2) -> float {
+    Delta := b - a;
+    return Length(Delta);
+}
+
+Distance :: (a: float3, b: float3) -> float {
+    Delta := b - a;
+    return Length(Delta);
+}
+
+DistanceSquared :: (a: float2, b: float2) -> float {
+    Delta := b - a;
+    return LengthSquared(Delta);
+}
+
+DistanceSquared :: (a: float3, b: float3) -> float {
+    Delta := b - a;
+    return LengthSquared(Delta);
+}
+
+Lerp :: (a: float2, b: float2, t: float) -> float2 {
+    return .{
+        Lerp(a.x, b.x, t),
+        Lerp(a.y, b.y, t)
+    };
+}
+
+Lerp :: (a: float3, b: float3, t: float) -> float3 {
+    return .{
+        Lerp(a.x, b.x, t), 
+        Lerp(a.y, b.y, t), 
+        Lerp(a.z, b.z, t)
+    };
+}
+
+Abs :: (v: float2) -> float2 {
+    return float2.{
+        Abs(v.x),
+        Abs(v.y)
+    };
+}
+
+Abs :: (v: float3) -> float3 {
+    return float3.{
+        Abs(v.x),
+        Abs(v.y),
+        Abs(v.z)
+    };
+}
+
+Min :: (a: float2, b: float2) -> float2 {
+    return float2.{
+        Min(a.x, b.x),
+        Min(a.y, b.y)
+    };
+}
+
+Min :: (a: float3, b: float3) -> float3 {
+    return float3.{
+        Min(a.x, b.x),
+        Min(a.y, b.y),
+        Min(a.z, b.z)
+    };
+}
+
+Max :: (a: float2, b: float2) -> float2 {
+    return float2.{
+        Max(a.x, b.x),
+        Max(a.y, b.y)
+    };
+}
+
+Max :: (a: float3, b: float3) -> float3 {
+    return float3.{
+        Max(a.x, b.x),
+        Max(a.y, b.y),
+        Max(a.z, b.z)
+    };
+}
+
+Saturate :: (v: float2) -> float2 {
+    return float2.{
+        Max(Min(v.x, 1.0), 0.0),
+        Max(Min(v.y, 1.0), 0.0)
+    };
+}
+
+Saturate :: (v: float3) -> float3 {
+    return float3.{
+        Max(Min(v.x, 1.0), 0.0),
+        Max(Min(v.y, 1.0), 0.0),
+        Max(Min(v.z, 1.0), 0.0)
+    };
+}
+
+Length :: (q: quat) -> float {
+    return sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
+}
+
+Normalize :: (q: quat) -> quat {
+    L := Length(q);
+    if L == 0.0 return .{0.0, 0.0, 0.0, 1.0};
+    
+    iL := 1.0 / L;
+    return q * iL;
+}
+
+Lerp :: (a: quat, b: quat, t: float) -> quat {
+    return .{
+        Lerp(a.x, b.x, t), 
+        Lerp(a.y, b.y, t), 
+        Lerp(a.z, b.z, t),
+        Lerp(a.w, b.w, t)
+    };
+}
 
 NLerpShortest :: (a: quat, b: quat, t: float) -> quat {
     First := a;
     Second := b;
     if Dot(First, Second) < 0
         Second = -Second;
-    return nlerp(First, Second, t);
+    return Normalize(Lerp(First, Second, t));
 }
 
-QuatAxisAngle :: (Axis: float3, Turns: float) -> quat {
+QuatFromMatrix :: (m: float4x4) -> quat {
+    q: quat = ---;
+    Trace := m._11 + m._22 + m._33;
+    
+    if Trace > 0 {
+        s := sqrt(Trace + 1);
+        
+        q.w = s * 0.5;
+        s = 0.5 / s;
+        
+        q.x = (m.Coef[2][1] - m.Coef[1][2]) * s;
+        q.y = (m.Coef[0][2] - m.Coef[2][0]) * s;
+        q.z = (m.Coef[1][0] - m.Coef[0][1]) * s;
+    } else {
+        i := 0;
+        if (m.Coef[1][1] > m.Coef[0][0]) i = 1;
+        if (m.Coef[2][2] > m.Coef[i][i]) i = 2;
+        
+        j := (1 << i) & 3;
+        k := (1 << j) & 3;
+        
+        s := sqrt(m.Coef[i][i] - m.Coef[j][j] - m.Coef[k][k] + 1);
+        
+        q.Components[i] = s * 0.5;
+        s = 0.5 / s;
+        q.Components[j] = (m.Coef[i][j] + m.Coef[j][i]) * s;
+        q.Components[k] = (m.Coef[k][i] + m.Coef[i][k]) * s;
+        q.w = (m.Coef[k][j] - m.Coef[j][k]) * s;
+    }
+    
+    return Normalize(q);
+};
+
+QuatFromAxisAngle :: (Axis: float3, Turns: float) -> quat {
     q: quat;
     
-    St := SinTurns(Turns);
-    Ct := CosTurns(Turns);
+    s := SinTurns(Turns);
+    c := CosTurns(Turns);
     
-    q.x = Axis.x * St;
-    q.y = Axis.y * St;
-    q.z = Axis.z * St;
-    q.w = Ct;
-    
-    return q;
+    return quat.{
+        Axis.x * s,
+        Axis.y * s,
+        Axis.z * s,
+        c
+    };
 }
 
-Mat4Decompose :: (m: float4x4) -> float3, quat, float3 {
-	Translation := float3.{
-        m._14,
-        m._24,
-        m._34
+RotateVector :: (v: float2, Turns: float) -> float2 {
+    s := SinTurns(Turns);
+    c := CosTurns(Turns);
+    
+    return float2.{
+        v.x*c + v.y*-s,
+        v.x*s + v.y*c
     };
-    
-	Rotation := QuatFromMatrix(m);
-    
-	Scale := float3.{
-        Length(float3.{m._11, m._21, m._31}),
-        Length(float3.{m._12, m._22, m._32}),
-        Length(float3.{m._13, m._23, m._33})
-    };
-    
-	return Translation, Rotation, Scale;
+}
+
+RotateVector :: (v: float3, q: quat) -> float3 {
+    t := Cross(q.xyz, v) * 2.0;
+    return v + t * q.w + Cross(q.xyz, t);
 }
 
 #scope_file

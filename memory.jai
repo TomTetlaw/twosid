@@ -114,7 +114,7 @@ operator []= :: (Arena: *$A/arena, Index: int, Value: A.T) {
 }
 
 for_expansion :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
-    num := cast(int) (Arena.Used / size_of(A.T));
+    num := cast (int) (Arena.Used / size_of(A.T));
     
     for Index: 0..num-1 {
 #if Flags & .POINTER `it := *Arena.TypedBase[Index];
@@ -127,6 +127,14 @@ for_expansion :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
         
 #insert Body;
     }
+}
+
+ArenaPushMark :: (Arena: *arena) -> u64 {
+    return Arena.Used;
+}
+
+ArenaPopMark :: (Arena: *arena) -> u64 {
+    return Arena.Used;
 }
 
 ArenaPushMarkDefer :: (Arena: *arena, $Location := #caller_location) #expand {
