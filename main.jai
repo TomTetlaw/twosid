@@ -58,6 +58,16 @@ main :: () {
     GameStartTime := current_time_monotonic();
     OldTime: Apollo_Time;
     
+    TerrainMesh := LoadMesh("meshes/terrain.mesh");
+    
+    TerrainTextures: arena_array(*texture);
+    ArrayAdd(*TerrainTextures, LoadTexture("textures/grass_diffuse.png"));
+    ArrayAdd(*TerrainTextures, LoadTexture("textures/grass_normal.png"));
+    ArrayAdd(*TerrainTextures, LoadTexture("textures/grass_rmaoh.png"));
+    
+    SphereMesh := LoadMesh("meshes/sphere.mesh");
+    SpherePosition: float3;
+    
     Quit := false;
     while !Quit {
         // update Time
@@ -102,10 +112,59 @@ main :: () {
         
         UpdateCamera(*Camera);
         
+        t0 := current_time_monotonic();
+        
+        Ray := GetRayFromCamera(*Camera);
+        
+        TriangleCount := TerrainMesh.Indices.count / 3;
+        
+        Transform := ScaleMatrix(.{25, 25, 25}) * TranslationMatrix(.{0, 0, -5});
+        
+        ClosestPoint := float3.{99999, 99999, 99999};
+        ClosestDistance := 99999.0;
+        for 0..TriangleCount-1 {
+            Triangle := triangle.{
+                (Transform * xyzw(TerrainMesh.Positions[TerrainMesh.Indices[it*3+0]], 1.0)).xyz,
+                (Transform * xyzw(TerrainMesh.Positions[TerrainMesh.Indices[it*3+1]], 1.0)).xyz,
+                (Transform * xyzw(TerrainMesh.Positions[TerrainMesh.Indices[it*3+2]], 1.0)).xyz
+            };
+            
+            Hit := RayTriangleIntersection(Ray, Triangle);
+            if Hit.Intersected {
+                if Hit.T < ClosestDistance {
+                    SpherePosition = Hit.Point;
+                    ClosestDistance = Hit.T;
+                }
+            }
+        }
+        
+        t1 := current_time_monotonic();
+        print("time: %\n", to_float64_seconds(t1-t0));
+        
+        Command: draw_command_mesh;
+        Command.Flags = 0;
+        Command.Mesh = TerrainMesh;
+        Command.Textures = TerrainTextures;
+        Command.Instance.Transform = ScaleMatrix(.{25, 25, 25}) * TranslationMatrix(.{0, 0, -5});
+        Command.Instance.DiffuseColour = .{1, 1, 1, 1};
+        Command.Instance.MaterialParams = .{1, 1, 1, 100};
+        
+        AddDrawCommand(*Command);
+        
+        Command.Flags = .DEBUG;
+        Command.Mesh = SphereMesh;
+        Command.Instance.Transform = TranslationMatrix(SpherePosition);
+        Command.Instance.DiffuseColour = .{1, 1, 1, 1};
+        Command.Instance.MaterialParams = .{1, 1, 1, 1};
+        AddDrawCommand(*Command);
+        
         DrawFrame(*Camera);
         
         FrameKeys.count = 0;
         ArenaReset(*FrameArena);
+        
+        //memory_visualizer_per_frame_update();
+        //Tracy.FrameMark();
     }
 }
 
@@ -128,12 +187,13 @@ ProcessWindowEvents :: () -> bool {
 
 #scope_file
 
-#import "Basic";
+#import "Basic";// () (MEMORY_DEBUGGER = true);
 #import "String";
 #import "File";
 #import "File_Utilities";
 #import "Process";
 #import "Print_Vars";
+Tracy :: #import "jai-tracy" (IMPORT_MODE = .CLIENT);
 
 KeyStates: *bool;
 

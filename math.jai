@@ -83,6 +83,18 @@ quat :: struct {
     xyz: float3 = ---;
 };
 
+xyz :: (xy: float2, z: float) -> float3 {
+    return .{xy.x, xy.y, z};
+}
+
+yzx :: (v: float3) -> float3 {
+    return .{v.y, v.z, v.x};
+}
+
+xyzw :: (xyz: float3, w: float) -> float4 {
+    return .{xyz.x, xyz.y, xyz.z, w};
+}
+
 Dot :: (a: float2, b: float2) -> float {
     return a.x*b.x + a.y*b.y;
 }
@@ -292,11 +304,13 @@ QuatFromMatrix :: (m: float4x4) -> quat {
     return Normalize(q);
 };
 
-QuatFromAxisAngle :: (Axis: float3, Turns: float) -> quat {
+QuatFromAxisAngle :: (v: float3, Turns: float) -> quat {
     q: quat;
     
-    s := SinTurns(Turns);
-    c := CosTurns(Turns);
+    s := SinTurns(Turns * 0.5);
+    c := CosTurns(Turns * 0.5);
+    
+    Axis := Normalize(v);
     
     return quat.{
         Axis.x * s,

@@ -10,6 +10,7 @@ camera :: struct {
     
     Rotation: quat;
     NegRotation: float4x4;
+    Transform: float4x4;
     View: float4x4;
 };
 
@@ -19,7 +20,7 @@ UpdateCamera :: (Camera: *camera) {
     MoveSpeed := Camera.FLY_SPEED;
     if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed *= 10;
     
-    MoveInput.x = KeyState(.SDL_SCANCODE_S) - KeyState(.SDL_SCANCODE_W);
+    MoveInput.x = KeyState(.SDL_SCANCODE_W) - KeyState(.SDL_SCANCODE_S);
     MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
     MoveInput.z = KeyState(.SDL_SCANCODE_E) - KeyState(.SDL_SCANCODE_Q);
     MoveInput = RotateVector(MoveInput, Camera.Rotation);
@@ -32,12 +33,12 @@ UpdateCamera :: (Camera: *camera) {
     Camera.Pitch += Delta.y * Deg2Turn;
     Camera.Pitch = clamp(Camera.Pitch, -89.0 * Deg2Turn, 89.0 * Deg2Turn);
     
-    Yaw := QuatFromAxisAngle(.{0, 0, 1}, Camera.Yaw);
-    Pitch := QuatFromAxisAngle(.{0, -1, 0}, Camera.Pitch);
+    Yaw := QuatFromAxisAngle(.{0, 0, -1}, Camera.Yaw);
+    Pitch := QuatFromAxisAngle(.{0, 1, 0}, Camera.Pitch);
     Camera.Rotation = Yaw * Pitch;
     
-    Transform := TranslationMatrix(Camera.Position) * RotationMatrix(Camera.Rotation);
-    Camera.View = InverseMatrix(Transform);
+    Camera.Transform = TranslationMatrix(Camera.Position) * RotationMatrix(Camera.Rotation);
+    Camera.View = InverseMatrix(Camera.Transform);
 }
 
 #scope_file

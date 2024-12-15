@@ -6,7 +6,7 @@ float4x4 :: struct {
     _41, _42, _43, _44 : float;
     
 #place _11; 
-    v: [4] float4 = ---;
+    Rows: [4] float4 = ---;
 #place _11; 
     Coef: [4][4] float = ---;
 #place _11; 
@@ -98,7 +98,7 @@ ViewToProjectionMatrix :: () -> float4x4 {
     
     Result._12 = -1;
     Result._23 = 1;
-    Result._31 = 1;
+    Result._31 = -1;
     Result._44 = 1;
     
     return Result;

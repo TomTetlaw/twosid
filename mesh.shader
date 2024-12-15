@@ -6,12 +6,12 @@ struct Frag_Input {
 	float3 vs_position: TEXCOORD1;
 	float3 ws_position: TEXCOORD2;
 	float3 ts_position: TEXCOORD3;
-	float3 ts_light_dir: TEXCOORD5;
-	float3 ts_view_pos: TEXCOORD6;
-	float2 tex_coord: TEXCOORD7;
-	float3 colour: TEXCOORD8;
+	float3 ts_light_dir: TEXCOORD4;
+	float3 ts_view_pos: TEXCOORD5;
+	float2 tex_coord: TEXCOORD6;
+	float4 colour: TEXCOORD7;
 
-	nointerpolation float4 material_params: TEXCOORD13;
+	nointerpolation float4 material_params: TEXCOORD9;
 };
 
 #ifdef VERTEX_SHADER
@@ -28,8 +28,7 @@ cbuffer Constant_Buffer : register(b0, space1) {
 
 struct Instance_Data {
 	row_major float4x4 transform;
-	float3 diffuse_colour;
-	float pad0;
+	float4 diffuse_colour;
 	float4 material_params; 
 };
 
@@ -72,7 +71,7 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
 
 	float3 world_position = mul(M, float4(model_position, 1)).xyz;
 	float3 view_position = mul(MV, float4(model_position, 1)).xyz;
-	float4 ndc_position = mul(MVP, float4(model_position, 1));
+	float4 cs_position = mul(MVP, float4(model_position, 1));
 
 	float3x3 linear_transform = adjoint(M);
 	float3 world_normal = normalize(mul(linear_transform, model_normal));
@@ -84,7 +83,7 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
     float3x3 TBN = transpose(float3x3(world_tangent, bitangent, world_normal));
 
 	Frag_Input output;
-	output.cs_position = ndc_position;
+	output.cs_position = cs_position;
 	output.os_position = model_position;
 	output.ws_position = world_position;
 	output.vs_position = view_position;
@@ -131,7 +130,7 @@ float4 fragment_main(Frag_Input input): SV_Target {
 	rmaoh = float4(rmaoh.xyz * input.material_params.xyz, rmaoh.w);
 
 	float3 diffuse = diffuse_map.Sample(diffuse_sampler, tex_coord).xyz;
-	diffuse = input.colour * pow(diffuse, float3(2.2, 2.2, 2.2));
+	diffuse = input.colour.xyz * pow(diffuse, float3(2.2, 2.2, 2.2));
 
 	float3 ts_normal = normal_map.Sample(normal_sampler, tex_coord).xyz;
 	ts_normal = ts_normal * 2 - 1;
@@ -160,7 +159,7 @@ float4 fragment_main(Frag_Input input): SV_Target {
 		colour = float3(shadow, 0, 0);
 	}
 
-	return float4(colour, 1);
+	return float4(colour, input.colour.w);
 }
 
 #endif

@@ -7,6 +7,7 @@ shader :: struct {
 ShaderMesh: shader;
 ShaderScreenSpaceMesh: shader;
 ShaderDepthPass: shader;
+ShaderDebug: shader;
 
 InitShaderSystem :: () {
     Formats := SDL_GetGPUShaderFormats(GDevice);
@@ -25,17 +26,21 @@ InitShaderSystem :: () {
     else if FormatToLoad == SDL_GPU_SHADERFORMAT_SPIRV ShaderFormat = "spirv";
     else FatalError("Unsupported shader Format %", FormatToLoad);
     
-    MeshVert := CreateShader(GDevice, "vert", "mesh", 0, 0, 2, 1);
-    MeshFrag := CreateShader(GDevice, "frag", "mesh", 4, 0, 0, 1);
+    MeshVert := CreateShader("vert", "mesh", 0, 0, 2, 1);
+    MeshFrag := CreateShader("frag", "mesh", 4, 0, 0, 1);
     ShaderMesh = .{MeshVert, MeshFrag};
     
-    ScreenSpaceMeshVert := CreateShader(GDevice, "vert", "screen_space_mesh", 0, 0, 0, 1);
-    ScreenSpaceMeshFrag := CreateShader(GDevice, "frag", "screen_space_mesh", 1, 0, 0, 0);
+    ScreenSpaceMeshVert := CreateShader("vert", "screen_space_mesh", 0, 0, 0, 1);
+    ScreenSpaceMeshFrag := CreateShader("frag", "screen_space_mesh", 1, 0, 0, 0);
     ShaderScreenSpaceMesh = .{ScreenSpaceMeshVert, ScreenSpaceMeshFrag};
     
-    DepthPassVert := CreateShader(GDevice, "vert", "depth_pass", 0, 0, 2, 1);
-    DepthPassFrag := CreateShader(GDevice, "frag", "depth_pass", 0, 0, 0, 0);
+    DepthPassVert := CreateShader("vert", "depth_pass", 0, 0, 2, 1);
+    DepthPassFrag := CreateShader("frag", "depth_pass", 0, 0, 0, 0);
     ShaderDepthPass = .{DepthPassVert, DepthPassFrag};
+    
+    DebugVert := CreateShader("vert", "debug", 0, 0, 1, 1);
+    DebugFrag := CreateShader("frag", "debug", 0, 0, 0, 0);
+    ShaderDebug = .{DebugVert, DebugFrag};
 }
 
 #scope_file
@@ -49,7 +54,7 @@ Shaders: arena(shader);
 FormatToLoad: SDL_GPUShaderFormat;
 ShaderFormat: string;
 
-CreateShader :: (GDevice: *SDL_GPUDevice, Stage: string, Name: string, NumSamplers: u32, NumStorageTextures: u32, NumStorageBuffers: u32, NumUniformBuffers: u32) -> *SDL_GPUShader {
+CreateShader :: (Stage: string, Name: string, NumSamplers: u32, NumStorageTextures: u32, NumStorageBuffers: u32, NumUniformBuffers: u32) -> *SDL_GPUShader {
     
     FileName := tprint("shaders/%.%_%", Name, ShaderFormat, Stage);
     Data, Ok := read_entire_file(FileName);

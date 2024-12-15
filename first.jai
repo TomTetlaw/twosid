@@ -91,7 +91,7 @@ compile_shaders_for_format :: (output_format: string) {
 }
 
 build_game :: () {
-    workspace := compiler_create_workspace("Game build");
+    workspace := compiler_create_workspace("Game Build");
     
     options := get_build_options(workspace);
     options.output_path = "run_tree";
@@ -101,6 +101,7 @@ build_game :: () {
     options.debug_for_expansions = true;
     set_optimization(*options, .VERY_DEBUG);
     options.text_output_flags = 0;
+    options.additional_linker_arguments = .["Advapi32.lib", "user32.lib"];
     
 #if OS == .WINDOWS {
         options.use_natvis_compatible_types = true;
@@ -122,8 +123,6 @@ build_game :: () {
 }
 
 build :: () {
-    set_build_options_dc(.{do_output = false});
-    
     args := get_build_options().compile_time_command_line;
     
     compile_shaders := false;
@@ -148,6 +147,8 @@ build :: () {
     }
     
     build_game();
+    
+    set_build_options_dc(.{do_output = false});
 }
 
 #run build();

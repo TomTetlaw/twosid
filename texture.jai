@@ -19,7 +19,7 @@ InitTextureSystem :: () {
     for Files {
         if contains(it, ".png") {
             Path, base_name, ext := path_decomp(it);
-            LoadTexture(tprint("Textures/%.%", base_name, ext));
+            LoadTexture(tprint("textures/%.%", base_name, ext));
         }
     }
     

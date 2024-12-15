@@ -55,12 +55,12 @@ animation :: struct {
 InitMeshSystem :: () {
     ArenaPushMarkDefer(*MeshArena);
     
-    Files := file_list("./Meshes");
+    Files := file_list("./meshes");
     for Files {
         if contains(it, ".mesh_text") continue;
         if contains(it, ".mesh") {
             path, base_name, ext := path_decomp(it);
-            LoadMesh(tprint("Meshes/%.%", base_name, ext));
+            LoadMesh(tprint("meshes/%.%", base_name, ext));
         }
     }
     
@@ -181,19 +181,17 @@ LoadMesh :: (Path: string) -> *mesh {
     
     Header := FileReadMeshHeader(*File);
     if !equal(Header.Magic, "MESH") {
-        print("Failed to load: % is not a mesh File!", Path);
+        print("Failed to load: % is not a mesh file!", Path);
         return *Meshes.NullValue;
     }
     
-    Mark := ArenaPushMark(*WorkingArena);
-    
-    Positions := FileReadArray(*File, *WorkingArena, float3, Header.NumVertices);
-    TexCoords := FileReadArray(*File, *WorkingArena, float2, Header.NumVertices);
-    Normals := FileReadArray(*File, *WorkingArena, float3, Header.NumVertices);
-    Tangents := FileReadArray(*File, *WorkingArena, float3, Header.NumVertices);
-    Weights := FileReadArray(*File, *WorkingArena, float3, Header.NumVertices);
-    BoneIds := FileReadArray(*File, *WorkingArena, bone_ids, Header.NumVertices);
-    Indices := FileReadArray(*File, *WorkingArena, u32, Header.NumIndices);
+    Positions := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
+    TexCoords := FileReadArray(*File, *MeshArena, float2, Header.NumVertices);
+    Normals := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
+    Tangents := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
+    Weights := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
+    BoneIds := FileReadArray(*File, *MeshArena, bone_ids, Header.NumVertices);
+    Indices := FileReadArray(*File, *MeshArena, u32, Header.NumIndices);
     SerializedBones := FileReadBones(*File, *MeshArena, Header.NumBones);
     
     // This should be done at build time!
@@ -207,13 +205,13 @@ LoadMesh :: (Path: string) -> *mesh {
     Streams[5] = .{Tangents.data, size_of(float3), size_of(float3)};
     VertexCount := meshopt_generateVertexRemapMulti(IndexRemap.data, Indices.data, xx Indices.count, xx Positions.count, Streams.data, 6);
     
-    OptimizedPositions := ArenaPushN(*MeshArena, float3, VertexCount);
-    OptimizedTexCoords := ArenaPushN(*MeshArena, float2, VertexCount);
-    OptimizedNormals := ArenaPushN(*MeshArena, float3, VertexCount);
-    OptimizedTangents := ArenaPushN(*MeshArena, float3, VertexCount);
-    OptimizedWeights := ArenaPushN(*MeshArena, float3, VertexCount);
-    OptimizedBoneIds := ArenaPushN(*MeshArena, bone_ids, VertexCount);
-    OptimizedIndices := ArenaPushN(*MeshArena, u32, xx Indices.count);
+    OptimizedPositions := ArenaPushN(*MeshArena, float3, xx VertexCount);
+    OptimizedTexCoords := ArenaPushN(*MeshArena, float2, xx VertexCount);
+    OptimizedNormals := ArenaPushN(*MeshArena, float3, xx VertexCount);
+    OptimizedTangents := ArenaPushN(*MeshArena, float3, xx VertexCount);
+    OptimizedWeights := ArenaPushN(*MeshArena, float3, xx VertexCount);
+    OptimizedBoneIds := ArenaPushN(*MeshArena, bone_ids, xx VertexCount);
+    OptimizedIndices := ArenaPushN(*MeshArena, u32, Indices.count);
     
     meshopt_remapVertexBuffer(OptimizedPositions.data, Positions.data, xx Positions.count, size_of(float3), IndexRemap.data);
     meshopt_remapVertexBuffer(OptimizedTexCoords.data, TexCoords.data, xx TexCoords.count, size_of(float2), IndexRemap.data);
@@ -230,8 +228,6 @@ LoadMesh :: (Path: string) -> *mesh {
     Weights = OptimizedWeights;
     BoneIds = OptimizedBoneIds;
     Indices = OptimizedIndices;
-    
-    ArenaPopMark(*WorkingArena);
     
     MinBounds := float3.{FLOAT32_MAX, FLOAT32_MAX, FLOAT32_MAX};
     MaxBounds := float3.{FLOAT32_MIN, FLOAT32_MIN, FLOAT32_MIN};

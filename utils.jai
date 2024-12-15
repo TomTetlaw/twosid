@@ -35,6 +35,9 @@ IsEventType :: (Event: *SDL_Event, Type: SDL_EventType) -> bool {
     return Event.type == cast(u32) Type;
 }
 
+GetHash :: get_hash;
+
 #scope_file
 
 #import "Basic";
+#import "Hash";

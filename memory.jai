@@ -8,7 +8,7 @@ arena :: struct ($T: Type = u8) {
     NullValue: T;
 }
 
-InitArena :: (Arena: *$A/arena, InitialCapacity: u64 = 0, $Location := #caller_location) {
+InitArena :: (Arena: *$A/arena, InitialCapacity: u64 = 0) {
     if Arena.Initialized return;
     
     Base := cast (*u8) PlatformReserve(MaxCommittedSize);
@@ -18,7 +18,6 @@ InitArena :: (Arena: *$A/arena, InitialCapacity: u64 = 0, $Location := #caller_l
     }
     
     if !InitialCapacity InitialCapacity = CommitExpandAmount;
-	InitialCapacity += size_of(A.T);
     InitialCapacity = Align(InitialCapacity);
     
     PlatformCommit(Base, 0, InitialCapacity);
@@ -42,6 +41,7 @@ ArenaAlloc :: (Arena: *$A/arena, Size: u64, $Zero := true) -> *u8 {
         }
         
         PlatformCommit(Arena.Base, Arena.Capacity, AlignedSize);
+        
         Arena.Capacity += AlignedSize;
     }
     
@@ -53,64 +53,56 @@ ArenaAlloc :: (Arena: *$A/arena, Size: u64, $Zero := true) -> *u8 {
     return Memory;
 }
 
-ArenaPush :: (Arena: *$A/arena, $InitValue := true) -> *A.T {
+ArenaPush :: (Arena: *$A/arena, $Initialize := true) -> *A.T {
     Init :: initializer_of(A.T);
-    Zero :: !InitValue || !Init;
+    Zero :: !Init || Initialize;
     
     Out := cast(*A.T) ArenaAlloc(Arena, size_of(A.T), Zero);
     
-#if !Zero Init(Out);
+#if !Zero && Initialize Init(Out);
     
     return Out;
 }
 
-ArenaPush :: (Arena: *$A/arena, $T: Type, $InitValue := true) -> *T {
+ArenaPush :: (Arena: *$A/arena, $T: Type, $Initialize := true) -> *T {
 #run #if A.T != u8 && T != u8 { compiler_report(tprint("Cannot push a Value of Type % to an arena of non-default Type %.\n", tprint("%", T), tprint("%", A.T)), Location, .ERROR);
     }
     
     Init :: initializer_of(T);
-    Zero :: !InitValue || !Init;
+    Zero :: !Init || Initialize;
     
     Out := cast (*T) ArenaAlloc(Arena, size_of(T), Zero);
     
-#if !Zero Init(Out);
+#if !Zero && Initialize Init(Out);
     
     return Out;
 }
 
-ArenaPushN :: (Arena: *$A/arena, n: u64, $InitValue := true) -> [] A.T {
+ArenaPushN :: (Arena: *$A/arena, n: int, $Initialize := true) -> [] A.T {
     Init :: initializer_of(A.T);
-    Zero :: !InitValue || !Init;
+    Zero :: !Init || Initialize;
     
-    Memory := cast (*A.T) ArenaAlloc(Arena, size_of(A.T) * n, !InitValue);
-    Out := []T.{xx n, Memory};
+    Memory := cast (*A.T) ArenaAlloc(Arena, cast (u64) (size_of(A.T) * n));
+    Out := []A.T.{n, Memory};
     
-#if !Zero for * Out Init(it);
+#if !Zero && Initialize for * Out Init(it);
     
     return Out;
 }
 
-ArenaPushN :: (Arena: *$A/arena, $T: Type, n: u64, $InitValue := true) -> [] T {
+ArenaPushN :: (Arena: *$A/arena, $T: Type, n: int, $Initialize := true) -> [] T {
 #run #if A.T != u8 && T != u8 { compiler_report(tprint("Cannot push a Value of Type % to an arena of non-default Type %.\n", tprint("%", T), tprint("%", A.T)), Location, .ERROR);
     }
     
     Init :: initializer_of(T);
-    Zero :: !InitValue || !Init;
+    Zero :: !Init || Initialize;
     
-    Memory := cast (*T) ArenaAlloc(Arena, size_of(T) * n, !InitValue);
-    Out := []T.{xx n, Memory};
+    Memory := cast (*T) ArenaAlloc(Arena, cast (u64) (size_of(T) * n), Zero);
+    Out := []T.{n, Memory};
     
-#if !Zero for * Out Init(it);
+#if !Zero && Initialize for * Out Init(it);
     
     return Out;
-}
-
-operator [] :: (Arena: $A/arena, Index: int) -> A.T {
-    return Arena.Memory[Index];
-}
-
-operator []= :: (Arena: *$A/arena, Index: int, Value: A.T) {
-    Arena.Memory[Index] = A.T;
 }
 
 for_expansion :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
@@ -118,10 +110,7 @@ for_expansion :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
     
     for Index: 0..num-1 {
 #if Flags & .POINTER `it := *Arena.TypedBase[Index];
-        else {
-            print("arena % for by copy\n", Arena.Name);
-            `it := Arena.TypedBase[Index];
-        }
+        else `it := Arena.TypedBase[Index];
         
         `it_index := Index;
         
@@ -133,8 +122,8 @@ ArenaPushMark :: (Arena: *arena) -> u64 {
     return Arena.Used;
 }
 
-ArenaPopMark :: (Arena: *arena) -> u64 {
-    return Arena.Used;
+ArenaPopMark :: (Arena: *arena, Mark: u64) {
+    Arena.Used = Mark;
 }
 
 ArenaPushMarkDefer :: (Arena: *arena, $Location := #caller_location) #expand {
@@ -147,6 +136,130 @@ ArenaPushMarkDefer :: (Arena: *arena, $Location := #caller_location) #expand {
 }
 
 ArenaReset :: (Arena: *arena) { Arena.Used = 0; }
+
+arena_array:: struct($T: Type, $N := 32) {
+    Slots: arena(T);
+    OccupiedSlots: arena(bool);
+    Initialized: bool;
+    
+    Elements: int; // The actual number of indexable Ts in the array
+    Count: int; // The number of added Ts in the array that are occupied
+}
+
+ArrayInit :: (Array: *$A/arena_array) {
+    InitArena(*Array.Slots, size_of(A.T) * A.N);
+    InitArena(*Array.OccupiedSlots, size_of(bool) * A.N);
+    
+    Array.Slots.Used = size_of(A.T) * A.N;
+    Array.OccupiedSlots.Used = size_of(A.T) * A.N;
+    
+    Array.Elements = A.N;
+    
+    Array.Count = 0;
+    
+    Array.Initialized = true;
+}
+
+ArrayFindFreeSlot :: (Array: *$A/arena_array) -> int {
+    for 0..Array.Elements-1 {
+        if !Array.OccupiedSlots.TypedBase[it] return it;
+    }
+    
+    return -1;
+}
+
+ArrayAdd :: (Array: *$A/arena_array, Value: A.T) {
+    Slot := ArrayPush(Array);
+    memcpy(Slot, *Value, size_of(A.T));
+}
+
+ArrayPush :: (Array: *$A/arena_array, $Initialize := true) -> *A.T {
+    if !Array.Initialized ArrayInit(Array);
+    
+    SlotIndex := ArrayFindFreeSlot(Array);
+    Slot: *A.T;
+    if SlotIndex == -1 {
+        Slot = ArenaPush(*Array.Slots, Initialize);
+        Occupied := ArenaPush(*Array.OccupiedSlots);
+        Occupied.* = true;
+        Array.Elements += 1;
+    } else {
+        Slot = *Array.Slots.TypedBase[SlotIndex];
+        Array.OccupiedSlots.TypedBase[SlotIndex] = true;
+    }
+    
+    Array.Count += 1;
+    return Slot;
+}
+
+ArrayAdd :: (Array: *$A/arena_array, Other: *arena_array(A.T)) {
+    for Other {
+        ArrayAdd(Array, it);
+    }
+}
+
+ArrayRemove :: (Array: *$A/arena_array, SlotIndex: int) {
+    if SlotIndex < 0 || SlotIndex >= Array.Elements return;
+    Arena.OccupiedSlots[SlotIndex] = false;
+    Array.Count -= 1;
+}
+
+ArrayReset :: (Array: *$A/arena_array) {
+    ArenaReset(*Array.Slots);
+    ArenaReset(*Array.OccupiedSlots);
+    
+    for 0..Array.Elements-1 {
+        Array.OccupiedSlots.TypedBase[it] = false;
+    }
+    
+    Array.Count = 0;
+}
+
+// This will return an array view.
+//     If the arena_array has free slots, then
+//     we need to collapse it into a flat array
+//     with no gaps. This is a slower path but 
+//     it probably won't happen that often?
+//
+//     The flat array view will be allocated
+//     by the provided arena, or by the frame
+//     arena if none is provided. Don't expect
+//     to hold onto this array view forever!
+
+ArrayToView :: (Array: *$A/arena_array, Arena: *arena(u8) = null) -> [] A.T {
+    if !Arena Arena = *FrameArena;
+    
+    Flat := ArenaPushN(Arena, A.T, Array.Count);
+    
+    Index := 0;
+    for Array {
+        Flat[Index] = it;
+        Index += 1;
+    }
+    
+    return Flat;
+}
+
+operator [] :: (Array: *$A/arena_array, Index: int) -> A.T {
+    return Array.Slots.TypedBase[Index];
+}
+
+// When indexing an arena_array, `it_index` == the slot index, occupied or not.
+//     If you're building a flat array from this arena_array in a for loop,
+//     you'll have to track the destination index yourself.
+
+for_expansion :: (Array: *$A/arena_array, Body: Code, Flags: For_Flags) #expand {
+    for Index: 0..Array.Elements-1 {
+        if !Array.OccupiedSlots.TypedBase[Index] continue;
+        
+#if Flags & .POINTER `it := *Array.Slots.TypedBase[Index];
+        else `it := Array.Slots.TypedBase[Index];
+        
+        `it_index := Index;
+        
+#insert Body;
+    }
+}
 
 InitMemorySystem :: () {
     PlatformMemoryInit();
