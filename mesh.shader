@@ -126,16 +126,17 @@ float shadow_calculation(float depth, float2 shadow_tex_coord, float bias) {
 float4 fragment_main(Frag_Input input): SV_Target {
 	float2 tex_coord = input.tex_coord * input.material_params.w;
 
-	float4 rmaoh = rmaoh_map.Sample(rmaoh_sampler, input.tex_coord);
-	rmaoh = float4(rmaoh.xyz * input.material_params.xyz, rmaoh.w);
-
 	float3 diffuse = diffuse_map.Sample(diffuse_sampler, tex_coord).xyz;
+	float3 ts_normal = normal_map.Sample(normal_sampler, tex_coord).xyz;
+	float4 rmaoh = rmaoh_map.Sample(rmaoh_sampler, input.tex_coord);
+
 	diffuse = input.colour.xyz * pow(diffuse, float3(2.2, 2.2, 2.2));
 
-	float3 ts_normal = normal_map.Sample(normal_sampler, tex_coord).xyz;
 	ts_normal = ts_normal * 2 - 1;
 	ts_normal.x = -ts_normal.x;
 	ts_normal = normalize(ts_normal);
+
+	rmaoh = float4(rmaoh.xyz * input.material_params.xyz, rmaoh.w);
 
 	Material material;
 	material.roughness = clamp(rmaoh.x, 0.0, 1.0);

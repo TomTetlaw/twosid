@@ -19,8 +19,8 @@ camera_flying :: struct {
 };
 
 camera_player :: struct {
-    WALK_SPEED :: 1.0;
-    RUN_SPEED :: 10.0;
+    WALK_SPEED :: 4.7;
+    RUN_SPEED :: 9.6;
     ROTATION_SPEED :: 0.3;
     ROTATION_SMOOTHING :: 0.3;
     EYE_HEIGHT :: 6.0;
@@ -49,7 +49,7 @@ UpdateCameraPlayer :: (Camera: *camera_player, GroundHeight: float) {
     Delta := Camera.RotationInput * Camera.ROTATION_SPEED;
     Camera.Yaw = Camera.Yaw + Delta.x*Deg2Turn;
     Camera.Pitch = Camera.Pitch + Delta.y*Deg2Turn;
-    //Camera.Pitch = Clamp(Camera.Pitch, 0.25, 0.75);
+    Camera.Pitch = Clamp(Camera.Pitch, -0.25, 0.25);
     
     Yaw := QuatFromAxisAngle(.{0, 0, -1}, Camera.Yaw);
     Pitch := QuatFromAxisAngle(.{0, 1, 0}, Camera.Pitch);
@@ -78,7 +78,7 @@ UpdateCameraFlying :: (Camera: *camera_flying) {
     Delta := Camera.RotationInput * Camera.ROTATION_SPEED;
     Camera.Yaw = Camera.Yaw + Delta.x*Deg2Turn;
     Camera.Pitch = Camera.Pitch + Delta.y*Deg2Turn;
-    Camera.Pitch = Clamp(Camera.Pitch, 0.25, 0.75);
+    Camera.Pitch = Clamp(Camera.Pitch, -0.25, 0.25);
     
     Yaw := QuatFromAxisAngle(.{0, 0, -1}, Camera.Yaw);
     Pitch := QuatFromAxisAngle(.{0, 1, 0}, Camera.Pitch);

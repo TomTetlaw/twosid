@@ -12,7 +12,7 @@ InitTerrain :: () {
     ArrayAdd(*TerrainTextures, LoadTexture("textures/grass_normal.png"));
     ArrayAdd(*TerrainTextures, LoadTexture("textures/grass_rmaoh.png"));
     
-    TerrainTransform = ScaleMatrix(xyz(25.0)) * TranslationMatrix(.{0, 0, -6});
+    TerrainTransform = TranslationMatrix(.{0, 0, -6});
 }
 
 DrawTerrain :: () {
@@ -22,7 +22,7 @@ DrawTerrain :: () {
     Command.Textures = TerrainTextures;
     Command.Instance.Transform = TerrainTransform;
     Command.Instance.DiffuseColour = .{1, 1, 1, 1};
-    Command.Instance.MaterialParams = .{1, 1, 1, 100};
+    Command.Instance.MaterialParams = .{1, 1, 1, 25};
     AddDrawCommand(*Command);
 }
 
