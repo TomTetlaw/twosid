@@ -492,9 +492,10 @@ ResetPasses :: () {
     ArrayReset(*OpaquePass.Commands);
     ArrayReset(*TranslucentPass.Commands);
     ArrayReset(*DebugPass.Commands);
+    ArrayReset(*ScreenSpacePass.Commands);
 }
 
-DrawFrame :: (Camera: *camera) {
+DrawFrame :: (Camera: *$T/interface view_parameters) {
     if KeyPressed(.SDL_SCANCODE_LEFT) {
         FragDebugMode = clamp(FragDebugMode - 1, 0, MAX_FRAG_DEBUG_MODE);
     }
@@ -502,7 +503,7 @@ DrawFrame :: (Camera: *camera) {
         FragDebugMode = clamp(FragDebugMode + 1, 0, MAX_FRAG_DEBUG_MODE);
     }
     
-    Projection := ProjectionMatrix(45.0 * Deg2Rad, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
+    Projection := ProjectionMatrix(45.0 * Deg2Turn, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
     
     LightPos := float3.{0, 0, 10};
     LightTarget := float3.{1, -1, 1};

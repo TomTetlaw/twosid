@@ -47,11 +47,9 @@ AddDrawCommand :: (Command: *$T/draw_command) {
 }
 
 Temp: arena_array(ibuffer_debug);
-Temp2: arena_array(ibuffer_debug);
 
 ProcessDrawCommands :: () {
     ArrayReset(*Temp);
-    ArrayReset(*Temp2);
     
     for * FrontendMeshBatches {
         if it.InstanceData.Count > 0 {
@@ -68,16 +66,8 @@ ProcessDrawCommands :: () {
                 
                 DrawMeshInstanced(DebugPass, it.Mesh, *it.Textures, *Temp);
             } else {
-                for it.InstanceData {
-                    DebugInstance: ibuffer_debug;
-                    DebugInstance.Transform = it.Transform;
-                    DebugInstance.DiffuseColour = it.DiffuseColour.xyz;
-                    ArrayAdd(*Temp2, *DebugInstance);
-                }
-                
                 DrawMeshInstanced(DepthPass, it.Mesh, *it.Textures, *it.InstanceData);
                 DrawMeshInstanced(OpaquePass, it.Mesh, *it.Textures, *it.InstanceData);
-                DrawMeshInstanced(DebugPass, it.Mesh, *it.Textures, *Temp2);
             }
         }
     }

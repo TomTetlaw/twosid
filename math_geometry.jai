@@ -11,7 +11,7 @@ ray :: struct {
     Direction: float3;
 }
 
-GetRayFromCamera :: (Camera: *camera) -> ray {
+GetRayFromCamera :: (Camera: *$T/interface view_parameters) -> ray {
     Result: ray;
     
     Result.Origin = Camera.Position;
@@ -58,4 +58,28 @@ RayTriangleIntersection :: (Ray: ray, Triangle: triangle) -> ray_triangle_hit {
     }
     
     return .{Intersected = false};
+}
+
+RayMeshIntersection :: (Mesh: *mesh, WorldTransform: float4x4, Ray: ray) -> ray_triangle_hit {
+    ClosestDistance := FLOAT32_MAX;
+    ClosestHit: ray_triangle_hit;
+    
+    TriangleCount := Mesh.Indices.count / 3;
+    for 0..TriangleCount-1 {
+        Triangle := triangle.{
+            (WorldTransform * xyzw(Mesh.Positions[Mesh.Indices[it*3 + 0]], 1.0)).xyz,
+            (WorldTransform * xyzw(Mesh.Positions[Mesh.Indices[it*3 + 1]], 1.0)).xyz,
+            (WorldTransform * xyzw(Mesh.Positions[Mesh.Indices[it*3 + 2]], 1.0)).xyz
+        };
+        
+        Hit := RayTriangleIntersection(Ray, Triangle);
+        if Hit.Intersected {
+            if Hit.T < ClosestDistance {
+                ClosestDistance = Hit.T;
+                ClosestHit = Hit;
+            }
+        }
+    }
+    
+    return ClosestHit;
 }

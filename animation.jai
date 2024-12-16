@@ -1,4 +1,9 @@
 
+ interpolation_mode :: enum {
+    NEAREST;
+    LINEAR;
+}
+
 anim_player :: struct {
     Mesh: *mesh;
     Anim: *animation;
@@ -8,6 +13,8 @@ anim_player :: struct {
     Pose: anim_pose;
     
     Fps := 30;
+    
+    InterpolationMode: interpolation_mode;
 }
 
 anim_pose :: struct {
@@ -47,7 +54,7 @@ AnimUpdate :: (Player: *anim_player) {
     Anim := Player.Anim;
     
     Player.AnimTime += DeltaTime * Player.Fps;
-    Player.AnimTime = fmod_cycling(Player.AnimTime, xx Anim.SampleCount);
+    Player.AnimTime = Mod(Player.AnimTime, xx Anim.SampleCount);
     FrameIndex := cast(int) Player.AnimTime;
     LerpT := Player.AnimTime - FrameIndex;
     
@@ -69,21 +76,21 @@ AnimUpdate :: (Player: *anim_player) {
         i0 := BaseIndex + FrameIndex;
         i1 := BaseIndex + ((FrameIndex + 1) % Anim.SampleCount);
         
-        /*
-        if LerpT < 0.5 {
-            Positions[Bone.Id] = Anim.Positions[i0];
-            Rotations[Bone.Id] = Anim.Rotations[i0];
-            Scales[Bone.Id] = Anim.Scales[i0];
-        } else {
-            Positions[Bone.Id] = Anim.Positions[i1];
-            Rotations[Bone.Id] = Anim.Rotations[i1];
-            Scales[Bone.Id] = Anim.Scales[i1];
+        if Player.InterpolationMode == .NEAREST {
+            if LerpT < 0.5 {
+                Positions[Bone.Id] = Anim.Positions[i0];
+                Rotations[Bone.Id] = Anim.Rotations[i0];
+                Scales[Bone.Id] = Anim.Scales[i0];
+            } else {
+                Positions[Bone.Id] = Anim.Positions[i1];
+                Rotations[Bone.Id] = Anim.Rotations[i1];
+                Scales[Bone.Id] = Anim.Scales[i1];
+            }
+        } else if Player.InterpolationMode == .LINEAR {
+            Positions[Bone.Id] = Lerp(Anim.Positions[i0], Anim.Positions[i1], LerpT);
+            Rotations[Bone.Id] = NLerpShortest(Anim.Rotations[i0], Anim.Rotations[i1], LerpT);
+            Scales[Bone.Id] = Lerp(Anim.Scales[i0], Anim.Scales[i1], LerpT);
         }
-*/
-        
-        Positions[Bone.Id] = Lerp(Anim.Positions[i0], Anim.Positions[i1], LerpT);
-        Rotations[Bone.Id] = NLerpShortest(Anim.Rotations[i0], Anim.Rotations[i1], LerpT);
-        Scales[Bone.Id] = Lerp(Anim.Scales[i0], Anim.Scales[i1], LerpT);
     }
     
     for Anim.BoneNames {

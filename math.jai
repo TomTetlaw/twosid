@@ -1,4 +1,35 @@
 
+ RoundUp :: ceil;
+RoundDown :: floor;
+
+Mod :: (x: float, y: float) -> float {
+    return x - (RoundDown(x / y) * y);
+}
+
+SquareRoot :: (f: float64) -> float64 {
+    if f < 0.0 return 0.0;
+    if f == 0.0 || f == 1.0 return f;
+    
+    Guess := f * 0.5;
+    Epsilon := 0.000001;
+    
+    while (Guess*Guess) - f > Epsilon || f - (Guess*Guess) > Epsilon {
+        Guess = (Guess + f / Guess) * 0.5;
+    }
+    
+    return Guess;
+}
+
+SquareRoot :: (f: float) -> float {
+    return cast(float) SquareRoot(cast(float64) f);
+}
+
+TAU   :: cast(float32) 6.283185;
+TAU64 :: 6.28318530717958648;
+
+PI    :: cast(float32) 3.1415927;
+PI64  :: 3.141592653589793;
+
 Deg2Rad :: PI / 180.0;
 Rad2Deg :: 180.0 / PI;
 
@@ -7,6 +38,12 @@ Rad2Turn :: 1.0 / (2 * PI);
 
 Turn2Deg :: PI;
 Deg2Turn :: 1.0 / 360.0;
+
+Clamp :: (Value: $T, Min: T, Max: T) -> T {
+    if Value < Min return Min;
+    if Value > Max return Max;
+    return Value;
+}
 
 Lerp :: (a: float, b: float, t: float) -> float {
     return a + (b - a) * t;
@@ -32,14 +69,21 @@ Saturate :: (f: float) -> float {
 }
 
 CosTurns :: (t: float) -> float {
-    t -= 0.25 + floor(t + 0.25);
-    t *= 16.0 * (abs(t) - 0.5);
-    t += 0.225 * t * (abs(t) - 1.0);
+    t -= 0.25 + RoundDown(t + 0.25);
+    t *= 16.0 * (Abs(t) - 0.5);
+    t += 0.225 * t * (Abs(t) - 1.0);
     return t;
 }
 
 SinTurns :: (t: float) -> float {
     return CosTurns(0.25 - t);
+}
+
+TanTurns :: (t: float) -> float {
+    S := SinTurns(t);
+    C := CosTurns(t);
+    if C == 0.0 return 0.0;
+    return S / C;
 }
 
 float2 :: struct {
@@ -57,6 +101,9 @@ float3 :: struct {
     
 #place x;
     xy: float2;
+    
+#place y;
+    yz: float2;
 }
 
 float4 :: struct {
@@ -68,8 +115,17 @@ float4 :: struct {
 #place x;
     xy: float2;
     
+#place y;
+    yz: float2;
+    
+#place z;
+    zw: float2;
+    
 #place x;
     xyz: float3;
+    
+#place y;
+    yzw: float3;
 }
 
 quat :: struct {
@@ -83,16 +139,40 @@ quat :: struct {
     xyz: float3 = ---;
 };
 
+xy :: (xy: float) -> float2 {
+    return .{xy, xy};
+}
+
+xyz :: (xyz: float) -> float3 {
+    return .{xyz, xyz, xyz};
+}
+
 xyz :: (xy: float2, z: float) -> float3 {
     return .{xy.x, xy.y, z};
+}
+
+xyz :: (x: float, yz: float2) -> float3 {
+    return .{x, yz.x, yz.y};
 }
 
 yzx :: (v: float3) -> float3 {
     return .{v.y, v.z, v.x};
 }
 
+xyzw :: (xyzw: float) -> float4 {
+    return .{xyzw, xyzw, xyzw, xyzw};
+}
+
 xyzw :: (xyz: float3, w: float) -> float4 {
     return .{xyz.x, xyz.y, xyz.z, w};
+}
+
+xyzw :: (x: float, yzw: float3) -> float4 {
+    return .{x, yzw.x, yzw.y, yzw.z};
+}
+
+xyzw :: (xy: float2, zw: float2) -> float4 {
+    return .{xy.x, xy.y, zw.x, zw.y};
 }
 
 Dot :: (a: float2, b: float2) -> float {
@@ -108,11 +188,11 @@ Dot :: (a: quat, b: quat) -> float {
 }
 
 Length :: (v: float2) -> float {
-    return sqrt(v.x*v.x + v.y*v.y);
+    return SquareRoot(v.x*v.x + v.y*v.y);
 }
 
 Length :: (v: float3) -> float {
-    return sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+    return SquareRoot(v.x*v.x + v.y*v.y + v.z*v.z);
 }
 
 LengthSquared :: (v: float2) -> float {
@@ -243,7 +323,7 @@ Saturate :: (v: float3) -> float3 {
 }
 
 Length :: (q: quat) -> float {
-    return sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
+    return SquareRoot(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
 }
 
 Normalize :: (q: quat) -> quat {
@@ -276,7 +356,7 @@ QuatFromMatrix :: (m: float4x4) -> quat {
     Trace := m._11 + m._22 + m._33;
     
     if Trace > 0 {
-        s := sqrt(Trace + 1);
+        s := SquareRoot(Trace + 1);
         
         q.w = s * 0.5;
         s = 0.5 / s;
@@ -292,7 +372,7 @@ QuatFromMatrix :: (m: float4x4) -> quat {
         j := (1 << i) & 3;
         k := (1 << j) & 3;
         
-        s := sqrt(m.Coef[i][i] - m.Coef[j][j] - m.Coef[k][k] + 1);
+        s := SquareRoot(m.Coef[i][i] - m.Coef[j][j] - m.Coef[k][k] + 1);
         
         q.Components[i] = s * 0.5;
         s = 0.5 / s;
@@ -305,19 +385,22 @@ QuatFromMatrix :: (m: float4x4) -> quat {
 };
 
 QuatFromAxisAngle :: (v: float3, Turns: float) -> quat {
-    q: quat;
-    
     s := SinTurns(Turns * 0.5);
     c := CosTurns(Turns * 0.5);
     
-    Axis := Normalize(v);
-    
-    return quat.{
-        Axis.x * s,
-        Axis.y * s,
-        Axis.z * s,
+    Result := quat.{
+        v.x * s,
+        v.y * s,
+        v.z * s,
         c
     };
+    
+    if Result.x < -1 || Result.x > 1 print("Result.x: %\n", Turns);
+    if Result.y < -1 || Result.y > 1 print("Result.y: %\n", Turns);
+    if Result.z < -1 || Result.z > 1 print("Result.z: %\n", Turns);
+    if Result.w < -1 || Result.w > 1 print("Result.w: %\n", Turns);
+    
+    return Result;
 }
 
 RotateVector :: (v: float2, Turns: float) -> float2 {
@@ -325,8 +408,8 @@ RotateVector :: (v: float2, Turns: float) -> float2 {
     c := CosTurns(Turns);
     
     return float2.{
-        v.x*c + v.y*-s,
-        v.x*s + v.y*c
+        v.x*c + v.y*s,
+        v.x*-s + v.y*c
     };
 }
 
@@ -335,7 +418,14 @@ RotateVector :: (v: float3, q: quat) -> float3 {
     return v + t * q.w + Cross(q.xyz, t);
 }
 
+RotateVectorAxes :: (v: float3, q: quat, a: float4) -> float3 {
+    Qa := q * a;
+    t := Cross(Qa.xyz, v) * 2.0;
+    return v + t * Qa.w + Cross(Qa.xyz, t);
+}
+
 #scope_file
 
 #import "Basic";
-#import "Math";
+
+using,only(ceil,floor,abs) Math :: #import "Math";

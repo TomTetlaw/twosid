@@ -1,4 +1,16 @@
 
+float2x2 :: struct {
+    _11, _12: float;
+    _21, _22: float;
+    
+#place _11; 
+    Rows: [2] float2 = ---;
+#place _11; 
+    Coef: [2][2] float = ---;
+#place _11; 
+    Floats: [4] float = ---;
+}
+
 float4x4 :: struct {
     _11, _12, _13, _14 : float;
     _21, _22, _23, _24 : float;
@@ -12,53 +24,6 @@ float4x4 :: struct {
 #place _11; 
     Floats: [16] float = ---;
 };
-
-operator * :: (a: float4x4, b: float4x4) -> float4x4 {
-    Result: float4x4 = ---;
-    
-    Result._11 = a._11*b._11 + a._12*b._21 + a._13*b._31 + a._14*b._41;
-    Result._21 = a._21*b._11 + a._22*b._21 + a._23*b._31 + a._24*b._41;
-    Result._31 = a._31*b._11 + a._32*b._21 + a._33*b._31 + a._34*b._41;
-    Result._41 = a._41*b._11 + a._42*b._21 + a._43*b._31 + a._44*b._41;
-    
-    Result._12 = a._11*b._12 + a._12*b._22 + a._13*b._32 + a._14*b._42;
-    Result._22 = a._21*b._12 + a._22*b._22 + a._23*b._32 + a._24*b._42;
-    Result._32 = a._31*b._12 + a._32*b._22 + a._33*b._32 + a._34*b._42;
-    Result._42 = a._41*b._12 + a._42*b._22 + a._43*b._32 + a._44*b._42;
-    
-    Result._13 = a._11*b._13 + a._12*b._23 + a._13*b._33 + a._14*b._43;
-    Result._23 = a._21*b._13 + a._22*b._23 + a._23*b._33 + a._24*b._43;
-    Result._33 = a._31*b._13 + a._32*b._23 + a._33*b._33 + a._34*b._43;
-    Result._43 = a._41*b._13 + a._42*b._23 + a._43*b._33 + a._44*b._43;
-    
-    Result._14 = a._11*b._14 + a._12*b._24 + a._13*b._34 + a._14*b._44;
-    Result._24 = a._21*b._14 + a._22*b._24 + a._23*b._34 + a._24*b._44;
-    Result._34 = a._31*b._14 + a._32*b._24 + a._33*b._34 + a._34*b._44;
-    Result._44 = a._41*b._14 + a._42*b._24 + a._43*b._34 + a._44*b._44;
-    
-    return Result;
-}
-
-operator * :: (m: float4x4, b: float) -> float4x4 #symmetric {
-    Result: float4x4 = ---;
-    
-    for i: 0..3 for j: 0..3 {
-        Result.Coef[i][j] = m.Coef[i][j] * b;
-    }
-    
-    return Result;
-}
-
-operator * :: (m: float4x4, b: float4) -> float4 {
-    Result: float4;
-    
-    Result.x = b.x * m._11 + b.y * m._12 + b.z * m._13 + b.w * m._14;
-    Result.y = b.x * m._21 + b.y * m._22 + b.z * m._23 + b.w * m._24;
-    Result.z = b.x * m._31 + b.y * m._32 + b.z * m._33 + b.w * m._34;
-    Result.w = b.x * m._41 + b.y * m._42 + b.z * m._43 + b.w * m._44;
-    
-    return Result;
-}
 
 IdentityMatrix :: () -> float4x4 {
     return float4x4.{
@@ -104,10 +69,10 @@ ViewToProjectionMatrix :: () -> float4x4 {
     return Result;
 }
 
-ProjectionMatrix :: (FovRadians: float, Aspect: float, Near: float, Far: float, $TransformFromViewSpace := true) -> float4x4 {
+ProjectionMatrix :: (FovTurns: float, Aspect: float, Near: float, Far: float, $TransformFromViewSpace := true) -> float4x4 {
     Result := IdentityMatrix();
     
-    TanTheta := tan(FovRadians * 0.5);
+    TanTheta := TanTurns(FovTurns * 0.5);
     CotTheta := 1 / TanTheta;
     
     n := Near;
@@ -314,3 +279,5 @@ InverseMatrix :: (m: float4x4, Epsilon := 0.001) -> float4x4, bool {
     Adj := AdjugateMatrix(m);
     return iDet * Adj, true;
 }
+
+using,only(tan) Math :: #import "Math";
