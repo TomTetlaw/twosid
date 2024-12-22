@@ -559,54 +559,41 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
         return;
     }
     
-    {
-        ZoneScoped("Map instance buffers");
-        MapInstanceBuffer(DepthPass.InstanceBuffer);
-        MapInstanceBuffer(OpaquePass.InstanceBuffer);
-        MapInstanceBuffer(TranslucentPass.InstanceBuffer);
-        MapInstanceBuffer(DebugPass.InstanceBuffer);
-    }
+    MapInstanceBuffer(DepthPass.InstanceBuffer);
+    MapInstanceBuffer(OpaquePass.InstanceBuffer);
+    MapInstanceBuffer(TranslucentPass.InstanceBuffer);
+    MapInstanceBuffer(DebugPass.InstanceBuffer);
     
     ProcessDrawCommands();
     
-    {
-        ZoneScoped("Unmap instance buffers");
-        SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.InstanceBuffer.TransferBuffer);
-        SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.InstanceBuffer.TransferBuffer);
-        SDL_UnmapGPUTransferBuffer(GDevice, TranslucentPass.InstanceBuffer.TransferBuffer);
-        SDL_UnmapGPUTransferBuffer(GDevice, DebugPass.InstanceBuffer.TransferBuffer);
-    }
+    SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.InstanceBuffer.TransferBuffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.InstanceBuffer.TransferBuffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, TranslucentPass.InstanceBuffer.TransferBuffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, DebugPass.InstanceBuffer.TransferBuffer);
     
-    {
-        ZoneScoped("Copy instance data");
-        CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-        CommitInstanceBuffer(DepthPass.InstanceBuffer, CopyPass);
-        CommitInstanceBuffer(OpaquePass.InstanceBuffer, CopyPass);
-        CommitInstanceBuffer(TranslucentPass.InstanceBuffer, CopyPass);
-        CommitInstanceBuffer(DebugPass.InstanceBuffer, CopyPass);
-        SDL_EndGPUCopyPass(CopyPass);
-    }
+    CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
+    CommitInstanceBuffer(DepthPass.InstanceBuffer, CopyPass);
+    CommitInstanceBuffer(OpaquePass.InstanceBuffer, CopyPass);
+    CommitInstanceBuffer(TranslucentPass.InstanceBuffer, CopyPass);
+    CommitInstanceBuffer(DebugPass.InstanceBuffer, CopyPass);
+    SDL_EndGPUCopyPass(CopyPass);
     
-    {
-        ZoneScoped("All render passes");
-        DrawPass(DepthPass, CommandBuffer);
-        DrawPass(OpaquePass, CommandBuffer);
-        DrawPass(TranslucentPass, CommandBuffer);
-        DrawPass(DebugPass, CommandBuffer);
+    DrawPass(DepthPass, CommandBuffer);
+    DrawPass(OpaquePass, CommandBuffer);
+    DrawPass(TranslucentPass, CommandBuffer);
+    DrawPass(DebugPass, CommandBuffer);
+    
+    if FragDebugMode == 1 {
+        MapInstanceBuffer(ScreenSpacePass.InstanceBuffer);
         
-        if FragDebugMode == 1 {
-            MapInstanceBuffer(ScreenSpacePass.InstanceBuffer);
-            
-            DrawShadowMap(ScreenSpacePass);
-            
-            CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-            CommitInstanceBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
-            SDL_EndGPUCopyPass(CopyPass);
-            
-            DrawPass(ScreenSpacePass, CommandBuffer);
-        }
+        DrawShadowMap(ScreenSpacePass);
+        
+        CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
+        CommitInstanceBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
+        SDL_EndGPUCopyPass(CopyPass);
+        
+        DrawPass(ScreenSpacePass, CommandBuffer);
     }
-    
     
     SDL_SubmitGPUCommandBuffer(CommandBuffer);
     

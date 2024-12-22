@@ -304,96 +304,82 @@ surface_hit :: struct {
 RaySurfaceIntersection :: (Surface: *surface_collision_mesh, Ray: float2) -> surface_hit {
     Mark := ArenaPushMark(*FrameArena);
     
-    m256Base := cast (*float8) ArenaAlloc(*FrameArena, size_of(float8) * 32, 32);
-    m256BaseI := cast (*int32x8) ArenaAlloc(*FrameArena, size_of(int32x8) * 32, 32);
-    
     BestZ :: 32 * 0;
-    m256Base[BestZ / 32] = PackFloat8(FLOAT32_MIN);
+    Surface.m256Base[BestZ / 32] = PackFloat8(FLOAT32_MIN);
     
     Zero :: 32 * 4;
-    m256Base[Zero / 32] = PackFloat8(0.0);
+    Surface.m256Base[Zero / 32] = PackFloat8(0.0);
     One :: 32 * 5;
-    m256Base[One / 32] = PackFloat8(1.0);
+    Surface.m256Base[One / 32] = PackFloat8(1.0);
     
     Rx:: 32 * 6;
-    m256Base[Rx / 32] = PackFloat8(Ray.x);
+    Surface.m256Base[Rx / 32] = PackFloat8(Ray.x);
     Ry :: 32 * 7;
-    m256Base[Ry / 32] = PackFloat8(Ray.y);
+    Surface.m256Base[Ry / 32] = PackFloat8(Ray.y);
     
     BestIndex :: 32 * 0;
-    m256BaseI[BestIndex / 32] = PackInt8(-1);
+    Surface.m256BaseI[BestIndex / 32] = PackInt8(-1);
     
     Index :: 32 * 1;
-    m256BaseI[Index / 32] = PackInt8(.[0, 1, 2, 3, 4, 5, 6, 7]);
+    Surface.m256BaseI[Index / 32] = PackInt8(.[0, 1, 2, 3, 4, 5, 6, 7]);
     
     IndexInc :: 32 * 2;
-    m256BaseI[IndexInc / 32] = PackInt8(8);
+    Surface.m256BaseI[IndexInc / 32] = PackInt8(8);
+    
+    m256Base := Surface.m256Base;
+    m256BaseI := Surface.m256BaseI;
     
 #asm {
         mov Base:, m256Base;
         mov BaseI:, m256BaseI;
+        
+        movaps C0:, [Base + Zero];
+        movaps C1:, [Base + One];
+        
+        movaps rx:, [Base + Rx];
+        movaps ry:, [Base + Ry];
+        
+        movaps bz:, [Base + BestZ];
+        
+        movdqa bi:, [BaseI + BestIndex];
+        movdqa i:, [BaseI + Index];
+        
+        movdqa inc:, [BaseI + IndexInc];
     }
     
     for Surface.Triangles {
-        Px :: 32 * 12;
-        m256Base[Px / 32] = it.Px;
-        Py :: 32 * 13;
-        m256Base[Py / 32] = it.Py;
-        Pz :: 32 * 14;
-        m256Base[Pz / 32] = it.Pz;
+        Px := *it.Px;
+        Py := *it.Py;
+        Pz := *it.Pz;
         
-        Ux :: 32 * 15;
-        m256Base[Ux / 32] = it.Ux;
-        Uy :: 32 * 16;
-        m256Base[Uy / 32] = it.Uy;
+        Ux := *it.Ux;
+        Uy := *it.Uy;
         
-        Vx :: 32 * 18;
-        m256Base[Vx / 32] = it.Vx;
-        Vy :: 32 * 19;
-        m256Base[Vy / 32] = it.Vy;
+        Vx := *it.Vx;
+        Vy := *it.Vy;
         
-        Zu :: 32 * 17;
-        m256Base[Zu / 32] = it.Zu;
-        Zv :: 32 * 20;
-        m256Base[Zv / 32] = it.Zv;
+        Zu := *it.Zu;
+        Zv := *it.Zv;
         
 #asm {
-            movaps rx:, [Base + Rx];
-            movaps ry:, [Base + Ry];
-            
-            movaps px:, [Base + Px];
-            movaps py:, [Base + Py];
-            
-            // Make ray position relative to the triangle
-            subps rx, rx, px;
-            subps ry, ry, py;
-            
             // U = Uxy . R
-            movaps r1:, [Base + Ux];
-            movaps r2:, [Base + Uy];
-            mulps r1, rx, r1;
-            mulps r2, ry, r2;
+            // V = Uxy . R
+            subps RX:, rx, [Px];
+            subps RY:, ry, [Py];
+            
+            mulps r1:, RX, [Ux];
+            mulps r2:, RY, [Uy];
             addps U:, r1, r2;
             
-            // V = Vxy . R
-            movaps r1, [Base + Vx];
-            movaps r2, [Base + Vy];
-            mulps r1, rx, r1;
-            mulps r2, ry, r2;
-            addps V:, r1, r2;
-            
-            movaps pz:, [Base + Pz];
+            mulps r3:, RX, [Vx];
+            mulps r4:, RY, [Vy];
+            addps V:, r3, r4;
             
             // Z = Pz + (U * Zu) + (V * Zv)
-            movaps r1, [Base + Zu];
-            movaps r2, [Base + Zv];
-            mulps r1, U, r1;
-            mulps r2, V, r2;
-            addps Z:, r1, r2;
-            addps Z, Z, pz;
-            
-            movaps C0:, [Base + Zero];
-            movaps C1:, [Base + One];
+            mulps r5:, U, [Zu];
+            mulps r6:, V, [Zv];
+            addps Z:, r5, r6;
+            addps Z, Z, [Pz];
             
             cmpps c1:, U, C0, _CMP_GE_OQ; // U >= 0
             cmpps c2:, V, C0, _CMP_GE_OQ; // V >= 0
@@ -401,8 +387,7 @@ RaySurfaceIntersection :: (Surface: *surface_collision_mesh, Ray: float2) -> sur
             addps UV:, U, V;
             cmpps c3:, UV, C1, _CMP_LE_OQ; // U+V <= 1
             
-            movaps bz:, [Base + BestZ];
-            cmpps c4:, Z, bz, _CMP_GT_OQ; // Z < BestZ
+            cmpps c4:, Z, bz, _CMP_GT_OQ; // Z > BestZ
             
             andps c1, c1, c2;
             andps c2, c3, c4;
@@ -410,18 +395,18 @@ RaySurfaceIntersection :: (Surface: *surface_collision_mesh, Ray: float2) -> sur
             
             // Record BestZ
             blendvps bz, bz, Z, Mask;
-            movaps [Base + BestZ], bz;
             
             // Record BestIndex
-            movdqa bi:, [BaseI + BestIndex];
-            movdqa i:, [BaseI + Index];
             pblendvb bi, bi, i, Mask;
-            movdqa [BaseI + BestIndex], bi;
             
             // Move indices forward
-            paddd i, i, [BaseI + IndexInc];
-            movdqa [BaseI + Index], i;
+            paddd i, i, inc;
         }
+    }
+    
+#asm {
+        movaps [Base + BestZ], bz;
+        movdqa [BaseI + BestIndex], bi;
     }
     
     BestHit: surface_hit;
@@ -524,6 +509,8 @@ surface_triangle_8 :: struct {
 
 surface_collision_mesh :: struct {
     Triangles: [] surface_triangle_8;
+    m256Base: *float8;
+    m256BaseI: *int32x8;
 }
 
 CreateSurfaceCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) -> surface_collision_mesh {
@@ -589,5 +576,7 @@ CreateSurfaceCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) ->
     
     Result: surface_collision_mesh;
     Result.Triangles = Triangles;
+    Result.m256Base = cast (*float8) ArenaAlloc(Arena, size_of(float8) * 32, 32);
+    Result.m256BaseI = cast (*int32x8) ArenaAlloc(Arena, size_of(int32x8) * 32, 32);
     return Result;
 }

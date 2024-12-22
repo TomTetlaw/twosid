@@ -92,7 +92,6 @@ compile_shaders_for_format :: (output_format: string) {
 
 build_game :: (profiling: bool) {
     workspace := compiler_create_workspace("Game Build");
-    
     options := get_build_options(workspace);
     options.output_path = "run_tree";
     options.intermediate_path = ".build/";
@@ -101,7 +100,7 @@ build_game :: (profiling: bool) {
     // options.debug_for_expansions = true;
     set_optimization(*options, .VERY_DEBUG);
     
-    //set_optimization(*options, .VERY_OPTIMIZED);
+    set_optimization(*options, .VERY_OPTIMIZED);
     //options.llvm_options.preserve_debug_info = true;
     
     options.text_output_flags = 0;
@@ -110,20 +109,18 @@ build_game :: (profiling: bool) {
     
 #if OS == .WINDOWS {
         options.use_natvis_compatible_types = true;
-        options.additional_linker_arguments = .["Advapi32.lib", "user32.lib"];
-        if profiling array_add(*plugin_names, "jai-tracy");
-    }
-    else #if OS == .LINUX {
-    }
-    else {
+        if profiling {
+            options.additional_linker_arguments = .["Advapi32.lib", "user32.lib"];
+            array_add(*plugin_names, "jai-tracy");
+        }
+    } else #if OS == .LINUX {
+    } else {
         report_error("Platform not supported.");
     }
     
     machine_options := get_machine_options_x86(*options);
     enable_feature(*machine_options.features.leaves, .AVX);
     enable_feature(*machine_options.features.leaves, .AVX2);
-    
-    options.x64_options.enable_register_allocation = true;
     
     set_build_options(*options, workspace);
     
@@ -201,6 +198,8 @@ build :: () {
         if contains(it, "generate_sdl_bindings") generate_sdl_bindings = true;
         if contains(it, "noprof") profiling = false;
     }
+    
+    profiling = false;
     
     if generate_sdl_bindings {
         if !generate_sdl3_bindings() compiler_set_workspace_status(.FAILED);
