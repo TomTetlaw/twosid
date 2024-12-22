@@ -1,18 +1,20 @@
 
 GetGroundHeight :: (Position: float3) -> float {
-    Ray := ray.{xyz(Position.xy, 100.0), .{0, 0, -1}};
-    Hit := RayMeshIntersection(TerrainMesh, TerrainTransform, Ray);
-    if Hit.Intersected return Hit.Point.z;
-    return 0.0;
+    Hit := RaySurfaceIntersection(*CollisionMesh, Position.xy);
+    return Hit.Z;
 }
 
 InitTerrain :: () {
     TerrainMesh = LoadMesh("meshes/terrain.mesh");
-    ArrayAdd(*TerrainTextures, LoadTexture("textures/grass_diffuse.png"));
-    ArrayAdd(*TerrainTextures, LoadTexture("textures/grass_normal.png"));
-    ArrayAdd(*TerrainTextures, LoadTexture("textures/grass_rmaoh.png"));
     
-    TerrainTransform = TranslationMatrix(.{0, 0, -6});
+    TerrainTextures = ArenaPushN(*TerrainArena, *texture, 3);
+    TerrainTextures[0] = LoadTexture("textures/terrain_diffuse.png");
+    TerrainTextures[1] = LoadTexture("textures/terrain_normal.png");
+    TerrainTextures[2] = LoadTexture("textures/unit_rmaoh.png");
+    
+    TerrainTransform = IdentityMatrix();
+    
+    CollisionMesh = CreateSurfaceCollisionMesh(*TerrainArena, TerrainMesh, TerrainTransform);
 }
 
 DrawTerrain :: () {
@@ -22,12 +24,14 @@ DrawTerrain :: () {
     Command.Textures = TerrainTextures;
     Command.Instance.Transform = TerrainTransform;
     Command.Instance.DiffuseColour = .{1, 1, 1, 1};
-    Command.Instance.MaterialParams = .{1, 1, 1, 25};
+    Command.Instance.MaterialParams = .{1, 1, 1, 1};
     AddDrawCommand(*Command);
 }
 
 #scope_file
 
+CollisionMesh: surface_collision_mesh;
 TerrainMesh: *mesh;
 TerrainTransform: float4x4;
-TerrainTextures: arena_array(*texture);
+TerrainTextures: [] *texture;
+TerrainArena: arena;

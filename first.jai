@@ -90,7 +90,7 @@ compile_shaders_for_format :: (output_format: string) {
     }
 }
 
-build_game :: () {
+build_game :: (profiling: bool) {
     workspace := compiler_create_workspace("Game Build");
     
     options := get_build_options(workspace);
@@ -98,13 +98,20 @@ build_game :: () {
     options.intermediate_path = ".build/";
     options.backend = .LLVM;
     options.output_executable_name = "twosid";
-    options.debug_for_expansions = true;
+    // options.debug_for_expansions = true;
     set_optimization(*options, .VERY_DEBUG);
+    
+    //set_optimization(*options, .VERY_OPTIMIZED);
+    //options.llvm_options.preserve_debug_info = true;
+    
     options.text_output_flags = 0;
-    options.additional_linker_arguments = .["Advapi32.lib", "user32.lib"];
+    
+    plugin_names: [..] string;
     
 #if OS == .WINDOWS {
         options.use_natvis_compatible_types = true;
+        options.additional_linker_arguments = .["Advapi32.lib", "user32.lib"];
+        if profiling array_add(*plugin_names, "jai-tracy");
     }
     else #if OS == .LINUX {
     }
@@ -112,7 +119,25 @@ build_game :: () {
         report_error("Platform not supported.");
     }
     
+    machine_options := get_machine_options_x86(*options);
+    enable_feature(*machine_options.features.leaves, .AVX);
+    enable_feature(*machine_options.features.leaves, .AVX2);
+    
+    options.x64_options.enable_register_allocation = true;
+    
     set_build_options(*options, workspace);
+    
+    plugins: [..] *Metaprogram_Plugin;
+    init_plugins(plugin_names, *plugins, workspace);
+    
+    intercept_flags: Intercept_Flags;
+    for plugins if it.before_intercept it.before_intercept(it, *intercept_flags);
+    
+    compiler_begin_intercept(workspace);
+    
+    for plugins if it.add_source it.add_source(it);
+    
+    add_build_string(tprint("PROFILE :: %;\n", ifx profiling then 1 else 0), workspace);
     
     files := file_list("./");
     for files {
@@ -120,6 +145,48 @@ build_game :: () {
         if contains(it, "first.jai") continue;
         add_build_file(it, workspace);
     }
+    
+    plots: [..] string;
+    
+    while true {
+        message := compiler_wait_for_message();
+        for plugins if it.message it.message(it, message);
+        
+        if profiling {
+            if message.kind == .TYPECHECKED {
+                tc := cast (*Message_Typechecked) message;
+                for tc.declarations {
+                    exp := it.expression;
+                    for n: exp.notes if equal(n.text, "TracyPlot") {
+                        array_add(*plots, exp.name);
+                    }
+                }
+            }
+        }
+        
+        if message.kind == .PHASE {
+            phase := cast (*Message_Phase) message;
+            if phase.phase == .TYPECHECKED_ALL_WE_CAN break;
+        }
+        
+        if message.kind == .COMPLETE break;
+    }
+    
+    if profiling {
+        builder: String_Builder;
+        append(*builder, "EmitProfilingData :: () {\n");
+        for plots {
+            print_to_builder(*builder, "___tracy_emit_plot(\"%\".data, cast (float64) %);\n", it, it);
+        }
+        append(*builder, "__Tracy.FrameMark();\n");
+        append(*builder, "}\n");
+        add_build_string(builder_to_string(*builder), workspace);
+    }
+    
+    compiler_end_intercept(workspace);
+    
+    for plugins if it.finish it.finish(it);
+    for plugins if it.shutdown it.shutdown(it);
 }
 
 build :: () {
@@ -127,9 +194,12 @@ build :: () {
     
     compile_shaders := false;
     generate_sdl_bindings := false;
+    profiling := true;
+    
     for args {
         if contains(it, "compile_shaders") compile_shaders = true;
         if contains(it, "generate_sdl_bindings") generate_sdl_bindings = true;
+        if contains(it, "noprof") profiling = false;
     }
     
     if generate_sdl_bindings {
@@ -146,7 +216,7 @@ build :: () {
         compile_shaders_for_format("json");
     }
     
-    build_game();
+    build_game(profiling);
     
     set_build_options_dc(.{do_output = false});
 }
@@ -164,3 +234,5 @@ build :: () {
 #import "Command_Line";
 #import "Bindings_Generator";
 #import "Hash_Table";
+#import "Metaprogram_Plugins";
+#import "Machine_X64";

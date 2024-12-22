@@ -1,4 +1,6 @@
 
+GFrameNum := 0;
+
 InitRenderer :: () {
     // screen space Pipeline
     {
@@ -396,7 +398,7 @@ InitPasses :: () {
         DepthPass.VertConstants = ArenaPush(*RendererArena, cbuffer_shadow_vertex);
         DepthPass.VertConstantsSize = size_of(cbuffer_shadow_vertex);
         
-        ArrayAdd(*DepthPass.StorageBuffers, SkinningMatricesBuffer);
+        DepthPass.StorageBuffers = ArenaPushN(*RendererArena, *SDL_GPUBuffer, .[SkinningMatricesBuffer]);
         
         DepthPass.ColourTarget = false;
         DepthPass.ClearDepth = true;
@@ -417,9 +419,8 @@ InitPasses :: () {
         OpaquePass.FragConstants = ArenaPush(*RendererArena, cbuffer_mesh_fragment);
         OpaquePass.FragConstantsSize = size_of(cbuffer_mesh_fragment);
         
-        ArrayAdd(*OpaquePass.StorageBuffers, SkinningMatricesBuffer);
-        
-        ArrayAdd(*OpaquePass.Textures, .{ShadowTexture, ShadowSampler});
+        OpaquePass.StorageBuffers = ArenaPushN(*RendererArena, *SDL_GPUBuffer, .[SkinningMatricesBuffer]);
+        OpaquePass.Textures = ArenaPushN(*RendererArena, SDL_GPUTextureSamplerBinding, .[.{ShadowTexture, ShadowSampler}]);
         
         OpaquePass.ColourTarget = true;
         OpaquePass.ClearColour = true;
@@ -461,9 +462,9 @@ InitPasses :: () {
         TranslucentPass.FragConstants = ArenaPush(*RendererArena, cbuffer_mesh_fragment);
         TranslucentPass.FragConstantsSize = size_of(cbuffer_mesh_fragment);
         
-        ArrayAdd(*TranslucentPass.Textures, .{ShadowTexture, ShadowSampler});
+        TranslucentPass.Textures = ArenaPushN(*RendererArena, SDL_GPUTextureSamplerBinding, .[.{ShadowTexture, ShadowSampler}]);
         
-        ArrayAdd(*TranslucentPass.StorageBuffers, SkinningMatricesBuffer);
+        TranslucentPass.StorageBuffers = ArenaPushN(*RendererArena, *SDL_GPUBuffer, .[SkinningMatricesBuffer]);
         
         TranslucentPass.ColourTarget = true;
         TranslucentPass.ClearColour = false;
@@ -487,12 +488,16 @@ InitPasses :: () {
     }
 }
 
+ResetPass :: (Pass: *draw_pass($T)) {
+    ArenaReset(*Pass.Commands);
+}
+
 ResetPasses :: () {
-    ArrayReset(*DepthPass.Commands);
-    ArrayReset(*OpaquePass.Commands);
-    ArrayReset(*TranslucentPass.Commands);
-    ArrayReset(*DebugPass.Commands);
-    ArrayReset(*ScreenSpacePass.Commands);
+    ResetPass(DepthPass);
+    ResetPass(OpaquePass);
+    ResetPass(TranslucentPass);
+    ResetPass(DebugPass);
+    ResetPass(ScreenSpacePass);
 }
 
 DrawFrame :: (Camera: *$T/interface view_parameters) {
@@ -554,43 +559,54 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
         return;
     }
     
-    MapInstanceBuffer(DepthPass.InstanceBuffer);
-    MapInstanceBuffer(OpaquePass.InstanceBuffer);
-    MapInstanceBuffer(TranslucentPass.InstanceBuffer);
-    MapInstanceBuffer(DebugPass.InstanceBuffer);
+    {
+        ZoneScoped("Map instance buffers");
+        MapInstanceBuffer(DepthPass.InstanceBuffer);
+        MapInstanceBuffer(OpaquePass.InstanceBuffer);
+        MapInstanceBuffer(TranslucentPass.InstanceBuffer);
+        MapInstanceBuffer(DebugPass.InstanceBuffer);
+    }
     
     ProcessDrawCommands();
     
-    SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.InstanceBuffer.TransferBuffer);
-    SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.InstanceBuffer.TransferBuffer);
-    SDL_UnmapGPUTransferBuffer(GDevice, TranslucentPass.InstanceBuffer.TransferBuffer);
-    SDL_UnmapGPUTransferBuffer(GDevice, DebugPass.InstanceBuffer.TransferBuffer);
-    
-    CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-    CommitInstanceBuffer(DepthPass.InstanceBuffer, CopyPass);
-    CommitInstanceBuffer(OpaquePass.InstanceBuffer, CopyPass);
-    CommitInstanceBuffer(TranslucentPass.InstanceBuffer, CopyPass);
-    CommitInstanceBuffer(DebugPass.InstanceBuffer, CopyPass);
-    SDL_EndGPUCopyPass(CopyPass);
-    
-    DrawPass(DepthPass, CommandBuffer);
-    DrawPass(OpaquePass, CommandBuffer);
-    DrawPass(TranslucentPass, CommandBuffer);
-    DrawPass(DebugPass, CommandBuffer);
-    
-    if FragDebugMode == 1 {
-        MapInstanceBuffer(ScreenSpacePass.InstanceBuffer);
-        
-        DrawShadowMapCommand: render_command;
-        DrawShadowMap(ScreenSpacePass, *DrawShadowMapCommand);
-        ArrayAdd(*ScreenSpacePass.Commands, *DrawShadowMapCommand);
-        
-        CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-        CommitInstanceBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
-        SDL_EndGPUCopyPass(CopyPass);
-        
-        DrawPass(ScreenSpacePass, CommandBuffer);
+    {
+        ZoneScoped("Unmap instance buffers");
+        SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.InstanceBuffer.TransferBuffer);
+        SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.InstanceBuffer.TransferBuffer);
+        SDL_UnmapGPUTransferBuffer(GDevice, TranslucentPass.InstanceBuffer.TransferBuffer);
+        SDL_UnmapGPUTransferBuffer(GDevice, DebugPass.InstanceBuffer.TransferBuffer);
     }
+    
+    {
+        ZoneScoped("Copy instance data");
+        CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
+        CommitInstanceBuffer(DepthPass.InstanceBuffer, CopyPass);
+        CommitInstanceBuffer(OpaquePass.InstanceBuffer, CopyPass);
+        CommitInstanceBuffer(TranslucentPass.InstanceBuffer, CopyPass);
+        CommitInstanceBuffer(DebugPass.InstanceBuffer, CopyPass);
+        SDL_EndGPUCopyPass(CopyPass);
+    }
+    
+    {
+        ZoneScoped("All render passes");
+        DrawPass(DepthPass, CommandBuffer);
+        DrawPass(OpaquePass, CommandBuffer);
+        DrawPass(TranslucentPass, CommandBuffer);
+        DrawPass(DebugPass, CommandBuffer);
+        
+        if FragDebugMode == 1 {
+            MapInstanceBuffer(ScreenSpacePass.InstanceBuffer);
+            
+            DrawShadowMap(ScreenSpacePass);
+            
+            CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
+            CommitInstanceBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
+            SDL_EndGPUCopyPass(CopyPass);
+            
+            DrawPass(ScreenSpacePass, CommandBuffer);
+        }
+    }
+    
     
     SDL_SubmitGPUCommandBuffer(CommandBuffer);
     
@@ -598,16 +614,18 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     
     ResetPasses();
     ResetRendererFrontend();
+    
+    ArenaReset(*RendererFrameArena);
 }
 
 MAX_BONES :: 1024;
 
-SHADOW_MAP_SIZE :: 8192*2;
+SHADOW_MAP_SIZE :: 2048;
 
 NEAR_PLANE :: 0.1;
 FAR_PLANE :: 1000.0;
 
-MAX_INSTANCES :: 1024;
+MAX_INSTANCES :: 4096;
 
 RendererArena: arena;
 
@@ -675,7 +693,7 @@ draw_pass :: struct ($T: Type) {
     FragConstants: *void;
     FragConstantsSize: int;
     
-    Commands: arena_array(render_command);
+    Commands: arena(render_command);
     
     ColourTarget: bool;
     ClearColour: bool;
@@ -683,9 +701,9 @@ draw_pass :: struct ($T: Type) {
     ColourTargetTextureOverride: *SDL_GPUTexture;
     DepthTarget: *SDL_GPUTexture;
     
-    Textures: arena_array(SDL_GPUTextureSamplerBinding);
+    Textures: [] SDL_GPUTextureSamplerBinding;
     
-    StorageBuffers: arena_array(*SDL_GPUBuffer);
+    StorageBuffers: [] *SDL_GPUBuffer;
     
     Viewport: float2;
     
@@ -697,9 +715,9 @@ render_command_flags :: enum_flags {
 }
 
 render_command :: struct {
-    VertexBuffers: arena_array(*SDL_GPUBuffer);
+    VertexBuffers: [] SDL_GPUBufferBinding;
     IndexBuffer: *SDL_GPUBuffer;
-    Textures: arena_array(SDL_GPUTextureSamplerBinding);
+    Textures: [] SDL_GPUTextureSamplerBinding;
     
     IndexCount: int;
     InstanceCount: int;
@@ -722,6 +740,8 @@ ScreenSpacePass: *draw_pass(ibuffer_empty);
 TranslucentPass: *draw_pass(ibuffer_mesh);
 
 DefaultSampler: *SDL_GPUSampler;
+
+RendererFrameArena: arena;
 
 #scope_file
 
@@ -799,34 +819,24 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
     
     SDL_BindGPUGraphicsPipeline(RenderPass, Pass.Pipeline);
     
-    Textures := ArrayToView(*Pass.Textures);
-    SDL_BindGPUFragmentSamplers(RenderPass, 0, Textures.data, xx Textures.count);
+    SDL_BindGPUFragmentSamplers(RenderPass, 0, Pass.Textures.data, xx Pass.Textures.count);
     
-    StorageBuffers := ArrayToView(*Pass.StorageBuffers);
-    SDL_BindGPUVertexStorageBuffers(RenderPass, 0, StorageBuffers.data, xx StorageBuffers.count);
+    SDL_BindGPUVertexStorageBuffers(RenderPass, 0, Pass.StorageBuffers.data, xx Pass.StorageBuffers.count);
     
     SDL_PushGPUVertexUniformData(CommandBuffer, 0, Pass.VertConstants, xx Pass.VertConstantsSize);
     SDL_PushGPUFragmentUniformData(CommandBuffer, 0, Pass.FragConstants, xx Pass.FragConstantsSize);
     
     if Pass.InstanceBuffer {
-        SDL_BindGPUVertexStorageBuffers(RenderPass, xx Pass.StorageBuffers.Count, *Pass.InstanceBuffer.Buffer, 1);
+        SDL_BindGPUVertexStorageBuffers(RenderPass, xx Pass.StorageBuffers.count, *Pass.InstanceBuffer.Buffer, 1);
     }
     
     BaseInstance := 0;
     for Pass.Commands {
-        VertexBindings := ArenaPushN(*FrameArena, SDL_GPUBufferBinding, xx it.VertexBuffers.Count);
-        for Buffer: it.VertexBuffers {
-            VertexBindings[it_index] = .{Buffer, 0};
-        }
+        SDL_BindGPUFragmentSamplers(RenderPass, xx Pass.Textures.count, it.Textures.data, xx it.Textures.count);
+        
+        SDL_BindGPUVertexBuffers(RenderPass, 0, it.VertexBuffers.data, xx it.VertexBuffers.count);
         
         IndexBinding := SDL_GPUBufferBinding.{it.IndexBuffer, 0};
-        
-        if it.Textures.Count > 0 {
-            Textures := ArrayToView(*it.Textures);
-            SDL_BindGPUFragmentSamplers(RenderPass, xx Pass.Textures.Count, Textures.data, xx Textures.count);
-        }
-        
-        SDL_BindGPUVertexBuffers(RenderPass, 0, VertexBindings.data, xx VertexBindings.count);
         SDL_BindGPUIndexBuffer(RenderPass, *IndexBinding, .SDL_GPU_INDEXELEMENTSIZE_32BIT);
         
         SDL_DrawGPUIndexedPrimitives(RenderPass, xx it.IndexCount, xx it.InstanceCount, 0, 0, xx BaseInstance);
@@ -836,14 +846,15 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
     SDL_EndGPURenderPass(RenderPass);
 }
 
-DrawShadowMap :: (Pass: *draw_pass, Command: *render_command) {
-    ArrayAdd(*Command.VertexBuffers, ScreenSpacePositionBuffer);
-    ArrayAdd(*Command.VertexBuffers, ScreenSpaceTexCoordBuffer);
+DrawShadowMap :: (Pass: *draw_pass) {
+    Command := ArenaPush(*Pass.Commands);
+    
+    Command.VertexBuffers = ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, .[.{ScreenSpacePositionBuffer, 0}, .{ScreenSpaceTexCoordBuffer, 0}]);;
     
     Command.IndexBuffer = ScreenSpaceIndexBuffer;
     Command.IndexCount = 6;
     
-    ArrayAdd(*Command.Textures, .{ShadowTexture, ShadowSampler});
+    Command.Textures = ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, .[.{ShadowTexture, ShadowSampler}]);
     
     Command.InstanceCount = 1;
 }

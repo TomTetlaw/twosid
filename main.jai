@@ -27,6 +27,12 @@ GDevice: *SDL_GPUDevice;
 GWindow: *SDL_Window;
 
 main :: () {
+    CpuInfo := get_cpu_info();
+    
+    if !check_feature(CpuInfo.feature_leaves, x86_Feature_Flag.AVX2) {
+        FatalError("CPU does not support AVX2, cringe ahh cpu");
+    }
+    
     InitMemorySystem();
     
     if !SDL_Init(SDL_INIT_VIDEO) {
@@ -110,8 +116,12 @@ main :: () {
         FrameKeys.count = 0;
         ArenaReset(*FrameArena);
         
-        //memory_visualizer_per_frame_update();
-        //Tracy.FrameMark();
+        
+#if PROFILE {
+            EmitProfilingData();
+        }
+        
+        GFrameNum += 1;
     }
 }
 
@@ -134,13 +144,13 @@ ProcessWindowEvents :: () -> bool {
 
 #scope_file
 
-#import "Basic";// () (MEMORY_DEBUGGER = true);
+#import "Basic";
 #import "String";
 #import "File";
 #import "File_Utilities";
 #import "Process";
 #import "Print_Vars";
-Tracy :: #import "jai-tracy" (IMPORT_MODE = .CLIENT);
+#import "Machine_X64";
 
 KeyStates: *bool;
 

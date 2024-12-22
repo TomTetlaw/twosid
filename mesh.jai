@@ -53,8 +53,6 @@ animation :: struct {
 }
 
 InitMeshSystem :: () {
-    ArenaPushMarkDefer(*MeshArena);
-    
     Files := file_list("./meshes");
     for Files {
         if contains(it, ".mesh_text") continue;
@@ -177,12 +175,12 @@ LoadMesh :: (Path: string) -> *mesh {
     File, Success := file_open(Path);
     defer if Success file_close(*File);
     
-    if !Success return *Meshes.NullValue;
+    if !Success return ArenaPushNull(mesh);
     
     Header := FileReadMeshHeader(*File);
     if !equal(Header.Magic, "MESH") {
         print("Failed to load: % is not a mesh file!", Path);
-        return *Meshes.NullValue;
+        return ArenaPushNull(mesh);
     }
     
     Positions := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
@@ -310,12 +308,12 @@ LoadAnimation :: (Path: string) -> *animation {
     File, Success := file_open(Path);
     defer if Success file_close(*File);
     
-    if !Success return *Animations.NullValue;
+    if !Success return ArenaPushNull(animation);
     
     Header := FileReadAnimHeader(*File);
     if !equal(Header.Magic, "ANIM") {
         print("Failed to load: % is not an Anim File!", Path);
-        return *Animations.NullValue;
+        return ArenaPushNull(animation);
     }
     
     Name := FileReadString(*File, *AnimationArena);

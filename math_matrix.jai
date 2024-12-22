@@ -11,6 +11,10 @@ float2x2 :: struct {
     Floats: [4] float = ---;
 }
 
+Determinant :: (m: float2x2) -> float {
+    return m._11 * m._22 - m._12 * m._21;
+}
+
 float4x4 :: struct {
     _11, _12, _13, _14 : float;
     _21, _22, _23, _24 : float;

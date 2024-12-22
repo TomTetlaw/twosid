@@ -1,28 +1,8 @@
 
  RoundUp :: ceil;
 RoundDown :: floor;
-
-Mod :: (x: float, y: float) -> float {
-    return x - (RoundDown(x / y) * y);
-}
-
-SquareRoot :: (f: float64) -> float64 {
-    if f < 0.0 return 0.0;
-    if f == 0.0 || f == 1.0 return f;
-    
-    Guess := f * 0.5;
-    Epsilon := 0.000001;
-    
-    while (Guess*Guess) - f > Epsilon || f - (Guess*Guess) > Epsilon {
-        Guess = (Guess + f / Guess) * 0.5;
-    }
-    
-    return Guess;
-}
-
-SquareRoot :: (f: float) -> float {
-    return cast(float) SquareRoot(cast(float64) f);
-}
+Mod :: fmod_cycling;
+SquareRoot :: sqrt;
 
 TAU   :: cast(float32) 6.283185;
 TAU64 :: 6.28318530717958648;
@@ -219,12 +199,33 @@ Normalize :: (v: float3) -> float3 {
     return v * iL;
 }
 
+NormalizeSquared :: (v: float2) -> float2 {
+    L := LengthSquared(v);
+    if L == 0.0 return .{1.0, 0.0};
+    
+    iL := 1.0 / L;
+    return v * iL;
+}
+
+NormalizeSquared :: (v: float3) -> float3 {
+    L := LengthSquared(v);
+    if L == 0.0 return .{1.0, 0.0, 0.0};
+    
+    iL := 1.0 / L;
+    return v * iL;
+}
+
 Cross :: (a: float3, b: float3) -> float3 {
     return float3.{
         a.y*b.z - a.z*b.y,
         a.z*b.x - a.x*b.z,
         a.x*b.y - a.y*b.x
     };
+}
+
+Sign :: (f: float) -> float {
+    if f < 0.0 return -1.0;
+    return 1.0;
 }
 
 Distance :: (a: float2, b: float2) -> float {
@@ -428,4 +429,4 @@ RotateVectorAxes :: (v: float3, q: quat, a: float4) -> float3 {
 
 #import "Basic";
 
-using,only(ceil,floor,abs) Math :: #import "Math";
+using,only(ceil,floor,abs,sqrt,fmod_cycling) Math :: #import "Math";

@@ -5,7 +5,7 @@
 }
 
 camera_flying :: struct {
-	FLY_SPEED :: 1.0;
+	FLY_SPEED :: 10.0;
     ROTATION_SPEED :: 0.3;
     ROTATION_SMOOTHING :: 0.3;
     
@@ -38,6 +38,7 @@ UpdateCameraPlayer :: (Camera: *camera_player, GroundHeight: float) {
     
     MoveSpeed := Camera.WALK_SPEED;
     if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed = Camera.RUN_SPEED;
+    if KeyState(.SDL_SCANCODE_LCTRL) MoveSpeed /= 10.0;
     
     MoveInput.x = KeyState(.SDL_SCANCODE_W) - KeyState(.SDL_SCANCODE_S);
     MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);

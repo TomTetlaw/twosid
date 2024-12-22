@@ -97,7 +97,7 @@ LoadTexture :: (Path: string) -> *texture {
     
     Width, Height, Channels: s32;
     Pixels := stb_load_image(Path.data, *Width, *Height, *Channels, 4);
-    if !Pixels return *Textures.NullValue;
+    if !Pixels return ArenaPushNull(texture);
     
     Texture := ArenaPush(*Textures);
     Texture.Path = Path;

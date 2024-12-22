@@ -63,7 +63,7 @@ AnimUpdate :: (Player: *anim_player) {
         Player.Pose.ModelSpaceTransforms[Bone.Id] = Bone.LocalBindTransform;
     }
     
-    ArenaPushMarkDefer(*FrameArena);
+    Mark := ArenaPushMark(*FrameArena);
     
     Positions := ArenaPushN(*FrameArena, float3, xx Anim.BoneNames.count);
     Rotations := ArenaPushN(*FrameArena, quat, xx Anim.BoneNames.count);
@@ -114,6 +114,8 @@ AnimUpdate :: (Player: *anim_player) {
         Pose.SkinningTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Id] * Bone.InverseBindTransform;
         Pose.SkinningTransforms[Bone.Id] = TransposeMatrix(Pose.SkinningTransforms[Bone.Id]);
     }
+    
+    ArenaPopMark(*FrameArena, Mark);
 }
 
 #scope_file

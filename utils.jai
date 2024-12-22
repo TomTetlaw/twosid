@@ -1,5 +1,45 @@
 
- FatalError :: (Format: string, Args: ..Any) {
+ Zero :: (Memory: *void, Size: u64) {
+    memset(Memory, 0, xx Size);
+}
+
+Zero :: (Memory: *void, Size: int) {
+    memset(Memory, 0, Size);
+}
+
+Zero :: (Memory: *$T) {
+    memset(Memory, 0, size_of(T));
+}
+
+Copy :: (Dest: *void, Source: *void, Size: u64) {
+    memcpy(Dest, Source, xx Size);
+}
+
+Copy :: (Dest: *void, Source: *void, Size: int) {
+    memcpy(Dest, Source, Size);
+}
+
+Copy :: (Dest: *$T, Source: *T) {
+    memcpy(Dest, Source, size_of(T));
+}
+
+Set :: (Dest: *void, Value: u8, Size: u64) {
+    memset(Dest, Value, xx Size);
+}
+
+Set :: (Dest: *void, Value: u8, Size: int) {
+    memset(Dest, Value, Size);
+}
+
+MemCompare :: (a: *void, b: *void, Size: u64) -> s16 {
+    return memcmp(a, b, xx Size);
+}
+
+MemCompare :: (a: *void, b: *void, Size: int) -> s16 {
+    return memcmp(a, b, xx Size);
+}
+
+FatalError :: (Format: string, Args: ..Any) {
     Builder: String_Builder;
     print_to_builder(*Builder, Format, ..Args);
     Message := builder_to_string(*Builder);
@@ -35,7 +75,13 @@ IsEventType :: (Event: *SDL_Event, Type: SDL_EventType) -> bool {
     return Event.type == cast(u32) Type;
 }
 
+TracyPlot :: (Name: string, Value: $T) {
+    ___tracy_emit_plot(Name.data, cast(float64) Value);
+}
+
 GetHash :: get_hash;
+
+Assert :: assert;
 
 #scope_file
 
