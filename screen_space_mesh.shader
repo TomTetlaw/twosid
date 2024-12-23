@@ -34,7 +34,7 @@ SamplerState diffuse_sampler: register(s0, space2);
 
 float4 fragment_main(Frag_Input input): SV_Target {
 	float sample = diffuse_texture.Sample(diffuse_sampler, input.tex_coord).r;
-	float4 colour = float4(input.tex_coord.xy, 0, 0) * float4(sample, sample, sample, 1);
+	float4 colour = float4(sample, sample, sample, 1);
 	return colour;
 }
 

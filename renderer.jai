@@ -33,7 +33,7 @@ InitRenderer :: () {
         ScreenSpacePipeline = SDL_CreateGPUGraphicsPipeline(GDevice, *ScreenSpaceCreateInfo);
     }
     
-    DepthFormat := SDL_GPUTextureFormat.SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+    DepthFormat := SDL_GPUTextureFormat.SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
     
     // depth Pass Pipeline
     {
@@ -276,42 +276,6 @@ InitRenderer :: () {
         SDL_ReleaseGPUTransferBuffer(GDevice, TransferBuffer);
     }
     
-    SkinningCreateInfo: SDL_GPUBufferCreateInfo;
-    SkinningCreateInfo.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;
-    SkinningCreateInfo.size = size_of(float4x4) * MAX_BONES;
-    SkinningMatricesBuffer = SDL_CreateGPUBuffer(GDevice, *SkinningCreateInfo);
-    SDL_SetGPUBufferName(GDevice, SkinningMatricesBuffer, "skinning_matrices".data);
-    
-    CreateInfo: SDL_GPUTransferBufferCreateInfo;
-    CreateInfo.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    CreateInfo.size = size_of(float4x4) * MAX_BONES;
-    TransferBuffer := SDL_CreateGPUTransferBuffer(GDevice, *CreateInfo);
-    
-    TransferMemory := cast (*float4x4) SDL_MapGPUTransferBuffer(GDevice, TransferBuffer, false);
-    for 0..MAX_BONES-1 {
-        TransferMemory[it] = IdentityMatrix();
-    }
-    
-    SDL_UnmapGPUTransferBuffer(GDevice, TransferBuffer);
-    
-    CommandBuffer := SDL_AcquireGPUCommandBuffer(GDevice);
-    CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-    
-    Location: SDL_GPUTransferBufferLocation;
-    Location.transfer_buffer = TransferBuffer;
-    Location.offset = 0;
-    
-    Region: SDL_GPUBufferRegion;
-    Region.buffer = SkinningMatricesBuffer;
-    Region.offset = 0;
-    Region.size = size_of(float4x4) * MAX_BONES;
-    
-    SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
-    
-    SDL_EndGPUCopyPass(CopyPass);
-    SDL_SubmitGPUCommandBuffer(CommandBuffer);
-    SDL_ReleaseGPUTransferBuffer(GDevice, TransferBuffer);
-    
     SamplerInfo: SDL_GPUSamplerCreateInfo;
     SamplerInfo.min_lod = 0;
     SamplerInfo.max_lod = 11;
@@ -393,25 +357,26 @@ InitPasses :: () {
         DepthPass = ArenaPush(*RendererArena, draw_pass(ibuffer_mesh));
         DepthPass.Type = .DEPTH;
         DepthPass.BuffersNeeded = .DEPTH_ONLY;
+        DepthPass.TexturesNeeded = .NONE;
         DepthPass.Pipeline = DepthPipeline;
         
         DepthPass.VertConstants = ArenaPush(*RendererArena, cbuffer_shadow_vertex);
         DepthPass.VertConstantsSize = size_of(cbuffer_shadow_vertex);
-        
-        DepthPass.StorageBuffers = ArenaPushN(*RendererArena, *SDL_GPUBuffer, .[SkinningMatricesBuffer]);
         
         DepthPass.ColourTarget = false;
         DepthPass.ClearDepth = true;
         DepthPass.DepthTarget = ShadowTexture;
         DepthPass.Viewport = .{SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
         
-        DepthPass.InstanceBuffer = CreateInstanceBufferForPass(DepthPass, "depth_instance");
+        DepthPass.InstanceBuffer = CreateStructuredBuffer(ibuffer_mesh, "depth_instance", MAX_INSTANCES);
+        DepthPass.SkinningBuffer = CreateStructuredBuffer(float4x4, "depth_skinning", MAX_BONES);
     }
     
     {
         OpaquePass = ArenaPush(*RendererArena, draw_pass(ibuffer_mesh));
         OpaquePass.Type = .OPAQUE;
         OpaquePass.BuffersNeeded = .MESH;
+        OpaquePass.TexturesNeeded = .DIFFUSE_NORMAL_RMAOH;
         OpaquePass.Pipeline = MeshPipeline;
         
         OpaquePass.VertConstants = ArenaPush(*RendererArena, cbuffer_mesh_vertex);
@@ -419,7 +384,6 @@ InitPasses :: () {
         OpaquePass.FragConstants = ArenaPush(*RendererArena, cbuffer_mesh_fragment);
         OpaquePass.FragConstantsSize = size_of(cbuffer_mesh_fragment);
         
-        OpaquePass.StorageBuffers = ArenaPushN(*RendererArena, *SDL_GPUBuffer, .[SkinningMatricesBuffer]);
         OpaquePass.Textures = ArenaPushN(*RendererArena, SDL_GPUTextureSamplerBinding, .[.{ShadowTexture, ShadowSampler}]);
         
         OpaquePass.ColourTarget = true;
@@ -428,13 +392,15 @@ InitPasses :: () {
         OpaquePass.DepthTarget = DepthTexture;
         OpaquePass.Viewport = .{1366, 768};
         
-        OpaquePass.InstanceBuffer = CreateInstanceBufferForPass(OpaquePass, "opaque_instance");
+        OpaquePass.InstanceBuffer = CreateStructuredBuffer(ibuffer_mesh, "opaque_instance", MAX_INSTANCES);
+        OpaquePass.SkinningBuffer = CreateStructuredBuffer(float4x4, "opaque_skinning", MAX_BONES);
     }
     
     {
         DebugPass = ArenaPush(*RendererArena, draw_pass(ibuffer_debug));
         DebugPass.Type = .OPAQUE;
         DebugPass.BuffersNeeded = .POSITION_ONLY;
+        DebugPass.TexturesNeeded = .NONE;
         DebugPass.Pipeline = WireframeMeshPipeline;
         
         DebugPass.VertConstants = ArenaPush(*RendererArena, cbuffer_mesh_vertex);
@@ -448,13 +414,14 @@ InitPasses :: () {
         DebugPass.DepthTarget = DepthTexture;
         DebugPass.Viewport = .{1366, 768};
         
-        DebugPass.InstanceBuffer = CreateInstanceBufferForPass(DebugPass, "debug_instance");
+        DebugPass.InstanceBuffer = CreateStructuredBuffer(ibuffer_debug, "debug_instance", MAX_INSTANCES);
     }
     
     {
         TranslucentPass = ArenaPush(*RendererArena, draw_pass(ibuffer_mesh));
         TranslucentPass.Type = .TRANSLUCENT;
         TranslucentPass.BuffersNeeded = .MESH;
+        TranslucentPass.TexturesNeeded = .DIFFUSE_NORMAL_RMAOH;
         TranslucentPass.Pipeline = TranslucentPipeline;
         
         TranslucentPass.VertConstants = ArenaPush(*RendererArena, cbuffer_mesh_vertex);
@@ -464,15 +431,14 @@ InitPasses :: () {
         
         TranslucentPass.Textures = ArenaPushN(*RendererArena, SDL_GPUTextureSamplerBinding, .[.{ShadowTexture, ShadowSampler}]);
         
-        TranslucentPass.StorageBuffers = ArenaPushN(*RendererArena, *SDL_GPUBuffer, .[SkinningMatricesBuffer]);
-        
         TranslucentPass.ColourTarget = true;
         TranslucentPass.ClearColour = false;
         TranslucentPass.ClearDepth = false;
         TranslucentPass.DepthTarget = DepthTexture;
         TranslucentPass.Viewport = .{1366, 768};
         
-        TranslucentPass.InstanceBuffer = CreateInstanceBufferForPass(TranslucentPass, "translucent_instance");
+        TranslucentPass.InstanceBuffer = CreateStructuredBuffer(ibuffer_mesh, "translucent_instance", MAX_INSTANCES);
+        TranslucentPass.SkinningBuffer = CreateStructuredBuffer(float4x4, "translucent_skinning", MAX_BONES);
     }
     
     {
@@ -559,12 +525,20 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
         return;
     }
     
-    MapInstanceBuffer(DepthPass.InstanceBuffer);
-    MapInstanceBuffer(OpaquePass.InstanceBuffer);
-    MapInstanceBuffer(TranslucentPass.InstanceBuffer);
-    MapInstanceBuffer(DebugPass.InstanceBuffer);
+    MapStructuredBuffer(DepthPass.InstanceBuffer);
+    MapStructuredBuffer(OpaquePass.InstanceBuffer);
+    MapStructuredBuffer(TranslucentPass.InstanceBuffer);
+    MapStructuredBuffer(DebugPass.InstanceBuffer);
+    
+    MapStructuredBuffer(DepthPass.SkinningBuffer);
+    MapStructuredBuffer(OpaquePass.SkinningBuffer);
+    MapStructuredBuffer(TranslucentPass.SkinningBuffer);
     
     ProcessDrawCommands();
+    
+    SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.SkinningBuffer.TransferBuffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.SkinningBuffer.TransferBuffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, TranslucentPass.SkinningBuffer.TransferBuffer);
     
     SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.InstanceBuffer.TransferBuffer);
     SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.InstanceBuffer.TransferBuffer);
@@ -572,10 +546,14 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     SDL_UnmapGPUTransferBuffer(GDevice, DebugPass.InstanceBuffer.TransferBuffer);
     
     CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-    CommitInstanceBuffer(DepthPass.InstanceBuffer, CopyPass);
-    CommitInstanceBuffer(OpaquePass.InstanceBuffer, CopyPass);
-    CommitInstanceBuffer(TranslucentPass.InstanceBuffer, CopyPass);
-    CommitInstanceBuffer(DebugPass.InstanceBuffer, CopyPass);
+    CommitStructuredBuffer(DepthPass.SkinningBuffer, CopyPass);
+    CommitStructuredBuffer(OpaquePass.SkinningBuffer, CopyPass);
+    CommitStructuredBuffer(TranslucentPass.SkinningBuffer, CopyPass);
+    
+    CommitStructuredBuffer(DepthPass.InstanceBuffer, CopyPass);
+    CommitStructuredBuffer(OpaquePass.InstanceBuffer, CopyPass);
+    CommitStructuredBuffer(TranslucentPass.InstanceBuffer, CopyPass);
+    CommitStructuredBuffer(DebugPass.InstanceBuffer, CopyPass);
     SDL_EndGPUCopyPass(CopyPass);
     
     DrawPass(DepthPass, CommandBuffer);
@@ -584,12 +562,12 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     DrawPass(DebugPass, CommandBuffer);
     
     if FragDebugMode == 1 {
-        MapInstanceBuffer(ScreenSpacePass.InstanceBuffer);
+        MapStructuredBuffer(ScreenSpacePass.InstanceBuffer);
         
         DrawShadowMap(ScreenSpacePass);
         
         CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-        CommitInstanceBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
+        CommitStructuredBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
         SDL_EndGPUCopyPass(CopyPass);
         
         DrawPass(ScreenSpacePass, CommandBuffer);
@@ -607,10 +585,10 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
 
 MAX_BONES :: 1024;
 
-SHADOW_MAP_SIZE :: 2048;
+SHADOW_MAP_SIZE :: 4096;
 
 NEAR_PLANE :: 0.1;
-FAR_PLANE :: 1000.0;
+FAR_PLANE :: 500.0;
 
 MAX_INSTANCES :: 4096;
 
@@ -670,9 +648,15 @@ draw_pass_buffers :: enum {
     MESH;
 }
 
+draw_pass_textures :: enum {
+    NONE;
+    DIFFUSE_NORMAL_RMAOH;
+}
+
 draw_pass :: struct ($T: Type) {
     Type: draw_pass_type;
     BuffersNeeded: draw_pass_buffers;
+    TexturesNeeded: draw_pass_textures;
     Pipeline: *SDL_GPUGraphicsPipeline;
     
     VertConstants: *void;
@@ -690,11 +674,10 @@ draw_pass :: struct ($T: Type) {
     
     Textures: [] SDL_GPUTextureSamplerBinding;
     
-    StorageBuffers: [] *SDL_GPUBuffer;
-    
     Viewport: float2;
     
-    InstanceBuffer: *instance_buffer(T);
+    InstanceBuffer: *structured_buffer(T);
+    SkinningBuffer: *structured_buffer(float4x4);
 }
 
 render_command_flags :: enum_flags {
@@ -712,7 +695,7 @@ render_command :: struct {
     Flags: render_command_flags;
 }
 
-instance_buffer :: struct ($T: Type) {
+structured_buffer :: struct ($T: Type) {
     Buffer: *SDL_GPUBuffer;
     TransferBuffer: *SDL_GPUTransferBuffer;
     Used: int;
@@ -749,7 +732,6 @@ SwapTexture: *SDL_GPUTexture;
 
 ShadowTexture: *SDL_GPUTexture;
 
-SkinningMatricesBuffer: *SDL_GPUBuffer;
 DepthTexture: *SDL_GPUTexture;
 
 ShadowSampler: *SDL_GPUSampler;
@@ -785,8 +767,8 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
         DepthInfo.clear_depth = 1;
         DepthInfo.clear_stencil = 0;
         if Pass.ClearDepth DepthInfo.load_op = .SDL_GPU_LOADOP_CLEAR;
-        else DepthInfo.load_op = .SDL_GPU_LOADOP_LOAD;
-        DepthInfo.store_op = .SDL_GPU_STOREOP_STORE;
+        else DepthInfo.load_op = .SDL_GPU_LOADOP_DONT_CARE;
+        DepthInfo.store_op = .SDL_GPU_STOREOP_DONT_CARE;
         DepthInfo.stencil_load_op = .SDL_GPU_LOADOP_DONT_CARE;
         DepthInfo.stencil_store_op = .SDL_GPU_STOREOP_DONT_CARE;
         
@@ -808,13 +790,17 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
     
     SDL_BindGPUFragmentSamplers(RenderPass, 0, Pass.Textures.data, xx Pass.Textures.count);
     
-    SDL_BindGPUVertexStorageBuffers(RenderPass, 0, Pass.StorageBuffers.data, xx Pass.StorageBuffers.count);
-    
     SDL_PushGPUVertexUniformData(CommandBuffer, 0, Pass.VertConstants, xx Pass.VertConstantsSize);
     SDL_PushGPUFragmentUniformData(CommandBuffer, 0, Pass.FragConstants, xx Pass.FragConstantsSize);
     
+    BufferIndex := 0;
+    if Pass.SkinningBuffer {
+        SDL_BindGPUVertexStorageBuffers(RenderPass, xx BufferIndex, *Pass.SkinningBuffer.Buffer, 1);
+        BufferIndex += 1;
+    }
     if Pass.InstanceBuffer {
-        SDL_BindGPUVertexStorageBuffers(RenderPass, xx Pass.StorageBuffers.count, *Pass.InstanceBuffer.Buffer, 1);
+        SDL_BindGPUVertexStorageBuffers(RenderPass, xx BufferIndex, *Pass.InstanceBuffer.Buffer, 1);
+        BufferIndex += 1;
     }
     
     BaseInstance := 0;
@@ -836,7 +822,7 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
 DrawShadowMap :: (Pass: *draw_pass) {
     Command := ArenaPush(*Pass.Commands);
     
-    Command.VertexBuffers = ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, .[.{ScreenSpacePositionBuffer, 0}, .{ScreenSpaceTexCoordBuffer, 0}]);;
+    Command.VertexBuffers = ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, .[.{ScreenSpacePositionBuffer, 0}, .{ScreenSpaceTexCoordBuffer, 0}]);
     
     Command.IndexBuffer = ScreenSpaceIndexBuffer;
     Command.IndexCount = 6;
@@ -846,33 +832,33 @@ DrawShadowMap :: (Pass: *draw_pass) {
     Command.InstanceCount = 1;
 }
 
-CreateInstanceBufferForPass :: (Pass: *draw_pass($T), Name: string) -> *instance_buffer(T) {
-    InstanceBuffer := ArenaPush(*RendererArena, instance_buffer(T));
-    InstanceBuffer.Buffer = CreateBuffer(Name, size_of(T) * MAX_INSTANCES, SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ);
-    InstanceBuffer.TransferBuffer = CreateTransferBuffer(size_of(T) * MAX_INSTANCES);
-    InstanceBuffer.Capacity = MAX_INSTANCES;
-    return InstanceBuffer;
+CreateStructuredBuffer :: ($T: Type, Name: string, Capacity: int) -> *structured_buffer(T) {
+    StructuredBuffer := ArenaPush(*RendererArena, structured_buffer(T));
+    StructuredBuffer.Buffer = CreateBuffer(Name, size_of(T) * MAX_INSTANCES, SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ);
+    StructuredBuffer.TransferBuffer = CreateTransferBuffer(size_of(T) * Capacity);
+    StructuredBuffer.Capacity = MAX_INSTANCES;
+    return StructuredBuffer;
 }
 
-MapInstanceBuffer :: (InstanceBuffer: *$T/instance_buffer) {
-    if !InstanceBuffer return;
+MapStructuredBuffer :: (StructuredBuffer: *$T/structured_buffer) {
+    if !StructuredBuffer return;
     
-    InstanceBuffer.Mapping = SDL_MapGPUTransferBuffer(GDevice, InstanceBuffer.TransferBuffer, false);
-    InstanceBuffer.Used = 0;
+    StructuredBuffer.Mapping = SDL_MapGPUTransferBuffer(GDevice, StructuredBuffer.TransferBuffer, false);
+    StructuredBuffer.Used = 0;
 }
 
-CommitInstanceBuffer :: (InstanceBuffer: *$I/instance_buffer, CopyPass: *SDL_GPUCopyPass) {
-    if !InstanceBuffer return;
-    if InstanceBuffer.Used == 0 return;
+CommitStructuredBuffer :: (StructuredBuffer: *$I/structured_buffer, CopyPass: *SDL_GPUCopyPass) {
+    if !StructuredBuffer return;
+    if StructuredBuffer.Used == 0 return;
     
     Location: SDL_GPUTransferBufferLocation;
-    Location.transfer_buffer = InstanceBuffer.TransferBuffer;
+    Location.transfer_buffer = StructuredBuffer.TransferBuffer;
     Location.offset = 0;
     
     Region: SDL_GPUBufferRegion;
-    Region.buffer = InstanceBuffer.Buffer;
+    Region.buffer = StructuredBuffer.Buffer;
     Region.offset = 0;
-    Region.size = xx (size_of(I.T) * InstanceBuffer.Used);
+    Region.size = xx (size_of(I.T) * StructuredBuffer.Used);
     
     SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
 }

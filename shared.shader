@@ -1,5 +1,6 @@
 
 #define short4 min16int4
+#define short min16int
 
 #define MAX_WEIGHTS 4
 

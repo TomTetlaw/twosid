@@ -20,20 +20,25 @@ struct Instance_Data {
 	float4 material_params;
 };
 
-StructuredBuffer<float4x4> skinning_transforms: register(t0, space0);
+struct Skinning_Data {
+	row_major float4x4 transform;
+};
+
+StructuredBuffer<Skinning_Data> skinning_transforms: register(t0, space0);
 StructuredBuffer<Instance_Data> instance_data: register(t1, space0);
 
-float3 skinning_contribution(float3 value, float weight, short4 bone_ids, int index) {
-	float mask = max(float(bone_ids[index] + 1), 1.0);
-	return value + mul(skinning_transforms[bone_ids[index]], float4(value, 1)).xyz * weight * mask;
+float3 skinning_contribution(float3 value, float weight, short bone_id) {
+	if (bone_id == -1) return value;
+	float4x4 transform = skinning_transforms[bone_id].transform;
+	return value + mul(transform, float4(value, 1)).xyz * weight;
 }
 
 float3 skinning_calculation(float3 model_value, float3 weights, short4 bone_ids) {
 	float4 weights4 = float4(weights, 1.0 - sum(weights));
-	model_value = skinning_contribution(model_value, weights4.x, bone_ids, 0);
-	model_value = skinning_contribution(model_value, weights4.y, bone_ids, 1);
-	model_value = skinning_contribution(model_value, weights4.z, bone_ids, 2);
-	model_value = skinning_contribution(model_value, weights4.w, bone_ids, 3);
+	model_value = skinning_contribution(model_value, weights4.x, bone_ids.x);
+	model_value = skinning_contribution(model_value, weights4.y, bone_ids.y);
+	model_value = skinning_contribution(model_value, weights4.z, bone_ids.z);
+	model_value = skinning_contribution(model_value, weights4.w, bone_ids.w);
 	return model_value;
 }
 
@@ -49,8 +54,8 @@ float4 vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId): SV_Posi
 
 #ifdef FRAGMENT_SHADER
 
-float4 fragment_main() : SV_Target {
-	return float4(0, 0, 0, 0);
+float fragment_main(float4 p: SV_Position) : SV_Depth {
+	return 1.0 - (p.z * .5 + .5);
 }
 
 #endif

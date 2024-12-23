@@ -10,6 +10,14 @@ arena :: struct ($T: Type = u8) {
     Initialized: bool;
 }
 
+operator [] :: (Arena: *$A/arena, Index: int) -> A.T {
+    return Arena.TypedBase[Index];
+}
+
+operator *[] :: (Arena: *$A/arena, Index: int) -> *A.T {
+    return *Arena.TypedBase[Index];
+}
+
 InitArena :: (Arena: *$A/arena, InitialCapacity: u64 = 0, $L := #caller_location) {
     if Arena.Initialized return;
     
@@ -18,8 +26,6 @@ InitArena :: (Arena: *$A/arena, InitialCapacity: u64 = 0, $L := #caller_location
         Value, text := get_error_value_and_string();
         FatalError(tprint("Failed to create arena: error_code=%, error_string=%", Value, text));
     }
-    
-    // print("Reserving at %\n", get_stack_trace_string(context.stack_trace));
     
     if !InitialCapacity InitialCapacity = CommitExpandAmount;
     InitialCapacity = AlignPageSize(InitialCapacity);

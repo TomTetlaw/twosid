@@ -26,11 +26,27 @@ KeyState :: (c: SDL_Scancode) -> float {
 GDevice: *SDL_GPUDevice;
 GWindow: *SDL_Window;
 
+entity_traveller :: struct {
+    using #as Base: entity;
+    
+    ApproachSpeed := 25.0;
+    GoalPosition: float3;
+    LastUpdateTime: float;
+    TimePerUpdate: float;
+    
+    HeightAboveGround := 3.0;
+}
+
+entity_man :: struct {
+    using #as Base: entity;
+    
+    HeightAboveGround := 0.0;
+}
+
 main :: () {
     CpuInfo := get_cpu_info();
-    
-    if !check_feature(CpuInfo.feature_leaves, x86_Feature_Flag.AVX2) {
-        FatalError("CPU does not support AVX2, cringe ahh cpu");
+    if !check_feature(CpuInfo.feature_leaves, x86_Feature_Flag.AVX) || !check_feature(CpuInfo.feature_leaves, x86_Feature_Flag.AVX2) {
+        FatalError("CPU does not support AVX or AVX2, cringe ah ah cpu");
     }
     
     InitMemorySystem();
@@ -56,14 +72,37 @@ main :: () {
     InitTextureSystem();
     InitMeshSystem();
     InitTerrain();
+    InitEntitySystem();
     
     KeyStates = SDL_GetKeyboardState(null);
     SDL_SetWindowRelativeMouseMode(GWindow, true);
     
-    Camera: camera_player;
+    PlayerCamera: camera_player;
+    FlyingCamera: camera_flying;
+    ViewParameters: view_parameters;
+    UseFlyingCamera := true;
     
     GameStartTime := current_time_monotonic();
     OldTime: Apollo_Time;
+    
+    for 0..2 {
+        Entity := CreateEntity(entity_traveller);
+        Entity.HeightAboveGround = 3.0;
+        
+        Entity.Mesh = LoadMesh("meshes/cube.mesh");
+        Entity.Textures = ArenaPushN(*WorkingArena, *texture, .[LoadTexture("textures/bamboo_diffuse.png"), LoadTexture("textures/bamboo_normal.png"), LoadTexture("textures/bamboo_rmaoh.png")]);
+        Entity.Colour = RandomFloat4();
+        Entity.TimePerUpdate = 0.5 + RandomFloat(0.0, 2.0);
+    }
+    
+    {
+        Entity := CreateEntity(entity_man);
+        Entity.Mesh = LoadMesh("meshes/man.mesh");
+        Entity.AnimPlayer = CreateAnimPlayer(Entity.Mesh, LoadAnimation("meshes/man_run.anim"));
+        AnimPlay(*Entity.AnimPlayer);
+        Entity.Textures = ArenaPushN(*WorkingArena, *texture, .[LoadTexture("textures/uv_check.png"), LoadTexture("textures/unit_normal.png"), LoadTexture("textures/unit_rmaoh.png")]);
+        Entity.HeightAboveGround = 0.0;
+    }
     
     Quit := false;
     while !Quit {
@@ -107,15 +146,58 @@ main :: () {
         Quit = ProcessWindowEvents();
         if Quit break;
         
-        GroundHeight := GetGroundHeight(Camera.Position);
-        UpdateCameraPlayer(*Camera, GroundHeight);
+        if KeyPressed(.SDL_SCANCODE_F1) {
+            UseFlyingCamera = !UseFlyingCamera;
+            if UseFlyingCamera {
+                FlyingCamera.Position = PlayerCamera.EyePosition;
+                FlyingCamera.Yaw = PlayerCamera.Yaw;
+                FlyingCamera.Pitch = PlayerCamera.Pitch;
+                FlyingCamera.Rotation = PlayerCamera.Rotation;
+            }
+        }
+        
+        if KeyPressed(.SDL_SCANCODE_F2) {
+            GamePaused = !GamePaused;
+        }
+        
+        if UseFlyingCamera {
+            UpdateCameraFlying(*FlyingCamera);
+            ViewParameters = FlyingCamera.ViewParameters;
+        } else {
+            GroundHeight := GetGroundHeight(PlayerCamera.Position);
+            UpdateCameraPlayer(*PlayerCamera, GroundHeight);
+            ViewParameters = PlayerCamera.ViewParameters;
+        }
+        
+        for * EntityTypes.Traveller {
+            if (GameTime - it.LastUpdateTime >= it.TimePerUpdate) {
+                it.LastUpdateTime = GameTime;
+                it.GoalPosition = float3.{
+                    RandomFloat(-50.0, 50.0),
+                    RandomFloat(-50.0, 50.0),
+                    0.0
+                };
+            }
+            
+            it.Position = Approach(it.Position, it.GoalPosition, DeltaTime * it.ApproachSpeed);
+            
+            PositionEntityAboveGround(it, it.HeightAboveGround);
+            
+            DrawEntity(it);
+        }
+        
+        for * EntityTypes.Man {
+            PositionEntityAboveGround(it, it.HeightAboveGround);
+            UpdateEntityAnimation(it);
+            DrawEntity(it);
+        }
         
         DrawTerrain();
-        DrawFrame(*Camera);
+        
+        DrawFrame(*ViewParameters);
         
         FrameKeys.count = 0;
         ArenaReset(*FrameArena);
-        
         
 #if PROFILE {
             EmitProfilingData();

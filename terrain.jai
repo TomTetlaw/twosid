@@ -19,7 +19,7 @@ InitTerrain :: () {
 
 DrawTerrain :: () {
     Command: draw_command_mesh;
-    Command.Flags = 0;
+    //Command.Flags = .NO_CAST_SHADOWS;
     Command.Mesh = TerrainMesh;
     Command.Textures = TerrainTextures;
     Command.Instance.Transform = TerrainTransform;

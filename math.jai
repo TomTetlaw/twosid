@@ -19,6 +19,25 @@ Rad2Turn :: 1.0 / (2 * PI);
 Turn2Deg :: PI;
 Deg2Turn :: 1.0 / 360.0;
 
+RandomFloat :: () -> float {
+    R := random_get_zero_to_one_new();
+    return cast (float) R;
+}
+
+RandomFloat :: (Min: float, Max: float) -> float {
+    R := random_get_zero_to_one_new();
+    return cast(float) (Min + R * (Max - Min));
+}
+
+RandomFloat4 :: () -> float4 {
+    return .{
+        RandomFloat(),
+        RandomFloat(),
+        RandomFloat(),
+        RandomFloat()
+    };
+}
+
 Clamp :: (Value: $T, Min: T, Max: T) -> T {
     if Value < Min return Min;
     if Value > Max return Max;
@@ -323,6 +342,36 @@ Saturate :: (v: float3) -> float3 {
     };
 }
 
+Approach :: (C: float, G: float, Dt: float) -> float {
+    D := G - C;
+    if Abs(D) <= Dt return G;
+    return C + Dt * (D / Abs(D));
+}
+
+Approach :: (C: float2, G: float2, Dt: float) -> float2 {
+    return .{
+        Approach(C.x, G.x, Dt),
+        Approach(C.y, G.y, Dt)
+    };
+}
+
+Approach :: (C: float3, G: float3, Dt: float) -> float3 {
+    return .{
+        Approach(C.x, G.x, Dt),
+        Approach(C.y, G.y, Dt),
+        Approach(C.z, G.z, Dt)
+    };
+}
+
+Approach :: (C: float4, G: float4, Dt: float) -> float4 {
+    return .{
+        Approach(C.x, G.x, Dt),
+        Approach(C.y, G.y, Dt),
+        Approach(C.z, G.z, Dt),
+        Approach(C.w, G.w, Dt)
+    };
+}
+
 Length :: (q: quat) -> float {
     return SquareRoot(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
 }
@@ -428,5 +477,6 @@ RotateVectorAxes :: (v: float3, q: quat, a: float4) -> float3 {
 #scope_file
 
 #import "Basic";
+#import "Random";
 
 using,only(ceil,floor,abs,sqrt,fmod_cycling) Math :: #import "Math";

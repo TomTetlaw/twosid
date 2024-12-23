@@ -25,6 +25,8 @@ camera_player :: struct {
     ROTATION_SMOOTHING :: 0.3;
     EYE_HEIGHT :: 6.0;
     
+    EyePosition: float3;
+    
     Yaw, Pitch: float;
     RotationInput: float2;
     
@@ -57,7 +59,8 @@ UpdateCameraPlayer :: (Camera: *camera_player, GroundHeight: float) {
     
     Camera.Rotation = Yaw * Pitch;
     
-    ViewTransform := TranslationMatrix(Camera.Position + .{0, 0, GroundHeight + Camera.EYE_HEIGHT}) * RotationMatrix(Camera.Rotation);
+    Camera.EyePosition = Camera.Position + .{0, 0, GroundHeight + Camera.EYE_HEIGHT};
+    ViewTransform := TranslationMatrix(Camera.EyePosition) * RotationMatrix(Camera.Rotation);
     
     Camera.View = InverseMatrix(ViewTransform);
 }
@@ -73,7 +76,7 @@ UpdateCameraFlying :: (Camera: *camera_flying) {
     MoveInput.z = KeyState(.SDL_SCANCODE_E) - KeyState(.SDL_SCANCODE_Q);
     MoveInput = RotateVector(MoveInput, Camera.Rotation);
     
-	Camera.Position += MoveInput * MoveSpeed * DeltaTime;
+	Camera.Position += MoveInput * MoveSpeed * RealDeltaTime;
     
     Camera.RotationInput = Lerp(Camera.RotationInput, Mouse.Delta, Camera.ROTATION_SMOOTHING);
     Delta := Camera.RotationInput * Camera.ROTATION_SPEED;

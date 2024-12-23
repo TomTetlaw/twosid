@@ -12,9 +12,9 @@ anim_player :: struct {
     AnimTime: float;
     Pose: anim_pose;
     
-    Fps := 30;
+    Fps := 24;
     
-    InterpolationMode: interpolation_mode;
+    InterpolationMode := interpolation_mode.LINEAR;
 }
 
 anim_pose :: struct {
@@ -97,7 +97,7 @@ AnimUpdate :: (Player: *anim_player) {
         Bone := FindBone(Player.Mesh.Skeleton, it);
         
         LocalTransform := TranslationMatrix(Positions[Bone.Id]) *
-            RotationMatrix(Rotations[Bone.Id]) * ScaleMatrix(Scales[Bone.Id]);
+            ScaleMatrix(Scales[Bone.Id]) * RotationMatrix(Rotations[Bone.Id]);
         
         if Bone.Parent {
             Pose.ModelSpaceTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Parent.Id] * LocalTransform;
@@ -112,7 +112,6 @@ AnimUpdate :: (Player: *anim_player) {
     for Anim.BoneNames {
         Bone := FindBone(Player.Mesh.Skeleton, it);
         Pose.SkinningTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Id] * Bone.InverseBindTransform;
-        Pose.SkinningTransforms[Bone.Id] = TransposeMatrix(Pose.SkinningTransforms[Bone.Id]);
     }
     
     ArenaPopMark(*FrameArena, Mark);

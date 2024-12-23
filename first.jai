@@ -100,7 +100,7 @@ build_game :: (profiling: bool) {
     // options.debug_for_expansions = true;
     set_optimization(*options, .VERY_DEBUG);
     
-    set_optimization(*options, .VERY_OPTIMIZED);
+    //set_optimization(*options, .VERY_OPTIMIZED);
     //options.llvm_options.preserve_debug_info = true;
     
     options.text_output_flags = 0;
@@ -144,6 +144,7 @@ build_game :: (profiling: bool) {
     }
     
     plots: [..] string;
+    entity_types: [..] *Type_Info_Struct;
     
     while true {
         message := compiler_wait_for_message();
@@ -158,6 +159,12 @@ build_game :: (profiling: bool) {
                         array_add(*plots, exp.name);
                     }
                 }
+                
+                for tc.structs {
+                    exp := it.expression;
+                    t := exp.defined_type;
+                    if is_subclass_of(t, "entity") array_add(*entity_types, t);
+                }
             }
         }
         
@@ -171,6 +178,7 @@ build_game :: (profiling: bool) {
     
     if profiling {
         builder: String_Builder;
+        append(*builder, "#import \"jai-tracy\" (IMPORT_MODE=.CLIENT);\n");
         append(*builder, "EmitProfilingData :: () {\n");
         for plots {
             print_to_builder(*builder, "___tracy_emit_plot(\"%\".data, cast (float64) %);\n", it, it);
@@ -180,10 +188,58 @@ build_game :: (profiling: bool) {
         add_build_string(builder_to_string(*builder), workspace);
     }
     
+    {
+        builder: String_Builder;
+        for entity_types {
+            print_to_builder(*builder, "%1_Arena: arena(%1);\n", it.name);
+        }
+        append(*builder, "\n");
+        
+        append(*builder, "entity_types :: struct {\n");
+        append(*builder, "\tInfoList: [] entity_type_info;\n");
+        for entity_types {
+            print_to_builder(*builder, "\t%: *arena(%);\n", convert_case(it.name), it.name);
+        }
+        append(*builder, "}\n\n");
+        
+        append(*builder, "CreateEntityTypeInfo :: (EntityInfo: *entity_types) {\n");
+        append(*builder, "\tEntityTypesList: [..] entity_type_info;\n");
+        for entity_types {
+            print_to_builder(*builder, "\tEntityInfo.% = *%_Arena;\n", convert_case(it.name), it.name);
+            print_to_builder(*builder, "\tarray_add(*EntityTypesList, .{%1, *%1_Arena});\n", it.name);
+        }
+        append(*builder, "\tEntityInfo.InfoList = EntityTypesList;\n");
+        append(*builder, "}\n");
+        
+        add_build_string(builder_to_string(*builder), workspace);
+    }
+    
     compiler_end_intercept(workspace);
     
     for plugins if it.finish it.finish(it);
     for plugins if it.shutdown it.shutdown(it);
+}
+
+convert_case :: (name: string) -> string {
+    capitalise_next := false;
+    
+    builder: String_Builder;
+    
+    initial := replace(name, "entity", "");
+    for initial {
+        if it == #char "_" {
+            capitalise_next = true;
+        } else {
+            if capitalise_next {
+                append(*builder, to_upper(it));
+                capitalise_next = false;
+            } else {
+                append(*builder, it);
+            }
+        }
+    }
+    
+    return builder_to_string(*builder);
 }
 
 build :: () {
@@ -198,8 +254,6 @@ build :: () {
         if contains(it, "generate_sdl_bindings") generate_sdl_bindings = true;
         if contains(it, "noprof") profiling = false;
     }
-    
-    profiling = false;
     
     if generate_sdl_bindings {
         if !generate_sdl3_bindings() compiler_set_workspace_status(.FAILED);

@@ -23,6 +23,7 @@ draw_command_mesh :: struct {
     
     Flags: mesh_draw_command_flags;
     Mesh: *mesh;
+    SkinningTransforms: [] float4x4;
     Textures: [] *texture;
     Instance: ibuffer_mesh;
 }
@@ -34,9 +35,19 @@ draw_command_mesh :: struct {
 draw_batch_mesh :: struct {
     Flags: mesh_draw_command_flags;
     Mesh: *mesh;
+    SkinningTransforms: [] float4x4;
     Textures: [] *texture;
     InstanceData: arena(ibuffer_mesh);
     Initialized: bool;
+}
+
+DrawDebugSphere :: (Position: float3, Colour: float4) {
+    Command: draw_command_mesh;
+    Command.Flags = .DEBUG;
+    Command.Mesh = LoadMesh("meshes/sphere.mesh");;
+    Command.Instance.Transform = TranslationMatrix(Position);
+    Command.Instance.DiffuseColour = Colour;
+    AddDrawCommand(*Command);
 }
 
 AddDrawCommand :: (Command: *$T/draw_command) {
@@ -54,11 +65,14 @@ ProcessDrawCommands :: () {
     
     for * FrontendMeshBatches {
         if it.InstanceData.Count > 0 {
+            DrawInDepthPass := !(it.Flags & .NO_CAST_SHADOWS) && !(it.Flags & .DEBUG);
+            
+            if DrawInDepthPass {
+                DrawMeshInstanced(DepthPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
+            }
+            
             if it.Flags & .TRANSLUCENT {
-                if it.Flags & ~.NO_CAST_SHADOWS {
-                    DrawMeshInstanced(DepthPass, it.Mesh, it.Textures, ArenaToView(*it.InstanceData));
-                }
-                DrawMeshInstanced(TranslucentPass, it.Mesh, it.Textures, ArenaToView(*it.InstanceData));
+                DrawMeshInstanced(TranslucentPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
             } else if it.Flags & .DEBUG {
                 for it.InstanceData {
                     DebugInstance: ibuffer_debug;
@@ -67,12 +81,9 @@ ProcessDrawCommands :: () {
                     ArenaPush(*Temp, DebugInstance);
                 }
                 
-                DrawMeshInstanced(DebugPass, it.Mesh, it.Textures, ArenaToView(*Temp));
+                DrawMeshInstanced(DebugPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*Temp));
             } else {
-                if it.Flags & ~.NO_CAST_SHADOWS {
-                    DrawMeshInstanced(DepthPass, it.Mesh, it.Textures, ArenaToView(*it.InstanceData));
-                }
-                DrawMeshInstanced(OpaquePass, it.Mesh, it.Textures, ArenaToView(*it.InstanceData));
+                DrawMeshInstanced(OpaquePass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
             }
         }
     }
@@ -104,8 +115,9 @@ GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
     
     Batch := *FrontendMeshBatches[Hash % MAX_BATCHES];
     if !Batch.Initialized {
-        Batch.Mesh = MeshCommand.Mesh;
         Batch.Flags = MeshCommand.Flags;
+        Batch.SkinningTransforms = MeshCommand.SkinningTransforms;
+        Batch.Mesh = MeshCommand.Mesh;
         Batch.Textures = MeshCommand.Textures;
         Batch.Initialized = true;
     }
@@ -113,7 +125,7 @@ GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
     return Batch;
 }
 
-DrawMeshInstanced :: (Pass: *draw_pass($T), Mesh: *mesh, Textures: [] *texture, InstanceData: [] T) {
+DrawMeshInstanced :: (Pass: *draw_pass($T), Mesh: *mesh, SkinningTransforms: [] float4x4, Textures: [] *texture, InstanceData: [] T) {
     Command := ArenaPush(*Pass.Commands);
     
     VertexBuffers: [] SDL_GPUBufferBinding;
@@ -139,7 +151,7 @@ DrawMeshInstanced :: (Pass: *draw_pass($T), Mesh: *mesh, Textures: [] *texture, 
     Command.IndexBuffer = Mesh.IndexBuffer;
     Command.IndexCount = Mesh.NumIndices;
     
-    if Pass.BuffersNeeded == .MESH {
+    if Pass.TexturesNeeded == .DIFFUSE_NORMAL_RMAOH {
         Command.Textures = ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, Textures.count);
         for Textures {
             Command.Textures[it_index] = .{it.GpuTexture, DefaultSampler};
@@ -147,15 +159,18 @@ DrawMeshInstanced :: (Pass: *draw_pass($T), Mesh: *mesh, Textures: [] *texture, 
     }
     
     Command.InstanceCount = InstanceData.count;
+    WriteStructuredBuffer(Pass.InstanceBuffer, InstanceData);
     
-    WriteInstanceBuffer(Pass.InstanceBuffer, InstanceData);
+    if SkinningTransforms.count > 0 {
+        WriteStructuredBuffer(Pass.SkinningBuffer, SkinningTransforms);
+    }
 }
 
-WriteInstanceBuffer :: (InstanceBuffer: *$I/instance_buffer, Data: [] I.T) {
-    if !InstanceBuffer return;
+WriteStructuredBuffer :: (StructuredBuffer: *$I/structured_buffer, Data: [] I.T) {
+    if !StructuredBuffer return;
     
-    if InstanceBuffer.Used + Data.count >= InstanceBuffer.Capacity return;
+    if StructuredBuffer.Used + Data.count >= StructuredBuffer.Capacity return;
     
-    Copy(InstanceBuffer.Mapping + InstanceBuffer.Used, Data.data, Data.count * size_of(I.T));
-    InstanceBuffer.Used += Data.count;
+    Copy(StructuredBuffer.Mapping + StructuredBuffer.Used, Data.data, Data.count * size_of(I.T));
+    StructuredBuffer.Used += Data.count;
 }

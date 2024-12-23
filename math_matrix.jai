@@ -284,4 +284,4 @@ InverseMatrix :: (m: float4x4, Epsilon := 0.001) -> float4x4, bool {
     return iDet * Adj, true;
 }
 
-using,only(tan) Math :: #import "Math";
+using,only(tan, make_look_at_matrix) Math :: #import "Math";

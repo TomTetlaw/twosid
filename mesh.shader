@@ -32,7 +32,11 @@ struct Instance_Data {
 	float4 material_params; 
 };
 
-StructuredBuffer<float4x4> skinning_transforms: register(t0, space0);
+struct Skinning_Data {
+	row_major float4x4 transform;
+};
+
+StructuredBuffer<Skinning_Data> skinning_transforms: register(t0, space0);
 StructuredBuffer<Instance_Data> instance_data: register(t1, space0);
 
 struct Vertex_Input {
@@ -44,17 +48,18 @@ struct Vertex_Input {
     short4 bone_ids: TEXCOORD4;
 };
 
-float3 skinning_contribution(float3 value, float weight, short4 bone_ids, int index) {
-	float mask = max(float(bone_ids[index] + 1), 1.0);
-	return value + mul(skinning_transforms[bone_ids[index]], float4(value, 1)).xyz * weight * mask;
+float3 skinning_contribution(float3 value, float weight, short bone_id) {
+	if (bone_id == -1) return value;
+	float4x4 transform = skinning_transforms[bone_id].transform;
+	return value + mul(transform, float4(value, 1)).xyz * weight;
 }
 
 float3 skinning_calculation(float3 model_value, float3 weights, short4 bone_ids) {
 	float4 weights4 = float4(weights, 1.0 - sum(weights));
-	model_value = skinning_contribution(model_value, weights4.x, bone_ids, 0);
-	model_value = skinning_contribution(model_value, weights4.y, bone_ids, 1);
-	model_value = skinning_contribution(model_value, weights4.z, bone_ids, 2);
-	model_value = skinning_contribution(model_value, weights4.w, bone_ids, 3);
+	model_value = skinning_contribution(model_value, weights4.x, bone_ids.x);
+	model_value = skinning_contribution(model_value, weights4.y, bone_ids.y);
+	model_value = skinning_contribution(model_value, weights4.z, bone_ids.z);
+	model_value = skinning_contribution(model_value, weights4.w, bone_ids.w);
 	return model_value;
 }
 
@@ -146,6 +151,7 @@ float4 fragment_main(Frag_Input input): SV_Target {
 	float4 ls_position = mul(light_matrix, float4(input.ws_position, 1));
 	float3 shadow_coord = ls_position.xyz / ls_position.w;
 	shadow_coord = shadow_coord * 0.5 + 0.5;
+	shadow_coord.z = 1.0 - shadow_coord.z;
 
 	float2 shadow_tex_coord = shadow_coord.xy;
 	shadow_tex_coord.y = 1 - shadow_tex_coord.y;
@@ -156,7 +162,7 @@ float4 fragment_main(Frag_Input input): SV_Target {
 	float3 colour = lighting_directional(shadow, input.ts_position, ts_normal, input.ts_view_pos, input.ts_light_dir, diffuse, material, light_colour);
 
 	if (frag_debug_mode == 1) {
-		//colour = float3(shadow_tex_coord, 0);
+		//colour = float3(shadow_coord.z, 0, 0);
 		colour = float3(shadow, 0, 0);
 	}
 
