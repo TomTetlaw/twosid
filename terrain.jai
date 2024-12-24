@@ -21,6 +21,22 @@ InitTerrain :: () {
 Boxes := bounding_box.[.{
                            .{-10, -10, -10},
                            .{10, 10, 50}
+                       },
+                       .{
+                           .{-20, -20, -10},
+                           .{20, 20, 50}
+                       },
+                       .{
+                           .{-30, -30, -10},
+                           .{30, 30, 50}
+                       },
+                       .{
+                           .{-40, -40, -10},
+                           .{40, 40, 50}
+                       },
+                       .{
+                           .{-50, -50, -10},
+                           .{50, 50, 50}
                        }];
 
 DrawTerrain :: () {
@@ -31,19 +47,18 @@ DrawTerrain :: () {
     Command.Instance.Transform = TerrainTransform;
     Command.Instance.DiffuseColour = .{1, 1, 1, 1};
     Command.Instance.MaterialParams = .{1, 1, 1, 1};
-    AddDrawCommand(*Command);
+    //AddDrawCommand(*Command);
     
     Command.Flags = .DEBUG;
     Command.Mesh = TerrainDebugMesh;
-    Command.Instance.Transform = TerrainTransform;//TranslationMatrix(.{0, 0, 0.1});
+    Command.Instance.Transform = TranslationMatrix(.{0, 0, 0.1});
     Command.Instance.DiffuseColour = .{1, 1, 1, 1};
     AddDrawCommand(*Command);
+    
+    //for Boxes DrawBoundingBox(it, .{1, 0, 0, 1});
 }
 
 #scope_file
-
-// REMINDER: HAVE TO CHECK DISTANCE FROM PLANE BEFORE CLIPPING,
-// I THINK ITS CLIPPING INFINITELY ATM
 
 CreateTerrainSurfaceMesh :: (Name: string, Mesh: *mesh) -> *mesh {
     Mark := ArenaPushMark(*WorkingArena);

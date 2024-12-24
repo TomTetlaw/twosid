@@ -72,11 +72,27 @@ operator + :: (a: float3, b: float3) -> float3 {
     };
 }
 
+operator + :: (a: float3, b: float) -> float3 {
+    return .{
+        a.x + b,
+        a.y + b,
+        a.z + b
+    };
+}
+
 operator - :: (a: float3, b: float3) -> float3 {
     return .{
         a.x - b.x,
         a.y - b.y,
         a.z - b.z
+    };
+}
+
+operator - :: (a: float3, b: float) -> float3 {
+    return .{
+        a.x - b,
+        a.y - b,
+        a.z - b
     };
 }
 

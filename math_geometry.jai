@@ -703,6 +703,19 @@ QueryBVH :: (Arena: *arena, BVH: *bvh, Box: bounding_box) -> [] triangle {
     return View;
 }
 
+DrawNodes :: (Node: *bvh_node) {
+    if !Node return;
+    
+    DrawBoundingBox(Node.Bounds, .{1, 0, 0, 1});
+    
+    DrawNodes(Node.Left);
+    DrawNodes(Node.Right);
+}
+
+DrawBVH :: (BVH: *bvh) {
+    DrawNodes(BVH.Root);
+}
+
 bounding_box :: struct {
     Min, Max: float3;
 }
@@ -717,7 +730,13 @@ bvh :: struct {
     Root: *bvh_node;
 }
 
-TriangleEdgePlaneIntersection :: (P1: float3, P2: float3, Plane: plane) -> float3, bool {
+PointInsideBox :: (Point: float3, Box: bounding_box) -> bool {
+    return (Point.x >= Box.Min.x && Point.x <= Box.Max.x &&
+            Point.y >= Box.Min.y && Point.y <= Box.Max.y &&
+            Point.z >= Box.Min.z && Point.z <= Box.Max.z);
+}
+
+TriangleEdgePlaneIntersection :: (Box: bounding_box, P1: float3, P2: float3, Plane: plane, MaxDistance: float) -> float3, bool {
     Epsilon :: 0.0000001;
     
     N := Plane.Normal;
@@ -736,7 +755,9 @@ TriangleEdgePlaneIntersection :: (P1: float3, P2: float3, Plane: plane) -> float
         Result.x = P1.x + T * Edge.x;
         Result.y = P1.y + T * Edge.y;
         Result.z = P1.z + T * Edge.z;
-        return Result, true;
+        
+        Bounds := bounding_box.{Box.Min-MaxDistance, Box.Max+MaxDistance};
+        if PointInsideBox(Result, Bounds) return Result, true;
     }
     
     return .{}, false;
@@ -757,13 +778,15 @@ FindClippingEdges :: (Arena: *arena, Tri: triangle, Box: bounding_box) -> [] cli
     BoxPlanes[4] = .{ 0,  0,  1};
     BoxPlanes[5] = .{ 0,  0, -1};
     
+    Mid := Box.Max - Box.Min;
+    
     BoxBounds: [6] float3;
-    BoxBounds[0] = Box.Max;
-    BoxBounds[1] = Box.Min;
-    BoxBounds[2] = Box.Max;
-    BoxBounds[3] = Box.Min;
-    BoxBounds[4] = Box.Max;
-    BoxBounds[5] = Box.Min;
+    BoxBounds[0] = float3.{Box.Max.x, 0, 0};
+    BoxBounds[1] = float3.{Box.Min.x, 0, 0};
+    BoxBounds[2] = float3.{0, Box.Max.y, 0};
+    BoxBounds[3] = float3.{0, Box.Min.y, 0};
+    BoxBounds[4] = float3.{0, 0, Box.Max.z};
+    BoxBounds[5] = float3.{0, 0, Box.Min.z};
     
     Edges := PushFixedArena(Arena, clipping_edge, 6);
     
@@ -771,9 +794,9 @@ FindClippingEdges :: (Arena: *arena, Tri: triangle, Box: bounding_box) -> [] cli
         Points := PushFixedArena(Arena, float3, 3);
         
         Plane := plane.{BoxBounds[E], BoxPlanes[E]};
-        Point1, I1 := TriangleEdgePlaneIntersection(Tri.P1, Tri.P2, Plane);
-        Point2, I2 := TriangleEdgePlaneIntersection(Tri.P1, Tri.P3, Plane);
-        Point3, I3 := TriangleEdgePlaneIntersection(Tri.P2, Tri.P3, Plane);
+        Point1, I1 := TriangleEdgePlaneIntersection(Box, Tri.P1, Tri.P2, Plane, 5.0);
+        Point2, I2 := TriangleEdgePlaneIntersection(Box, Tri.P1, Tri.P3, Plane, 5.0);
+        Point3, I3 := TriangleEdgePlaneIntersection(Box, Tri.P2, Tri.P3, Plane, 5.0);
         
         // We only care about intersections through two edges.
         
