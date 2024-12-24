@@ -41,11 +41,22 @@ draw_batch_mesh :: struct {
     Initialized: bool;
 }
 
-DrawDebugSphere :: (Position: float3, Colour: float4) {
+DrawDebugSphere :: (Position: float3, Colour := float4.{1, 1, 1, 1}) {
     Command: draw_command_mesh;
     Command.Flags = .DEBUG;
     Command.Mesh = LoadMesh("meshes/sphere.mesh");;
     Command.Instance.Transform = TranslationMatrix(Position);
+    Command.Instance.DiffuseColour = Colour;
+    AddDrawCommand(*Command);
+}
+
+DrawBoundingBox :: (Box: bounding_box, Colour := float4.{1, 1, 1, 1}) {
+    Scale := Box.Max - Box.Min;
+    
+    Command: draw_command_mesh;
+    Command.Flags = .DEBUG;
+    Command.Mesh = LoadMesh("meshes/cube.mesh");
+    Command.Instance.Transform = ScaleMatrix(Scale);
     Command.Instance.DiffuseColour = Colour;
     AddDrawCommand(*Command);
 }

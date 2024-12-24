@@ -8,6 +8,10 @@ arena :: struct ($T: Type = u8) {
     Count: int;
 	Capacity: u64;
     Initialized: bool;
+    
+    IsFixed := false;
+    ParentMark: u64;
+    Parent: *void; // ugh...
 }
 
 operator [] :: (Arena: *$A/arena, Index: int) -> A.T {
@@ -47,7 +51,11 @@ ArenaAlloc :: (Arena: *$A/arena, Size: u64, $Align := 0, $L := #caller_location)
     
     if !Arena.Initialized InitArena(Arena, max(AlignedSize, CommitExpandAmount), L);
     
-    if Arena.Used + Size >= Arena.Capacity {
+    if Arena.Used + Size > Arena.Capacity {
+        if Arena.IsFixed {
+            return null;
+        }
+        
         if Arena.Capacity + CommitExpandAmount >= MaxCommittedSize {
             FatalError("arena exceded max committed Size %! Wow!", MaxCommittedSize);
         }
@@ -152,6 +160,29 @@ ArenaReset :: (Arena: *arena) {
     Zero(Arena.Base, Arena.Capacity);
     Arena.Used = 0;
     Arena.Count = 0;
+}
+
+PushFixedArena :: (Arena: *$A/arena, $T: Type, N: int) -> *arena(T) {
+    Mark := ArenaPushMark(Arena);
+    
+    Fixed := ArenaPush(Arena, arena(T));
+    
+    Fixed.Base = ArenaAlloc(Arena, xx (size_of(T) * N));
+	Fixed.TypedBase = cast (*T) Fixed.Base;
+	Fixed.Used = 0;
+    Fixed.Count = 0;
+    Fixed.Capacity = xx (size_of(T) * N);
+    Fixed.IsFixed = true;
+    Fixed.ParentMark = Mark;
+    Fixed.Parent = Arena;
+    Fixed.Initialized = true;
+    
+    return Fixed;
+}
+
+PopFixedArena :: (Fixed: *$A/arena) {
+    Arena = cast(*arena(u8)) Fixed.Parent;
+    ArenaPopMark(Fixed.ParentMark);
 }
 
 ArenaToView :: (Arena: *$A/arena) -> [] A.T {

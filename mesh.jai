@@ -67,14 +67,14 @@ InitMeshSystem :: () {
     VertexCreateInfo: SDL_GPUBufferCreateInfo;
     VertexCreateInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
     for * Meshes {
-        it.PositionBuffer = CreateVertexBuffer(GDevice, tprint("%_position", it.Path), size_of(float3), it.Positions.count);
-        it.TexCoordBuffer = CreateVertexBuffer(GDevice, tprint("%_tex_coord", it.Path), size_of(float2), it.Positions.count);
-        it.NormalBuffer = CreateVertexBuffer(GDevice, tprint("%_normal", it.Path), size_of(float3), it.Positions.count);
-        it.TangentBuffer = CreateVertexBuffer(GDevice, tprint("%_tangent", it.Path), size_of(float3), it.Positions.count);
-        it.WeightBuffer = CreateVertexBuffer(GDevice, tprint("%_weight", it.Path), size_of(float3), it.Positions.count);
-        it.BoneIdsBuffer = CreateVertexBuffer(GDevice, tprint("%_bone_ids", it.Path), size_of(bone_ids), it.Positions.count);
+        it.PositionBuffer = CreateVertexBuffer(tprint("%_position", it.Path), size_of(float3), it.Positions.count);
+        it.TexCoordBuffer = CreateVertexBuffer(tprint("%_tex_coord", it.Path), size_of(float2), it.Positions.count);
+        it.NormalBuffer = CreateVertexBuffer(tprint("%_normal", it.Path), size_of(float3), it.Positions.count);
+        it.TangentBuffer = CreateVertexBuffer(tprint("%_tangent", it.Path), size_of(float3), it.Positions.count);
+        it.WeightBuffer = CreateVertexBuffer(tprint("%_weight", it.Path), size_of(float3), it.Positions.count);
+        it.BoneIdsBuffer = CreateVertexBuffer(tprint("%_bone_ids", it.Path), size_of(bone_ids), it.Positions.count);
         
-        it.IndexBuffer = CreateIndexBuffer(GDevice, tprint("%_index", it.Path), it.Indices.count);
+        it.IndexBuffer = CreateIndexBuffer(tprint("%_index", it.Path), it.Indices.count);
         
         VERTEX_SIZE :: 14 * size_of(float) + size_of(bone_ids);
         TotalMeshesSize += VERTEX_SIZE * it.Positions.count;
@@ -293,6 +293,56 @@ LoadMesh :: (Path: string) -> *mesh {
     Mesh.NumIndices = Indices.count;
     Mesh.MinBounds = MinBounds;
     Mesh.MaxBounds = MaxBounds;
+    
+    return Mesh;
+}
+
+CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
+    Mark := ArenaPushMark(*WorkingArena);
+    
+    Positions := ArenaPushN(*WorkingArena, float3, Triangles.count * 3);
+    for Triangles {
+        Positions[it_index*3 + 0] = it.P1;
+        Positions[it_index*3 + 1] = it.P2;
+        Positions[it_index*3 + 2] = it.P3;
+    }
+    
+    IndexCount: u64 = xx (Triangles.count * 3);
+    
+    Remap := ArenaPushN(*WorkingArena, u32, Positions.count);
+    Count := meshopt_generateVertexRemap(Remap.data, null, IndexCount, Positions.data, xx Positions.count, size_of(float3));
+    
+    OptimizedPositions := ArenaPushN(*MeshArena, float3, xx Count);
+    meshopt_remapVertexBuffer(OptimizedPositions.data, Positions.data, xx Positions.count, size_of(float3), Remap.data);
+    
+    Indices := ArenaPushN(*MeshArena, u32, cast(int) IndexCount);
+    meshopt_remapIndexBuffer(Indices.data, null, IndexCount, Remap.data);
+    
+    MinBounds := float3.{FLOAT32_MAX, FLOAT32_MAX, FLOAT32_MAX};
+    MaxBounds := float3.{FLOAT32_MIN, FLOAT32_MIN, FLOAT32_MIN};
+    
+    for Positions {
+        MinBounds.x = min(MinBounds.x, it.x);
+        MinBounds.y = min(MinBounds.y, it.y);
+        MinBounds.z = min(MinBounds.z, it.z);
+        
+        MaxBounds.x = max(MaxBounds.x, it.x);
+        MaxBounds.y = max(MaxBounds.y, it.y);
+        MaxBounds.z = max(MaxBounds.z, it.z);
+    }
+    
+    Mesh := ArenaPush(*Meshes);
+    Mesh.Path = Name;
+    Mesh.Positions = OptimizedPositions;
+    Mesh.Indices = Indices;
+    Mesh.NumIndices = Indices.count;
+    Mesh.MinBounds = MinBounds;
+    Mesh.MaxBounds = MaxBounds;
+    
+    Mesh.PositionBuffer = CreateVertexBuffer(tprint("%_position", Name), OptimizedPositions);
+    Mesh.IndexBuffer = CreateVertexBuffer(tprint("%_index", Name), Indices, true);
+    
+    ArenaPopMark(*WorkingArena, Mark);
     
     return Mesh;
 }

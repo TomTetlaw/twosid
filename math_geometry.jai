@@ -24,6 +24,13 @@ triangle :: struct {
     P1: float3;
     P2: float3;
     P3: float3;
+    
+#place P1;
+    Points: [3] float3;
+}
+
+operator [] :: (Tri: triangle, Index: int) -> float3 {
+    return Tri.Points[Index];
 }
 
 ray_triangle_hit :: struct {
@@ -579,4 +586,260 @@ CreateSurfaceCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) ->
     Result.m256Base = cast (*float8) ArenaAlloc(Arena, size_of(float8) * 32, 32);
     Result.m256BaseI = cast (*int32x8) ArenaAlloc(Arena, size_of(int32x8) * 32, 32);
     return Result;
+}
+
+BoundingBoxForTriangle :: (Triangle: triangle) -> bounding_box {
+    Result: bounding_box;
+    
+    Result.Min.x = Min(Min(Triangle.P1.x, Triangle.P2.x), Triangle.P3.x);
+    Result.Min.y = Min(Min(Triangle.P1.y, Triangle.P2.y), Triangle.P3.y);
+    Result.Min.z = Min(Min(Triangle.P1.z, Triangle.P2.z), Triangle.P3.z);
+    
+    Result.Max.x = Max(Max(Triangle.P1.x, Triangle.P2.x), Triangle.P3.x);
+    Result.Max.y = Max(Max(Triangle.P1.y, Triangle.P2.y), Triangle.P3.y);
+    Result.Max.z = Max(Max(Triangle.P1.z, Triangle.P2.z), Triangle.P3.z);
+    
+    return Result;
+}
+
+CombineBoundingBoxes :: (A: bounding_box, B: bounding_box) -> bounding_box {
+    Result: bounding_box;
+    
+    Result.Min.x = Min(A.Min.x, B.Min.x);
+    Result.Min.y = Min(A.Min.y, B.Min.y);
+    Result.Min.z = Min(A.Min.z, B.Min.z);
+    
+    Result.Max.x = Max(A.Max.x, B.Max.x);
+    Result.Max.y = Max(A.Max.y, B.Max.y);
+    Result.Max.z = Max(A.Max.z, B.Max.z);
+    
+    return Result;
+}
+
+PartitionTriangles :: (Triangles: [] triangle, Axis: int) -> [] triangle {
+    PartitionX :: (A: triangle, B: triangle) -> int {
+        CA := (A.P1.x + A.P2.x + A.P3.x) / 3.0;
+        CB := (B.P1.x + B.P2.x + B.P3.x) / 3.0;
+        return cast (int) (CA > CB) - cast (int) (CA < CB);
+    }
+    
+    PartitionY :: (A: triangle, B: triangle) -> int {
+        CA := (A.P1.y + A.P2.y + A.P3.y) / 3.0;
+        CB := (B.P1.y + B.P2.y + B.P3.y) / 3.0;
+        return cast (int) (CA > CB) - cast (int) (CA < CB);
+    }
+    
+    PartitionZ :: (A: triangle, B: triangle) -> int {
+        CA := (A.P1.z + A.P2.z + A.P3.z) / 3.0;
+        CB := (B.P1.z + B.P2.z + B.P3.z) / 3.0;
+        return cast (int) (CA > CB) - cast (int) (CA < CB);
+    }
+    
+    if Axis == 0 return quick_sort(Triangles, PartitionX);
+    if Axis == 1 return quick_sort(Triangles, PartitionY);
+    return quick_sort(Triangles, PartitionZ);
+}
+
+BuildNodes :: (Arena: *arena, BVH: *bvh, Triangles: [] triangle, Depth := 0) -> *bvh_node {
+    Node := ArenaPush(Arena, bvh_node);
+    
+    Count := Triangles.count;
+    
+    Bounds := BoundingBoxForTriangle(Triangles[0]);
+    for 1..Count-1 {
+        Bounds = CombineBoundingBoxes(Bounds, BoundingBoxForTriangle(Triangles[it]));
+    }
+    
+    Node.Bounds = Bounds;
+    
+    if Count <= 16 || Depth > 16 {
+        Node.Triangles = Triangles;
+        Node.Left = null;
+        Node.Right = null;
+        return Node;
+    }
+    
+    Axis := Depth % 3;
+    Mid := PartitionTriangles(Triangles, Axis);
+    
+    Node.Left = BuildNodes(Arena, BVH, array_view(Mid, 0, Count / 2), Depth + 1);
+    Node.Right = BuildNodes(Arena, BVH, array_view(Mid, Count - (Count / 2), Count / 2), Depth + 1);
+    
+    return Node;
+}
+
+BuildBVH :: (Arena: *arena, Triangles: [] triangle) -> bvh {
+    Result: bvh;
+    Result.Root = BuildNodes(Arena, *Result, Triangles);
+    return Result;
+}
+
+BoxesOverlap :: (a: bounding_box, b: bounding_box) -> bool {
+    if a.Max.x < b.Min.x || a.Min.x > b.Max.x return false;
+    if a.Max.y < b.Min.y || a.Min.y > b.Max.y return false;
+    if a.Max.z < b.Min.z || a.Min.z > b.Max.z return false;
+    return true;
+}
+
+QueryNodes :: (Arena: *arena, Node: *bvh_node, Box: bounding_box)  {
+    if !Node return;
+    
+    if !BoxesOverlap(Node.Bounds, Box) return;
+    
+    if Node.Triangles.count == 0 {
+        QueryNodes(Arena, Node.Left, Box);
+        QueryNodes(Arena, Node.Right, Box);
+    } else {
+        for Node.Triangles {
+            ArenaPush(Arena, it);
+        }
+    }
+}
+
+QueryBVH :: (Arena: *arena, BVH: *bvh, Box: bounding_box) -> [] triangle {
+    TrianglesArena := PushFixedArena(Arena, triangle, 10000);
+    QueryNodes(TrianglesArena, BVH.Root, Box);
+    View := ArenaToView(TrianglesArena);
+    return View;
+}
+
+bounding_box :: struct {
+    Min, Max: float3;
+}
+
+bvh_node :: struct {
+    Left, Right: *bvh_node;
+    Bounds: bounding_box;
+    Triangles: [] triangle;
+}
+
+bvh :: struct {
+    Root: *bvh_node;
+}
+
+TriangleEdgePlaneIntersection :: (P1: float3, P2: float3, Plane: plane) -> float3, bool {
+    Epsilon :: 0.0000001;
+    
+    N := Plane.Normal;
+    
+    Edge := float3.{P2.x - P1.x, P2.y - P1.y, P2.z - P1.z};
+    D := N.x * Edge.x + N.y * Edge.y + N.z * Edge.z;
+    
+    if Abs(D) < Epsilon return .{}, false;
+    
+    T := ((N.x * (Plane.Point.x - P1.x)) +
+          (N.y * (Plane.Point.y - P1.y)) +
+          (N.z * (Plane.Point.z - P1.z))) / D;
+    
+    if T >= 0.0 && T <= 1.0 {
+        Result: float3;
+        Result.x = P1.x + T * Edge.x;
+        Result.y = P1.y + T * Edge.y;
+        Result.z = P1.z + T * Edge.z;
+        return Result, true;
+    }
+    
+    return .{}, false;
+}
+
+clipping_edge :: struct {
+    Plane: plane;
+    ClippingEdge: [2] int;
+    Points: [2] float3;
+}
+
+FindClippingEdges :: (Arena: *arena, Tri: triangle, Box: bounding_box) -> [] clipping_edge {
+    BoxPlanes: [6] float3;
+    BoxPlanes[0] = .{ 1,  0,  0};
+    BoxPlanes[1] = .{-1,  0,  0};
+    BoxPlanes[2] = .{ 0,  1,  0};
+    BoxPlanes[3] = .{ 0, -1,  0};
+    BoxPlanes[4] = .{ 0,  0,  1};
+    BoxPlanes[5] = .{ 0,  0, -1};
+    
+    BoxBounds: [6] float3;
+    BoxBounds[0] = Box.Max;
+    BoxBounds[1] = Box.Min;
+    BoxBounds[2] = Box.Max;
+    BoxBounds[3] = Box.Min;
+    BoxBounds[4] = Box.Max;
+    BoxBounds[5] = Box.Min;
+    
+    Edges := PushFixedArena(Arena, clipping_edge, 6);
+    
+    for E: 0..5 {
+        Points := PushFixedArena(Arena, float3, 3);
+        
+        Plane := plane.{BoxBounds[E], BoxPlanes[E]};
+        Point1, I1 := TriangleEdgePlaneIntersection(Tri.P1, Tri.P2, Plane);
+        Point2, I2 := TriangleEdgePlaneIntersection(Tri.P1, Tri.P3, Plane);
+        Point3, I3 := TriangleEdgePlaneIntersection(Tri.P2, Tri.P3, Plane);
+        
+        // We only care about intersections through two edges.
+        
+        if I1 && I2 {
+            ArenaPush(Edges, .{Plane, .[1, 2], .[Point1, Point2]});
+        }
+        
+        if I1 && I3 {
+            ArenaPush(Edges, .{Plane, .[0, 2], .[Point1, Point3]});
+        }
+        
+        if I2 && I3 {
+            ArenaPush(Edges, .{Plane, .[0, 1], .[Point2, Point3]});
+        }
+    }
+    
+    return ArenaToView(Edges);
+}
+
+MakeCounterClockwise :: (Tri: triangle, N: float3) -> triangle {
+    Edge1 := Tri.P2 - Tri.P1;
+    Edge2 := Tri.P3 - Tri.P1;
+    
+    if Dot(Cross(Edge1, Edge2), N) < 0 {
+        return triangle.{Tri.P1, Tri.P3, Tri.P2};
+    }
+    
+    return Tri;
+}
+
+ClipTriangle :: (Arena: *arena, Triangle: triangle, Edges: [] clipping_edge) -> [] triangle {
+    // 3 new triangles per intersection
+    Triangles := PushFixedArena(Arena, triangle, Edges.count * 3);
+    
+    for E: Edges {
+        Edge := E.ClippingEdge;
+        Points := E.Points;
+        
+        A := Edge[0];
+        B := Edge[1];
+        C := 3 - (A + B);
+        
+        Tri0 := triangle.{Triangle[C], Points[0], Points[1]};
+        Tri1 := triangle.{Triangle[A], Points[0], Triangle[B]};
+        Tri2 := triangle.{Triangle[B], Points[0], Points[1]};
+        
+        ArenaPush(Triangles, MakeCounterClockwise(Tri0, .{0, 0, 1}));
+        ArenaPush(Triangles, MakeCounterClockwise(Tri1, .{0, 0, 1}));
+        ArenaPush(Triangles, MakeCounterClockwise(Tri2, .{0, 0, 1}));
+    }
+    
+    return ArenaToView(Triangles);
+}
+
+TriangleInfrontOfPlane :: (Triangle: triangle, Plane: plane) -> bool {
+    PlaneD := -Dot(Plane.Normal, Plane.Point);
+    D1 := Dot(Plane.Normal, Triangle.P1) + PlaneD;
+    D2 := Dot(Plane.Normal, Triangle.P2) + PlaneD;
+    D3 := Dot(Plane.Normal, Triangle.P3) + PlaneD;
+    
+    Epsilon :: 0.0000001;
+    
+    InFront := cast(int) (D1 > Epsilon) + cast(int) (D2 > Epsilon) + cast(int) (D3 > Epsilon);
+    Behind := cast(int) (D1 < -Epsilon) + cast(int) (D2 < -Epsilon) + cast(int) (D3 < -Epsilon);
+    OnPlane := 3 - InFront - Behind;
+    
+    if (OnPlane == 2 && InFront == 1) || InFront > Behind return true;
+    return false;
 }

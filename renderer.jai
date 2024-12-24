@@ -209,9 +209,9 @@ InitRenderer :: () {
     }
     
     {
-        ScreenSpacePositionBuffer = CreateVertexBuffer(GDevice, "ScreenSpacePositionBuffer", size_of(float3), 4);
-        ScreenSpaceTexCoordBuffer = CreateVertexBuffer(GDevice, "ScreenSpaceTexCoordBuffer", size_of(float2), 4);
-        ScreenSpaceIndexBuffer = CreateIndexBuffer(GDevice, "ScreenSpaceIndexBuffer", 6);
+        ScreenSpacePositionBuffer = CreateVertexBuffer("ScreenSpacePositionBuffer", size_of(float3), 4);
+        ScreenSpaceTexCoordBuffer = CreateVertexBuffer("ScreenSpaceTexCoordBuffer", size_of(float2), 4);
+        ScreenSpaceIndexBuffer = CreateIndexBuffer("ScreenSpaceIndexBuffer", 6);
         
         CreateInfo: SDL_GPUTransferBufferCreateInfo;
         CreateInfo.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
@@ -767,8 +767,8 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
         DepthInfo.clear_depth = 1;
         DepthInfo.clear_stencil = 0;
         if Pass.ClearDepth DepthInfo.load_op = .SDL_GPU_LOADOP_CLEAR;
-        else DepthInfo.load_op = .SDL_GPU_LOADOP_DONT_CARE;
-        DepthInfo.store_op = .SDL_GPU_STOREOP_DONT_CARE;
+        else DepthInfo.load_op = .SDL_GPU_LOADOP_LOAD;
+        DepthInfo.store_op = .SDL_GPU_STOREOP_STORE;
         DepthInfo.stencil_load_op = .SDL_GPU_LOADOP_DONT_CARE;
         DepthInfo.stencil_store_op = .SDL_GPU_STOREOP_DONT_CARE;
         

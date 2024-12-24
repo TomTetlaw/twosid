@@ -85,6 +85,11 @@ TanTurns :: (t: float) -> float {
     return S / C;
 }
 
+plane :: struct {
+    Point: float3;
+    Normal: float3;
+}
+
 float2 :: struct {
     x, y: float;
     
