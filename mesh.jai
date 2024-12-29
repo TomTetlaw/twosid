@@ -194,14 +194,14 @@ LoadMesh :: (Path: string) -> *mesh {
     
     // This should be done at build time!
     IndexRemap := ArenaPushN(*MeshArena, u32, xx Positions.count);
-    Streams := ArenaPushN(*MeshArena, meshopt_Stream, 6);
+    Streams := ArenaPushN(*WorkingArena, meshopt_Stream, 6);
     Streams[0] = .{Positions.data, size_of(float3), size_of(float3)};
     Streams[1] = .{Weights.data, size_of(float3), size_of(float3)};
     Streams[2] = .{BoneIds.data, size_of(bone_ids), size_of(bone_ids)};
     Streams[3] = .{TexCoords.data, size_of(float2), size_of(float2)};
     Streams[4] = .{Normals.data, size_of(float3), size_of(float3)};
     Streams[5] = .{Tangents.data, size_of(float3), size_of(float3)};
-    VertexCount := meshopt_generateVertexRemapMulti(IndexRemap.data, Indices.data, xx Indices.count, xx Positions.count, Streams.data, 6);
+    VertexCount := meshopt_generateVertexRemapMulti(IndexRemap.data, Indices.data, xx Indices.count, xx Positions.count, Streams.data, xx Streams.count);
     
     OptimizedPositions := ArenaPushN(*MeshArena, float3, xx VertexCount);
     OptimizedTexCoords := ArenaPushN(*MeshArena, float2, xx VertexCount);
@@ -228,7 +228,7 @@ LoadMesh :: (Path: string) -> *mesh {
     Indices = OptimizedIndices;
     
     MinBounds := float3.{FLOAT32_MAX, FLOAT32_MAX, FLOAT32_MAX};
-    MaxBounds := float3.{FLOAT32_MIN, FLOAT32_MIN, FLOAT32_MIN};
+    MaxBounds := float3.{-FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
     
     for Positions {
         MinBounds.x = min(MinBounds.x, it.x);
@@ -297,7 +297,7 @@ LoadMesh :: (Path: string) -> *mesh {
     return Mesh;
 }
 
-CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
+CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle, Extra: [] $T) -> *mesh, [] T {
     Mark := ArenaPushMark(*WorkingArena);
     
     Positions := ArenaPushN(*WorkingArena, float3, Triangles.count * 3);
@@ -309,11 +309,17 @@ CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
     
     IndexCount: u64 = xx (Triangles.count * 3);
     
-    Remap := ArenaPushN(*WorkingArena, u32, Positions.count);
-    Count := meshopt_generateVertexRemap(Remap.data, null, IndexCount, Positions.data, xx Positions.count, size_of(float3));
+    Streams := ArenaPushN(*WorkingArena, meshopt_Stream, 2);
+    Streams[0] = .{Positions.data, size_of(float3), size_of(float3)};
+    Streams[1] = .{Extra.data, size_of(T), size_of(T)};
     
-    OptimizedPositions := ArenaPushN(*MeshArena, float3, xx Count);
+    Remap := ArenaPushN(*WorkingArena, u32, Positions.count);
+    VertexCount := meshopt_generateVertexRemapMulti(Remap.data, null, IndexCount, xx Positions.count, Streams.data, xx Streams.count);
+    
+    OptimizedPositions := ArenaPushN(*MeshArena, float3, xx VertexCount);
     meshopt_remapVertexBuffer(OptimizedPositions.data, Positions.data, xx Positions.count, size_of(float3), Remap.data);
+    OptimizedExtra := ArenaPushN(*MeshArena, T, xx VertexCount);
+    meshopt_remapVertexBuffer(OptimizedExtra.data, Extra.data, xx Extra.count, size_of(T), Remap.data);
     
     Indices := ArenaPushN(*MeshArena, u32, cast(int) IndexCount);
     meshopt_remapIndexBuffer(Indices.data, null, IndexCount, Remap.data);
@@ -344,7 +350,7 @@ CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
     
     ArenaPopMark(*WorkingArena, Mark);
     
-    return Mesh;
+    return Mesh, OptimizedExtra;
 }
 
 FindBone :: (Skeleton: *skeleton, Name: string) -> *bone {

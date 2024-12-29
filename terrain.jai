@@ -1,108 +1,231 @@
 
 GetGroundHeight :: (Position: float3) -> float {
-    Hit := RaySurfaceIntersection(*CollisionMesh, Position.xy);
+    Triangles := GetRelevantTrianglesForRay(*TerrainBVH, .{xyz(Position.xy, 1000.0), .{0, 0, -1}});
+    Mesh := CreateTemporarySurfaceCollisionMesh(Triangles);
+    Hit := RaySurfaceIntersection(*Mesh, Position.xy);
     return Hit.Z;
 }
 
 InitTerrain :: () {
+    TerrainTransform = TranslationMatrix(.{0, 0, 100});
+    
     TerrainMesh = LoadMesh("meshes/terrain.mesh");
     
-    TerrainDebugMesh = CreateTerrainSurfaceMesh("terrain_mesh_clipped", TerrainMesh);
-    CollisionMesh = CreateSurfaceCollisionMesh(*TerrainArena, TerrainMesh, TerrainTransform);
+    CollisionMesh = CreateCollisionMesh(*TerrainArena, TerrainMesh, TerrainTransform);
+    TerrainBVH = BuildBVH(*TerrainArena, CollisionMesh.Tris);
     
     TerrainTextures = ArenaPushN(*TerrainArena, *texture, 3);
     TerrainTextures[0] = LoadTexture("textures/terrain_diffuse.png");
     TerrainTextures[1] = LoadTexture("textures/terrain_normal.png");
     TerrainTextures[2] = LoadTexture("textures/unit_rmaoh.png");
-    
-    TerrainTransform = IdentityMatrix();
 }
-
-Boxes := bounding_box.[.{
-                           .{-10, -10, -10},
-                           .{10, 10, 50}
-                       },
-                       .{
-                           .{-20, -20, -10},
-                           .{20, 20, 50}
-                       },
-                       .{
-                           .{-30, -30, -10},
-                           .{30, 30, 50}
-                       },
-                       .{
-                           .{-40, -40, -10},
-                           .{40, 40, 50}
-                       },
-                       .{
-                           .{-50, -50, -10},
-                           .{50, 50, 50}
-                       }];
 
 DrawTerrain :: () {
     Command: draw_command_mesh;
-    //Command.Flags = .NO_CAST_SHADOWS;
     Command.Mesh = TerrainMesh;
     Command.Textures = TerrainTextures;
     Command.Instance.Transform = TerrainTransform;
     Command.Instance.DiffuseColour = .{1, 1, 1, 1};
     Command.Instance.MaterialParams = .{1, 1, 1, 1};
-    //AddDrawCommand(*Command);
+    if !TerrainDebug AddDrawCommand(*Command);
     
-    Command.Flags = .DEBUG;
-    Command.Mesh = TerrainDebugMesh;
-    Command.Instance.Transform = TranslationMatrix(.{0, 0, 0.1});
-    Command.Instance.DiffuseColour = .{1, 1, 1, 1};
-    AddDrawCommand(*Command);
+    if KeyPressed(.SDL_SCANCODE_F3) {
+        TerrainDebug = !TerrainDebug;
+    }
     
-    //for Boxes DrawBoundingBox(it, .{1, 0, 0, 1});
+    if TerrainDebug {
+        Command.Mesh = TerrainMesh;
+        Command.Instance.Transform = TranslationMatrix(.{0, 0, .05}) * TerrainTransform;
+        Command.Instance.DiffuseColour = .{1, 1, 1, 1};
+        Command.Flags = .DEBUG;
+        AddDrawCommand(*Command);
+    }
+    
+    //DrawBVH(*TerrainBVH);
 }
 
 #scope_file
 
-CreateTerrainSurfaceMesh :: (Name: string, Mesh: *mesh) -> *mesh {
-    Mark := ArenaPushMark(*WorkingArena);
+TerrainMesh: *mesh;
+CollisionMesh: collision_mesh;
+TerrainBVH: bvh;
+
+TerrainDebug := false;
+
+TerrainTransform: float4x4;
+TerrainTextures: [] *texture;
+
+TerrainArena: arena;
+
+bvh_node :: struct {
+    Bounds: bounding_box;
+    LeftOrFirstTri: s32;
+    TriCount: s32;
+}
+
+bvh :: struct {
+    Nodes: [] bvh_node;
+    TriIndex: [] s32;
+    Triangles: [] triangle;
+    NodesUsed := 0;
+}
+
+BuildBVH :: (Arena: *arena, Triangles: [] triangle) -> bvh {
+    BVH: bvh;
     
-    TriangleCount := Mesh.NumIndices / 3;
-    Triangles := ArenaPushN(*WorkingArena, triangle, TriangleCount);
-    for 0..Triangles.count-1 {
-        P1 := Mesh.Positions[Mesh.Indices[it*3 + 0]];
-        P2 := Mesh.Positions[Mesh.Indices[it*3 + 1]];
-        P3 := Mesh.Positions[Mesh.Indices[it*3 + 2]];
-        Triangles[it] = .{P1, P2, P3};
-    }
+    BVH.Nodes = ArenaPushN(Arena, bvh_node, Triangles.count * 2 - 1);
+    BVH.Triangles = Triangles;
+    BVH.TriIndex = ArenaPushN(Arena, s32, Triangles.count);
+    for 0..Triangles.count-1 BVH.TriIndex[it] = xx it;
     
-    BVH := BuildBVH(*WorkingArena, Triangles);
+    BVH.Nodes[0].LeftOrFirstTri = 0;
+    BVH.Nodes[0].TriCount = xx Triangles.count;
     
-    ClippedTriangles := PushFixedArena(*WorkingArena, triangle, TriangleCount * 3);
+    UpdateBounds(*BVH, 0);
     
-    // This is ugly... add all the original triangles 
-    // so we don't have to worry about checking which were clipped.
-    // Duplicates will get optimised out later.
-    for Triangles ArenaPush(ClippedTriangles, it);
+    Subdivide(*BVH, 0);
     
-    for B: Boxes {
-        Triangles := QueryBVH(*WorkingArena, *BVH, B);
+    BVH.Nodes.count = BVH.NodesUsed;
+    
+    return BVH;
+}
+
+Subdivide :: (BVH: *bvh, NodeIndex: int, Depth := 0) {
+    Node := *BVH.Nodes[NodeIndex];
+    
+    if Node.TriCount <= 8 return;
+    
+    Mid := (Node.Bounds.Min + Node.Bounds.Max) * .5;
+    Axis := Depth % 2;
+    SplitPos := Mid[Axis];
+    
+    I := Node.LeftOrFirstTri;
+    J := I + Node.TriCount - 1;
+    while I <= J {
+        Tri := BVH.Triangles[BVH.TriIndex[I]];
+        Centroid := (Tri.P1[Axis] + Tri.P2[Axis] + Tri.P3[Axis]) / 3.0;
         
-        for T: Triangles {
-            Edges := FindClippingEdges(*WorkingArena, T, B);
-            Tris := ClipTriangle(*WorkingArena, T, Edges);
-            if Tris.count > 0 {
-                for Tris ArenaPush(ClippedTriangles, it);
-            }
+        if Centroid < SplitPos {
+            I += 1;
+        } else {
+            BVH.TriIndex[I], BVH.TriIndex[J] = BVH.TriIndex[J], BVH.TriIndex[I];
+            J -= 1;
         }
     }
     
-    ClippedSurface := CreateMeshFromTriangles(Name, ArenaToView(ClippedTriangles));
+    LeftCount := I - Node.LeftOrFirstTri;
     
-    ArenaPopMark(*WorkingArena, Mark);
+    if LeftCount == 0 || LeftCount == Node.TriCount {
+        return;
+    }
     
-    return ClippedSurface;
+    RightCount := Node.TriCount - LeftCount;
+    LeftIndex := BVH.NodesUsed + 1;
+    RightIndex := BVH.NodesUsed + 2;
+    BVH.NodesUsed += 2;
+    
+    LeftNode := *BVH.Nodes[LeftIndex];
+    LeftNode.LeftOrFirstTri = Node.LeftOrFirstTri;
+    LeftNode.TriCount = LeftCount;
+    
+    UpdateBounds(BVH, LeftIndex);
+    Subdivide(BVH, LeftIndex, Depth + 1);
+    
+    RightNode := *BVH.Nodes[RightIndex];
+    RightNode.LeftOrFirstTri = I;
+    RightNode.TriCount = RightCount;
+    
+    UpdateBounds(BVH, RightIndex);
+    Subdivide(BVH, RightIndex, Depth + 1);
+    
+    Node.LeftOrFirstTri = xx LeftIndex;
+    Node.TriCount = 0;
 }
 
-CollisionMesh: surface_collision_mesh;
-TerrainMesh: *mesh;
-TerrainDebugMesh: *mesh;
-TerrainTransform: float4x4;
-TerrainTextures: [] *texture;
-TerrainArena: arena;
+UpdateBounds :: (BVH: *bvh, NodeIndex: int) {
+    Node := *BVH.Nodes[NodeIndex];
+    
+    Box: bounding_box;
+    Box.Min = xyz(FLOAT32_MAX);
+    Box.Max = xyz(-FLOAT32_MAX);
+    
+    for 0..Node.TriCount-1 {
+        Triangle := BVH.Triangles[BVH.TriIndex[Node.LeftOrFirstTri + it]];
+        
+        Box.Min.x = Min(Box.Min.x, Min(Min(Triangle.P1.x, Triangle.P2.x), Triangle.P3.x));
+        Box.Min.y = Min(Box.Min.y, Min(Min(Triangle.P1.y, Triangle.P2.y), Triangle.P3.y));
+        Box.Min.z = Min(Box.Min.z, Min(Min(Triangle.P1.z, Triangle.P2.z), Triangle.P3.z));
+        
+        Box.Max.x = Max(Box.Max.x, Max(Max(Triangle.P1.x, Triangle.P2.x), Triangle.P3.x));
+        Box.Max.y = Max(Box.Max.y, Max(Max(Triangle.P1.y, Triangle.P2.y), Triangle.P3.y));
+        Box.Max.z = Max(Box.Max.z, Max(Max(Triangle.P1.z, Triangle.P2.z), Triangle.P3.z));
+    }
+    
+    Node.Bounds = Box;
+}
+
+QueryNodes :: (Arena: *arena, BVH: *bvh, NodeIndex: int, Ray: ray)  {
+    Node := *BVH.Nodes[NodeIndex];
+    
+    if !RayIntersectsBox(Node.Bounds, Ray) return;
+    
+    if Node.TriCount == 0 {
+        QueryNodes(Arena, BVH, Node.LeftOrFirstTri, Ray);
+        QueryNodes(Arena, BVH, Node.LeftOrFirstTri + 1, Ray);
+    } else {
+        for 0..Node.TriCount-1 {
+            Tri := BVH.Triangles[BVH.TriIndex[Node.LeftOrFirstTri + it]];
+            ArenaPush(Arena, triangle, Tri);
+        }
+    }
+}
+
+QueryBVH :: (Arena: *arena, BVH: *bvh, Ray: ray) {
+    QueryNodes(Arena, BVH, 0, Ray);
+}
+
+DrawBVH :: (BVH: *bvh) {
+    for BVH.Nodes {
+        DrawBoundingBox(it.Bounds);
+    }
+}
+
+GetRelevantTrianglesForRay :: (BVH: *bvh, Ray: ray) -> [] triangle {
+    Mark := FrameArena.Used;
+    QueryBVH(*FrameArena, BVH, Ray);
+    
+    Used := FrameArena.Used - Mark;
+    Triangles := ArenaToView(*FrameArena, triangle, Mark, Used);
+    
+    return Triangles;
+}
+
+DrawBoundingBox :: (Box: bounding_box, Origin: float3, Colour := float4.{1, 1, 1, 1}) {
+    Scale := Box.Max - Box.Min;
+    Command: draw_command_mesh;
+    Command.Flags = .DEBUG;
+    Command.Mesh = LoadMesh("meshes/cube.mesh");
+    Command.Instance.Transform = TranslationMatrix(Origin) * ScaleMatrix(Scale);
+    Command.Instance.DiffuseColour = Colour;
+    AddDrawCommand(*Command);
+}
+
+RayIntersectsBox :: (Box: bounding_box, Ray: ray) -> bool {
+    InvDir := xyz(1.0) / Ray.Direction;
+    
+    T1 := (Box.Min.x - Ray.Origin.x) * InvDir.x;
+    T2 := (Box.Max.x - Ray.Origin.x) * InvDir.x;
+    
+    TMin := Min(T1, T2);
+    TMax := Max(T1, T2);
+    
+    for 0..2 {
+        T1 = (Box.Min[it] - Ray.Origin[it]) * InvDir[it];
+        T2 = (Box.Max[it] - Ray.Origin[it]) * InvDir[it];
+        
+        TMin = Max(TMin, Min(T1, T2));
+        TMax = Min(TMax, Max(T1, T2));
+    }
+    
+    return TMax > Max(TMin, 0.0);
+}

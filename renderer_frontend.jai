@@ -41,22 +41,41 @@ draw_batch_mesh :: struct {
     Initialized: bool;
 }
 
-DrawDebugSphere :: (Position: float3, Colour := float4.{1, 1, 1, 1}) {
+DrawMesh :: (Mesh: *mesh, Position: float3, Textures: [3] *texture, Colour := float4.{1, 1, 1, 1}) {
+    Command: draw_command_mesh;
+    Command.Mesh = Mesh;
+    Command.Instance.Transform = TranslationMatrix(Position);
+    Command.Instance.DiffuseColour = Colour;
+    Command.Textures = Textures;
+    AddDrawCommand(*Command);
+}
+
+DrawDebugSphere :: (Position: float3, Size := 1.0, Colour := float4.{1, 1, 1, 1}) {
     Command: draw_command_mesh;
     Command.Flags = .DEBUG;
     Command.Mesh = LoadMesh("meshes/sphere.mesh");;
-    Command.Instance.Transform = TranslationMatrix(Position);
+    Command.Instance.Transform = TranslationMatrix(Position) * ScaleMatrix(xyz(Size));
     Command.Instance.DiffuseColour = Colour;
     AddDrawCommand(*Command);
 }
 
 DrawBoundingBox :: (Box: bounding_box, Colour := float4.{1, 1, 1, 1}) {
+    Origin := (Box.Min + Box.Max) * .5;
     Scale := Box.Max - Box.Min;
     
     Command: draw_command_mesh;
     Command.Flags = .DEBUG;
     Command.Mesh = LoadMesh("meshes/cube.mesh");
-    Command.Instance.Transform = ScaleMatrix(Scale);
+    Command.Instance.Transform = TranslationMatrix(Origin) * ScaleMatrix(Scale);
+    Command.Instance.DiffuseColour = Colour;
+    AddDrawCommand(*Command);
+}
+
+DrawCylinder :: (Cylinder: cylinder, Colour := float4.{1, 1, 1, 1}) {
+    Command: draw_command_mesh;
+    Command.Flags = .DEBUG;
+    Command.Mesh = LoadMesh("meshes/cylinder.mesh");
+    Command.Instance.Transform = TranslationMatrix(Cylinder.Center) * ScaleMatrix(.{Cylinder.Radius, Cylinder.Radius, Cylinder.Height});
     Command.Instance.DiffuseColour = Colour;
     AddDrawCommand(*Command);
 }
@@ -72,8 +91,6 @@ AddDrawCommand :: (Command: *$T/draw_command) {
 Temp: arena(ibuffer_debug);
 
 ProcessDrawCommands :: () {
-    ArenaReset(*Temp);
-    
     for * FrontendMeshBatches {
         if it.InstanceData.Count > 0 {
             DrawInDepthPass := !(it.Flags & .NO_CAST_SHADOWS) && !(it.Flags & .DEBUG);
@@ -93,6 +110,8 @@ ProcessDrawCommands :: () {
                 }
                 
                 DrawMeshInstanced(DebugPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*Temp));
+                
+                ArenaReset(*Temp);
             } else {
                 DrawMeshInstanced(OpaquePass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
             }
@@ -125,6 +144,7 @@ GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
     }
     
     Batch := *FrontendMeshBatches[Hash % MAX_BATCHES];
+    
     if !Batch.Initialized {
         Batch.Flags = MeshCommand.Flags;
         Batch.SkinningTransforms = MeshCommand.SkinningTransforms;
@@ -180,8 +200,8 @@ DrawMeshInstanced :: (Pass: *draw_pass($T), Mesh: *mesh, SkinningTransforms: [] 
 WriteStructuredBuffer :: (StructuredBuffer: *$I/structured_buffer, Data: [] I.T) {
     if !StructuredBuffer return;
     
-    if StructuredBuffer.Used + Data.count >= StructuredBuffer.Capacity return;
+    Count := Min(Data.count, StructuredBuffer.Capacity - StructuredBuffer.Used);
     
     Copy(StructuredBuffer.Mapping + StructuredBuffer.Used, Data.data, Data.count * size_of(I.T));
-    StructuredBuffer.Used += Data.count;
+    StructuredBuffer.Used += Count;
 }

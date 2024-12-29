@@ -97,10 +97,10 @@ build_game :: (profiling: bool) {
     options.intermediate_path = ".build/";
     options.backend = .LLVM;
     options.output_executable_name = "twosid";
-    // options.debug_for_expansions = true;
-    set_optimization(*options, .VERY_DEBUG);
+    //options.debug_for_expansions = true;
+    //set_optimization(*options, .VERY_DEBUG);
     
-    //set_optimization(*options, .VERY_OPTIMIZED);
+    set_optimization(*options, .VERY_OPTIMIZED);
     //options.llvm_options.preserve_debug_info = true;
     
     options.text_output_flags = 0;
@@ -150,21 +150,21 @@ build_game :: (profiling: bool) {
         message := compiler_wait_for_message();
         for plugins if it.message it.message(it, message);
         
-        if profiling {
-            if message.kind == .TYPECHECKED {
-                tc := cast (*Message_Typechecked) message;
-                for tc.declarations {
-                    exp := it.expression;
+        if message.kind == .TYPECHECKED {
+            tc := cast (*Message_Typechecked) message;
+            for tc.declarations {
+                exp := it.expression;
+                if profiling {
                     for n: exp.notes if equal(n.text, "TracyPlot") {
                         array_add(*plots, exp.name);
                     }
                 }
-                
-                for tc.structs {
-                    exp := it.expression;
-                    t := exp.defined_type;
-                    if is_subclass_of(t, "entity") array_add(*entity_types, t);
-                }
+            }
+            
+            for tc.structs {
+                exp := it.expression;
+                t := exp.defined_type;
+                if is_subclass_of(t, "entity") array_add(*entity_types, t);
             }
         }
         
@@ -252,7 +252,7 @@ build :: () {
     for args {
         if contains(it, "compile_shaders") compile_shaders = true;
         if contains(it, "generate_sdl_bindings") generate_sdl_bindings = true;
-        if contains(it, "noprof") profiling = false;
+        if contains(it, "prof") profiling = true;
     }
     
     if generate_sdl_bindings {

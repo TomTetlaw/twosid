@@ -54,8 +54,8 @@ float4 vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId): SV_Posi
 
 #ifdef FRAGMENT_SHADER
 
-float fragment_main(float4 p: SV_Position) : SV_Depth {
-	return 1.0 - (p.z * .5 + .5);
+float fragment_main(float4 pos: SV_Position) : SV_Depth {
+	return 1.0 - (pos.z*.5 + .5);
 }
 
 #endif

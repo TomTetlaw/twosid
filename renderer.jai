@@ -59,7 +59,7 @@ InitRenderer :: () {
         DepthCreateInfo.depth_stencil_state.enable_depth_write = true;
         DepthCreateInfo.depth_stencil_state.enable_stencil_test = false;
         
-        DepthCreateInfo.rasterizer_state.cull_mode = .SDL_GPU_CULLMODE_FRONT;
+        DepthCreateInfo.rasterizer_state.cull_mode = .SDL_GPU_CULLMODE_NONE;
         DepthCreateInfo.rasterizer_state.fill_mode = .SDL_GPU_FILLMODE_FILL;
         DepthCreateInfo.rasterizer_state.front_face = .SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
         
@@ -112,7 +112,7 @@ InitRenderer :: () {
         MeshCreateInfo.depth_stencil_state.enable_depth_write = true;
         MeshCreateInfo.depth_stencil_state.enable_stencil_test = false;
         
-        MeshCreateInfo.rasterizer_state.cull_mode = .SDL_GPU_CULLMODE_NONE;
+        MeshCreateInfo.rasterizer_state.cull_mode = .SDL_GPU_CULLMODE_FRONT;
         MeshCreateInfo.rasterizer_state.fill_mode = .SDL_GPU_FILLMODE_FILL;
         MeshCreateInfo.rasterizer_state.front_face = .SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
         
@@ -144,7 +144,6 @@ InitRenderer :: () {
         
         MeshCreateInfo.vertex_input_state.num_vertex_buffers = 1;
         MeshCreateInfo.vertex_input_state.num_vertex_attributes = 1;
-        //MeshCreateInfo.target_info.has_depth_stencil_target = false;
         MeshCreateInfo.rasterizer_state.fill_mode = .SDL_GPU_FILLMODE_LINE;
         MeshCreateInfo.vertex_shader = ShaderDebug.Vert;
         MeshCreateInfo.fragment_shader = ShaderDebug.Frag;
@@ -327,7 +326,7 @@ CalcLightSpaceMatrix :: (LightPos: float3, LightDir: float3, Proj: float4x4, Vie
     Dir := float3.{-LightDir.y, LightDir.z, LightDir.x};
     LightView := LookAtMatrix(Center + LightDir, Center);
     
-    Right, Top, Far := FLOAT32_MIN;
+    Right, Top, Far := -FLOAT32_MAX;
     Left, Bottom, Near := FLOAT32_MAX;
     
     for Corners {
@@ -590,7 +589,7 @@ SHADOW_MAP_SIZE :: 4096;
 NEAR_PLANE :: 0.1;
 FAR_PLANE :: 500.0;
 
-MAX_INSTANCES :: 4096;
+MAX_INSTANCES :: 10000;
 
 RendererArena: arena;
 
@@ -785,6 +784,13 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
     Viewport.min_depth = 0.0;
     Viewport.max_depth = 1.0;
     SDL_SetGPUViewport(RenderPass, *Viewport);
+    
+    Scissor: SDL_Rect;
+    Scissor.x = 0;
+    Scissor.y = 0;
+    Scissor.w = xx Pass.Viewport.x;
+    Scissor.h = xx Pass.Viewport.y;
+    SDL_SetGPUScissor(RenderPass, *Scissor);
     
     SDL_BindGPUGraphicsPipeline(RenderPass, Pass.Pipeline);
     

@@ -7,6 +7,10 @@ operator [] :: (v: float3, Index: int) -> float {
     return v.Components[Index];
 }
 
+operator []= :: (v: *float3, Index: int, Value: float) {
+    v.Components[Index] = Value;
+}
+
 operator [] :: (v: float4, Index: int) -> float {
     return v.Components[Index];
 }

@@ -90,6 +90,11 @@ plane :: struct {
     Normal: float3;
 }
 
+cylinder :: struct {
+    Center, Axis: float3;
+    Radius, Height: float;
+}
+
 float2 :: struct {
     x, y: float;
     
@@ -332,6 +337,21 @@ Max :: (a: float3, b: float3) -> float3 {
     };
 }
 
+Clamp :: (Value: float2, Min: float2, Max: float2) -> float2 {
+    return .{
+        Clamp(Value.x, Min.x, Max.x),
+        Clamp(Value.y, Min.y, Max.y),
+    };
+}
+
+Clamp :: (Value: float3, Min: float3, Max: float3) -> float3 {
+    return .{
+        Clamp(Value.x, Min.x, Max.x),
+        Clamp(Value.y, Min.y, Max.y),
+        Clamp(Value.z, Min.z, Max.z),
+    };
+}
+
 Saturate :: (v: float2) -> float2 {
     return float2.{
         Max(Min(v.x, 1.0), 0.0),
@@ -347,33 +367,33 @@ Saturate :: (v: float3) -> float3 {
     };
 }
 
-Approach :: (C: float, G: float, Dt: float) -> float {
-    D := G - C;
-    if Abs(D) <= Dt return G;
-    return C + Dt * (D / Abs(D));
+Exp :: exp;
+
+Approach :: (C: float, G: float, Decay: float, Dt: float) -> float {
+    return G + (C - G) * Exp(-Decay * Dt);
 }
 
-Approach :: (C: float2, G: float2, Dt: float) -> float2 {
+Approach :: (C: float2, G: float2, Decay: float, Dt: float) -> float2 {
     return .{
-        Approach(C.x, G.x, Dt),
-        Approach(C.y, G.y, Dt)
+        Approach(C.x, G.x, Decay, Dt),
+        Approach(C.y, G.y, Decay, Dt)
     };
 }
 
-Approach :: (C: float3, G: float3, Dt: float) -> float3 {
+Approach :: (C: float3, G: float3, Decay: float, Dt: float) -> float3 {
     return .{
-        Approach(C.x, G.x, Dt),
-        Approach(C.y, G.y, Dt),
-        Approach(C.z, G.z, Dt)
+        Approach(C.x, G.x, Decay, Dt),
+        Approach(C.y, G.y, Decay, Dt),
+        Approach(C.z, G.z, Decay, Dt)
     };
 }
 
-Approach :: (C: float4, G: float4, Dt: float) -> float4 {
+Approach :: (C: float4, G: float4, Decay: float, Dt: float) -> float4 {
     return .{
-        Approach(C.x, G.x, Dt),
-        Approach(C.y, G.y, Dt),
-        Approach(C.z, G.z, Dt),
-        Approach(C.w, G.w, Dt)
+        Approach(C.x, G.x, Decay, Dt),
+        Approach(C.y, G.y, Decay, Dt),
+        Approach(C.z, G.z, Decay, Dt),
+        Approach(C.w, G.w, Decay, Dt)
     };
 }
 
@@ -484,4 +504,4 @@ RotateVectorAxes :: (v: float3, q: quat, a: float4) -> float3 {
 #import "Basic";
 #import "Random";
 
-using,only(ceil,floor,abs,sqrt,fmod_cycling) Math :: #import "Math";
+using,only(ceil,floor,abs,sqrt,fmod_cycling,exp) Math :: #import "Math";

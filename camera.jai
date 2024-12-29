@@ -19,13 +19,8 @@ camera_flying :: struct {
 };
 
 camera_player :: struct {
-    WALK_SPEED :: 4.7;
-    RUN_SPEED :: 9.6;
     ROTATION_SPEED :: 0.3;
     ROTATION_SMOOTHING :: 0.3;
-    EYE_HEIGHT :: 6.0;
-    
-    EyePosition: float3;
     
     Yaw, Pitch: float;
     RotationInput: float2;
@@ -35,19 +30,7 @@ camera_player :: struct {
     using ViewParameters: view_parameters;
 };
 
-UpdateCameraPlayer :: (Camera: *camera_player, GroundHeight: float) {
-	MoveInput: float2;
-    
-    MoveSpeed := Camera.WALK_SPEED;
-    if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed = Camera.RUN_SPEED;
-    if KeyState(.SDL_SCANCODE_LCTRL) MoveSpeed /= 10.0;
-    
-    MoveInput.x = KeyState(.SDL_SCANCODE_W) - KeyState(.SDL_SCANCODE_S);
-    MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
-    MoveInput = RotateVector(MoveInput, Camera.Yaw);
-    
-	Camera.Position += xyz(MoveInput * MoveSpeed * DeltaTime, 0.0);
-    
+UpdateCameraPlayer :: (Camera: *camera_player) {
     Camera.RotationInput = Lerp(Camera.RotationInput, Mouse.Delta, Camera.ROTATION_SMOOTHING);
     Delta := Camera.RotationInput * Camera.ROTATION_SPEED;
     Camera.Yaw = Camera.Yaw + Delta.x*Deg2Turn;
@@ -59,9 +42,7 @@ UpdateCameraPlayer :: (Camera: *camera_player, GroundHeight: float) {
     
     Camera.Rotation = Yaw * Pitch;
     
-    Camera.EyePosition = Camera.Position + .{0, 0, GroundHeight + Camera.EYE_HEIGHT};
-    ViewTransform := TranslationMatrix(Camera.EyePosition) * RotationMatrix(Camera.Rotation);
-    
+    ViewTransform := TranslationMatrix(Camera.Position) * RotationMatrix(Camera.Rotation);
     Camera.View = InverseMatrix(ViewTransform);
 }
 

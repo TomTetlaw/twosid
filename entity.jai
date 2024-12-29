@@ -20,6 +20,105 @@ entity :: struct {
     DrawPosition: float3;
 }
 
+entity_physics :: struct {
+    Velocity: float3;
+    GoalVelocity: float3;
+    
+    AccelDecay := 16.0;
+    AccelSpeed := 1.0;
+}
+
+IntegrateEntityPhysics :: (Entity: *entity, P: *entity_physics) {
+    P.Velocity = Approach(P.Velocity, P.GoalVelocity, P.AccelDecay, DeltaTime * P.AccelSpeed);
+    Entity.Position = Entity.Position + P.Velocity * DeltaTime;
+}
+
+entity_collision :: struct {
+    CylinderAxis: float3;
+    CylinderRadius, CylinderHeight: float;
+}
+
+collider_kind :: enum {
+    BOX;
+    CYLINDER;
+}
+
+collider :: struct {
+    Kind: collider_kind;
+}
+
+collider_box :: struct {
+    using #as Base: collider;
+    Box: bounding_box;
+}
+
+collider_cylinder :: struct {
+    using #as Base: collider;
+    Cylinder: cylinder;
+}
+
+HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision, Colliders: [] *collider) {
+    
+    ClosestPointOnSegment :: (P: float3, A: float3, B: float3) -> float3 {
+        AB := B - A;
+        T := Dot(P - A, AB) / Dot(AB, AB);
+        T = Max(0, Min(1.0, T));
+        return A + AB * T;
+    }
+    
+    for Colliders {
+        if it.Kind == .BOX {
+            Collider := cast (*collider_box) it;
+            Box := Collider.Box;
+            
+            Position := xyz(Entity.Position.xy, 0);
+            
+            Base := Position - (C.CylinderAxis * C.CylinderHeight * .5);
+            Top := Position + (C.CylinderAxis * C.CylinderHeight * .5);
+            
+            ClampedBase := Clamp(Base, Box.Min, Box.Max);
+            ClampedTop := Clamp(Top, Box.Min, Box.Max);
+            
+            ClosestPoint := ClosestPointOnSegment(ClampedBase, Base, Top);
+            Delta := ClosestPoint - ClampedBase;
+            D := Dot(Delta, Delta);
+            
+            R := C.CylinderRadius;
+            if D <= R*R {
+                CollisionNormal := Normalize(Delta);
+                Depth := R - SquareRoot(D);
+                
+                Entity.Position = Entity.Position + (CollisionNormal * Depth);
+            }
+        } else if it.Kind == .CYLINDER {
+            Collider := cast (*collider_cylinder) it;
+            Cylinder := Collider.Cylinder;
+            
+            Position := xyz(Entity.Position.xy, 0);
+            
+            Delta := Position - Cylinder.Center;
+            
+            DistanceA := Dot(Delta, C.CylinderAxis);
+            ClosestPointA := Position - C.CylinderAxis * (DistanceA - C.CylinderHeight * 0.5);
+            
+            DistanceB := Dot(Delta, Cylinder.Axis);
+            ClosestPointB := Cylinder.Center - Cylinder.Axis * DistanceB;
+            
+            DeltaClosest := ClosestPointA - ClosestPointB;
+            
+            D := Dot(DeltaClosest, DeltaClosest);
+            
+            Combined := C.CylinderRadius + Cylinder.Radius;
+            if D <= Combined * Combined {
+                CollisionNormal := Normalize(DeltaClosest);
+                Depth := Combined - SquareRoot(D);
+                
+                Entity.Position = Entity.Position + (CollisionNormal * Depth);
+            }
+        }
+    }
+}
+
 PositionEntityAboveGround :: (Entity: *entity, HeightAboveGround: float) {
     GroundHeight := GetGroundHeight(Entity.Position);
     Height := GroundHeight + HeightAboveGround;

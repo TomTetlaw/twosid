@@ -61,7 +61,6 @@ ArenaAlloc :: (Arena: *$A/arena, Size: u64, $Align := 0, $L := #caller_location)
         }
         
         PlatformCommit(Arena.Base, Arena.Capacity, AlignedSize);
-        
         Arena.Capacity += AlignedSize;
     }
     
@@ -77,7 +76,7 @@ ArenaAlloc :: (Arena: *$A/arena, Size: u64, $Align := 0, $L := #caller_location)
 }
 
 ArenaPushNull :: ($T: Type, $L := #caller_location) -> *T {
-    return ArenaPush(*NullValuesArena, T);
+    return ArenaPush(*NullValuesArena, T, L);
 }
 
 ArenaPush :: (Arena: *$A/arena, $L := #caller_location) -> *A.T {
@@ -146,6 +145,11 @@ ArenaPushN :: (Arena: *$A/arena, $T: Type, Values: [] T) -> [] T{
     return Dest;
 }
 
+ArenaPushView :: (Arena: *$A/arena, Values: [] $T) {
+    Dest := ArenaAlloc(Arena, xx (Values.count * size_of(T)));
+    Copy(Dest, Values.data, Values.count * size_of(T));
+}
+
 ArenaPushMark :: (Arena: *arena) -> u64 {
     return Arena.Used;
 }
@@ -181,12 +185,17 @@ PushFixedArena :: (Arena: *$A/arena, $T: Type, N: int) -> *arena(T) {
 }
 
 PopFixedArena :: (Fixed: *$A/arena) {
-    Arena = cast(*arena(u8)) Fixed.Parent;
-    ArenaPopMark(Fixed.ParentMark);
+    Arena := cast(*arena(u8)) Fixed.Parent;
+    ArenaPopMark(Arena, Fixed.ParentMark);
 }
 
 ArenaToView :: (Arena: *$A/arena) -> [] A.T {
     return .{xx (Arena.Used / size_of(A.T)), Arena.TypedBase};
+}
+
+ArenaToView :: (Arena: *arena, $T: Type, Offset: u64, Size: u64) -> [] T {
+    Count := cast(s64) (Size / size_of(T));
+    return .{Count, cast (*T) (Arena.Base + Offset)};
 }
 
 for_expansion :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
