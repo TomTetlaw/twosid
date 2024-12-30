@@ -102,7 +102,7 @@ main :: () {
     GameStartTime := current_time_monotonic();
     OldTime: Apollo_Time;
     
-    for 0..199 {
+    for 0..99 {
         Entity := CreateEntity(entity_traveller);
         Entity.HeightAboveGround = 3.0;
         

@@ -1,13 +1,13 @@
 
 GetGroundHeight :: (Position: float3) -> float {
     Triangles := GetRelevantTrianglesForRay(*TerrainBVH, .{xyz(Position.xy, 1000.0), .{0, 0, -1}});
-    Mesh := CreateTemporarySurfaceCollisionMesh(Triangles);
+    Mesh := CreateSurfaceCollisionMesh(*FrameArena, Triangles);
     Hit := RaySurfaceIntersection(*Mesh, Position.xy);
     return Hit.Z;
 }
 
 InitTerrain :: () {
-    TerrainTransform = TranslationMatrix(.{0, 0, 100});
+    TerrainTransform = TranslationMatrix(.{0, 0, 0});
     
     TerrainMesh = LoadMesh("meshes/terrain.mesh");
     
@@ -61,6 +61,7 @@ bvh_node :: struct {
     Bounds: bounding_box;
     LeftOrFirstTri: s32;
     TriCount: s32;
+    ColliderIndex: s32;
 }
 
 bvh :: struct {
@@ -179,7 +180,9 @@ QueryNodes :: (Arena: *arena, BVH: *bvh, NodeIndex: int, Ray: ray)  {
         }
     }
 }
-
+COMMAND_FORMAT :: #string HERE
+%1/SDL_shadercross/shadercross.exe %1/%2 -s HLSL -d %3 -t %5 -e %5_main -o %1/run_tree/shaders/%4.%3_frag -D%6_SHADER
+HERE;
 QueryBVH :: (Arena: *arena, BVH: *bvh, Ray: ray) {
     QueryNodes(Arena, BVH, 0, Ray);
 }

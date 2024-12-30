@@ -24,6 +24,8 @@ generate_sdl3_bindings :: () -> bool {
     return true;
 }
 
+COMMAND_FORMAT :: "%1/SDL_shadercross/shadercross.exe %1/%2 -s HLSL -d %3 -t %5 -e %5_main -o %1/run_tree/shaders/%4.%5.%3 -D%6_SHADER";
+
 compile_shaders_for_format :: (output_format: string) {
     print("Compiling all shaders for format: %\n", output_format);
     
@@ -43,46 +45,14 @@ compile_shaders_for_format :: (output_format: string) {
         
         working_dir := get_working_directory();
         
-        vert_args: [..] string;
-        array_add(*vert_args, tprint("%/SDL_shadercross/shadercross.exe", working_dir));
-        array_add(*vert_args, tprint("%/%", working_dir, file_name));
-        array_add(*vert_args, "-s");
-        array_add(*vert_args, "HLSL");
-        array_add(*vert_args, "-d");
-        array_add(*vert_args, output_format);
-        array_add(*vert_args, "-t");
-        array_add(*vert_args, "vertex");
-        array_add(*vert_args, "-e");
-        array_add(*vert_args, "vertex_main");
-        array_add(*vert_args, "-o");
-        array_add(*vert_args, tprint("%/run_tree/shaders/%.%_vert", working_dir, base_name, output_format));
-        array_add(*vert_args, "-DVERTEX_SHADER");
+        vert_string := tprint(COMMAND_FORMAT, working_dir, file_name, output_format, base_name, "vertex", "VERTEX");
+        frag_string := tprint(COMMAND_FORMAT, working_dir, file_name, output_format, base_name, "fragment", "FRAGMENT");
         
-        frag_args: [..] string;
-        array_add(*frag_args, tprint("%/SDL_shadercross/shadercross.exe", working_dir));
-        array_add(*frag_args, tprint("%/%", working_dir, file_name));
-        array_add(*frag_args, "-s");
-        array_add(*frag_args, "HLSL");
-        array_add(*frag_args, "-d");
-        array_add(*frag_args, output_format);
-        array_add(*frag_args, "-t");
-        array_add(*frag_args, "fragment");
-        array_add(*frag_args, "-e");
-        array_add(*frag_args, "fragment_main");
-        array_add(*frag_args, "-o");
-        array_add(*frag_args, tprint("%/run_tree/shaders/%.%_frag", working_dir, base_name, output_format));
-        array_add(*frag_args, "-DFRAGMENT_SHADER");
-        
-        /*for frag_args {
-            print("% ", it);
-        }
-        print("\n");
-        */
+        vert_args := break_command_into_strings(vert_string);
+        frag_args := break_command_into_strings(frag_string);
         
         vert_res, vert_out, vert_err := run_command(..vert_args, "", true, true);
         frag_res, frag_out, frag_err := run_command(..frag_args, "", true, true);
-        //print("%, %, %", vert_res, vert_out, vert_err);
-        //print("%, %, %", frag_res, frag_out, frag_err);
         
         if !vert_err && !frag_err {
             print("\t% -> %, %\n", file_name, tprint("%.%_vert", base_name, output_format), tprint("%.%_frag", base_name, output_format));
@@ -98,9 +68,9 @@ build_game :: (profiling: bool) {
     options.backend = .LLVM;
     options.output_executable_name = "twosid";
     //options.debug_for_expansions = true;
-    //set_optimization(*options, .VERY_DEBUG);
+    set_optimization(*options, .VERY_DEBUG);
     
-    set_optimization(*options, .VERY_OPTIMIZED);
+    //set_optimization(*options, .VERY_OPTIMIZED);
     //options.llvm_options.preserve_debug_info = true;
     
     options.text_output_flags = 0;
@@ -247,7 +217,7 @@ build :: () {
     
     compile_shaders := false;
     generate_sdl_bindings := false;
-    profiling := true;
+    profiling := false;
     
     for args {
         if contains(it, "compile_shaders") compile_shaders = true;
