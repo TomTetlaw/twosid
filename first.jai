@@ -160,25 +160,26 @@ build_game :: (profiling: bool) {
     
     {
         builder: String_Builder;
-        for entity_types {
-            print_to_builder(*builder, "%1_Arena: arena(%1);\n", it.name);
-        }
-        append(*builder, "\n");
         
         append(*builder, "entity_types :: struct {\n");
         append(*builder, "\tInfoList: [] entity_type_info;\n");
         for entity_types {
-            print_to_builder(*builder, "\t%: *arena(%);\n", convert_case(it.name), it.name);
+            print_to_builder(*builder, "\t%: arena(%);\n", convert_case(it.name), it.name);
         }
         append(*builder, "}\n\n");
         
         append(*builder, "CreateEntityTypeInfo :: (EntityInfo: *entity_types) {\n");
         append(*builder, "\tEntityTypesList: [..] entity_type_info;\n");
         for entity_types {
-            print_to_builder(*builder, "\tEntityInfo.% = *%_Arena;\n", convert_case(it.name), it.name);
-            print_to_builder(*builder, "\tarray_add(*EntityTypesList, .{%1, *%1_Arena});\n", it.name);
+            print_to_builder(*builder, "\tarray_add(*EntityTypesList, .{%, *EntityInfo.%});\n", it.name, convert_case(it.name));
         }
         append(*builder, "\tEntityInfo.InfoList = EntityTypesList;\n");
+        append(*builder, "}\n");
+        
+        append(*builder, "ResetEntityArenas :: () {\n");
+        for entity_types {
+            print_to_builder(*builder, "\tArenaReset(*EntityTypes.%);\n", convert_case(it.name));
+        }
         append(*builder, "}\n");
         
         add_build_string(builder_to_string(*builder), workspace);
@@ -217,7 +218,7 @@ build :: () {
     
     compile_shaders := false;
     generate_sdl_bindings := false;
-    profiling := false;
+    profiling := true;
     
     for args {
         if contains(it, "compile_shaders") compile_shaders = true;

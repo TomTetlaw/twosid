@@ -144,6 +144,7 @@ InitRenderer :: () {
         
         MeshCreateInfo.vertex_input_state.num_vertex_buffers = 1;
         MeshCreateInfo.vertex_input_state.num_vertex_attributes = 1;
+        MeshCreateInfo.rasterizer_state.cull_mode = .SDL_GPU_CULLMODE_NONE;
         MeshCreateInfo.rasterizer_state.fill_mode = .SDL_GPU_FILLMODE_LINE;
         MeshCreateInfo.vertex_shader = ShaderDebug.Vert;
         MeshCreateInfo.fragment_shader = ShaderDebug.Frag;
@@ -220,10 +221,10 @@ InitRenderer :: () {
         
         {
             Memory := cast(*float3) TransferMemory;
-            Memory[0] = .{0, 0, 0};
-            Memory[1] = .{1366/4, 0, 0};
-            Memory[2] = .{1366/4, 768/4, 0};
-            Memory[3] = .{0, 768/4, 0};
+            Memory[0] = .{-.5, -.5, 0};
+            Memory[1] = .{.5, -.5, 0};
+            Memory[2] = .{.5, .5, 0};
+            Memory[3] = .{-.5, .5, 0};
         }
         {
             Memory := cast(*float2) (TransferMemory + size_of(float3) * 4);
@@ -441,20 +442,26 @@ InitPasses :: () {
     }
     
     {
-        ScreenSpacePass = ArenaPush(*RendererArena, draw_pass(ibuffer_empty));
+        ScreenSpacePass = ArenaPush(*RendererArena, draw_pass(ibuffer_ss_quad));
         ScreenSpacePass.Type = .SCREEN_SPACE;
+        ScreenSpacePass.BuffersNeeded = .NONE;
+        ScreenSpacePass.TexturesNeeded = .DIFFUSE;
         ScreenSpacePass.Pipeline = ScreenSpacePipeline;
         
         ScreenSpacePass.VertConstants = ArenaPush(*RendererArena, cbuffer_screenspacemesh_vertex);
         ScreenSpacePass.VertConstantsSize = size_of(cbuffer_screenspacemesh_vertex);
         
         ScreenSpacePass.ColourTarget = true;
+        ScreenSpacePass.ClearColour = false;
         ScreenSpacePass.Viewport = .{1366, 768};
+        
+        ScreenSpacePass.InstanceBuffer = CreateStructuredBuffer(ibuffer_ss_quad, "screen_space_instance", MAX_INSTANCES);
     }
 }
 
 ResetPass :: (Pass: *draw_pass($T)) {
     ArenaReset(*Pass.Commands);
+    
 }
 
 ResetPasses :: () {
@@ -528,6 +535,7 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     MapStructuredBuffer(OpaquePass.InstanceBuffer);
     MapStructuredBuffer(TranslucentPass.InstanceBuffer);
     MapStructuredBuffer(DebugPass.InstanceBuffer);
+    MapStructuredBuffer(ScreenSpacePass.InstanceBuffer);
     
     MapStructuredBuffer(DepthPass.SkinningBuffer);
     MapStructuredBuffer(OpaquePass.SkinningBuffer);
@@ -553,24 +561,14 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     CommitStructuredBuffer(OpaquePass.InstanceBuffer, CopyPass);
     CommitStructuredBuffer(TranslucentPass.InstanceBuffer, CopyPass);
     CommitStructuredBuffer(DebugPass.InstanceBuffer, CopyPass);
+    CommitStructuredBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
     SDL_EndGPUCopyPass(CopyPass);
     
     DrawPass(DepthPass, CommandBuffer);
     DrawPass(OpaquePass, CommandBuffer);
     DrawPass(TranslucentPass, CommandBuffer);
     DrawPass(DebugPass, CommandBuffer);
-    
-    if FragDebugMode == 1 {
-        MapStructuredBuffer(ScreenSpacePass.InstanceBuffer);
-        
-        DrawShadowMap(ScreenSpacePass);
-        
-        CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-        CommitStructuredBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
-        SDL_EndGPUCopyPass(CopyPass);
-        
-        DrawPass(ScreenSpacePass, CommandBuffer);
-    }
+    DrawPass(ScreenSpacePass, CommandBuffer);
     
     SDL_SubmitGPUCommandBuffer(CommandBuffer);
     
@@ -628,6 +626,12 @@ ibuffer_debug :: struct {
     Pad: float;
 }
 
+ibuffer_ss_quad :: struct {
+    Position: float2;
+    Size: float2;
+    Colour: float4;
+}
+
 cbuffer_screenspacemesh_vertex :: struct {
     Projection: float4x4;
 }
@@ -642,6 +646,7 @@ draw_pass_type :: enum {
 }
 
 draw_pass_buffers :: enum {
+    NONE;
     POSITION_ONLY;
     DEPTH_ONLY;
     MESH;
@@ -649,6 +654,7 @@ draw_pass_buffers :: enum {
 
 draw_pass_textures :: enum {
     NONE;
+    DIFFUSE;
     DIFFUSE_NORMAL_RMAOH;
 }
 
@@ -705,21 +711,21 @@ structured_buffer :: struct ($T: Type) {
 OpaquePass: *draw_pass(ibuffer_mesh);
 DebugPass: *draw_pass(ibuffer_debug);
 DepthPass: *draw_pass(ibuffer_mesh);
-ScreenSpacePass: *draw_pass(ibuffer_empty);
 TranslucentPass: *draw_pass(ibuffer_mesh);
+ScreenSpacePass: *draw_pass(ibuffer_ss_quad);
 
 DefaultSampler: *SDL_GPUSampler;
 
 RendererFrameArena: arena;
 
+ScreenSpacePositionBuffer: *SDL_GPUBuffer;
+ScreenSpaceTexCoordBuffer: *SDL_GPUBuffer;
+ScreenSpaceIndexBuffer: *SDL_GPUBuffer;
+
 #scope_file
 
 MAX_FRAG_DEBUG_MODE :: 1;
 FragDebugMode: s32;
-
-ScreenSpacePositionBuffer: *SDL_GPUBuffer;
-ScreenSpaceTexCoordBuffer: *SDL_GPUBuffer;
-ScreenSpaceIndexBuffer: *SDL_GPUBuffer;
 
 MeshPipeline: *SDL_GPUGraphicsPipeline;
 WireframeMeshPipeline: *SDL_GPUGraphicsPipeline;
@@ -815,27 +821,16 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
         
         SDL_BindGPUVertexBuffers(RenderPass, 0, it.VertexBuffers.data, xx it.VertexBuffers.count);
         
-        IndexBinding := SDL_GPUBufferBinding.{it.IndexBuffer, 0};
-        SDL_BindGPUIndexBuffer(RenderPass, *IndexBinding, .SDL_GPU_INDEXELEMENTSIZE_32BIT);
+        if it.IndexBuffer {
+            IndexBinding := SDL_GPUBufferBinding.{it.IndexBuffer, 0};
+            SDL_BindGPUIndexBuffer(RenderPass, *IndexBinding, .SDL_GPU_INDEXELEMENTSIZE_32BIT);
+        }
         
         SDL_DrawGPUIndexedPrimitives(RenderPass, xx it.IndexCount, xx it.InstanceCount, 0, 0, xx BaseInstance);
         BaseInstance += it.InstanceCount;
     }
     
     SDL_EndGPURenderPass(RenderPass);
-}
-
-DrawShadowMap :: (Pass: *draw_pass) {
-    Command := ArenaPush(*Pass.Commands);
-    
-    Command.VertexBuffers = ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, .[.{ScreenSpacePositionBuffer, 0}, .{ScreenSpaceTexCoordBuffer, 0}]);
-    
-    Command.IndexBuffer = ScreenSpaceIndexBuffer;
-    Command.IndexCount = 6;
-    
-    Command.Textures = ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, .[.{ShadowTexture, ShadowSampler}]);
-    
-    Command.InstanceCount = 1;
 }
 
 CreateStructuredBuffer :: ($T: Type, Name: string, Capacity: int) -> *structured_buffer(T) {

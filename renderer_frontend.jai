@@ -12,6 +12,7 @@ mesh_draw_command_flags :: enum_flags u32 {
 
 draw_command_kind :: enum {
     MESH;
+    SCREEN_SPACE_QUAD;
 }
 
 draw_command :: struct {
@@ -20,12 +21,21 @@ draw_command :: struct {
 
 draw_command_mesh :: struct {
 #as using Base: draw_command;
+    Base.Kind = .MESH;
     
     Flags: mesh_draw_command_flags;
     Mesh: *mesh;
     SkinningTransforms: [] float4x4;
     Textures: [] *texture;
     Instance: ibuffer_mesh;
+}
+
+draw_command_ss_quad :: struct {
+#as using Base: draw_command;
+    Base.Kind = .SCREEN_SPACE_QUAD;
+    
+    Texture: *texture;
+    Instance: ibuffer_ss_quad;
 }
 
 // Batch for drawing an instanced mesh.
@@ -41,12 +51,18 @@ draw_batch_mesh :: struct {
     Initialized: bool;
 }
 
-DrawMesh :: (Mesh: *mesh, Position: float3, Textures: [3] *texture, Colour := float4.{1, 1, 1, 1}) {
+draw_batch_quad :: struct {
+    Texture: *texture;
+    InstanceData: arena(ibuffer_ss_quad);
+    Initialized: bool;
+}
+
+DrawDebugMesh :: (Position: float3, Mesh: *mesh, Colour := float4.{1, 1, 1, 1}) {
     Command: draw_command_mesh;
     Command.Mesh = Mesh;
+    Command.Flags = .DEBUG;
     Command.Instance.Transform = TranslationMatrix(Position);
     Command.Instance.DiffuseColour = Colour;
-    Command.Textures = Textures;
     AddDrawCommand(*Command);
 }
 
@@ -80,11 +96,28 @@ DrawCylinder :: (Cylinder: cylinder, Colour := float4.{1, 1, 1, 1}) {
     AddDrawCommand(*Command);
 }
 
+DrawScreenSpaceQuad :: (Position: float2, Size: float2, Colour := float4.{1, 1, 1, 1}, Texture: *texture = null) {
+    Command: draw_command_ss_quad;
+    
+    if Texture Command.Texture = Texture;
+    else Command.Texture = LoadTexture("textures/white.png");
+    
+    Command.Instance.Position = Position;
+    Command.Instance.Size = Size;
+    Command.Instance.Colour = Colour;
+    
+    AddDrawCommand(*Command);
+}
+
 AddDrawCommand :: (Command: *$T/draw_command) {
     if Command.Kind == .MESH {
         MeshCommand := cast (*draw_command_mesh) Command;
         Batch := GetMeshBatch(MeshCommand);
         ArenaPush(*Batch.InstanceData, MeshCommand.Instance);
+    } else if Command.Kind == .SCREEN_SPACE_QUAD {
+        QuadCommand := cast (*draw_command_ss_quad) Command;
+        Batch := GetQuadBatch(QuadCommand);
+        ArenaPush(*Batch.InstanceData, QuadCommand.Instance);
     }
 }
 
@@ -117,14 +150,38 @@ ProcessDrawCommands :: () {
             }
         }
     }
+    
+    for * FrontendQuadBatches {
+        if it.InstanceData.Count == 0 continue;
+        
+        Command := ArenaPush(*ScreenSpacePass.Commands);
+        Command.Textures = ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, .[.{it.Texture.GpuTexture, DefaultSampler}]);
+        
+        VertexBuffers := ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, 2);
+        VertexBuffers[0] = .{ScreenSpacePositionBuffer, 0};
+        VertexBuffers[1] = .{ScreenSpaceTexCoordBuffer, 0};
+        Command.VertexBuffers = VertexBuffers;
+        Command.IndexBuffer = ScreenSpaceIndexBuffer;
+        
+        Command.IndexCount = 6;
+        
+        Command.InstanceCount = it.InstanceData.Count;
+        WriteStructuredBuffer(ScreenSpacePass.InstanceBuffer, ArenaToView(*it.InstanceData));
+    }
 }
 
 InitRendererFrontend :: () {
     FrontendMeshBatches = ArenaPushN(*RendererArena, draw_batch_mesh, MAX_BATCHES);
+    FrontendQuadBatches = ArenaPushN(*RendererArena, draw_batch_quad, MAX_BATCHES);
 }
 
 ResetRendererFrontend :: () {
     for * FrontendMeshBatches {
+        ArenaReset(*it.InstanceData);
+        it.Initialized = false;
+    }
+    
+    for * FrontendQuadBatches {
         ArenaReset(*it.InstanceData);
         it.Initialized = false;
     }
@@ -135,6 +192,7 @@ ResetRendererFrontend :: () {
 MAX_BATCHES :: 2048;
 
 FrontendMeshBatches: [] draw_batch_mesh;
+FrontendQuadBatches: [] draw_batch_quad;
 
 GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
     Hash := GetHash(MeshCommand.Mesh.Path, cast (u32) MeshCommand.Flags);
@@ -150,6 +208,21 @@ GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
         Batch.SkinningTransforms = MeshCommand.SkinningTransforms;
         Batch.Mesh = MeshCommand.Mesh;
         Batch.Textures = MeshCommand.Textures;
+        Batch.Initialized = true;
+    }
+    
+    return Batch;
+}
+
+GetQuadBatch :: (QuadCommand: *draw_command_ss_quad) -> *draw_batch_quad {
+    Hash := 0;
+    if QuadCommand.Texture Hash = GetHash(QuadCommand.Texture.Path);
+    else Hash = GetHash("no_texture");
+    
+    Batch := *FrontendQuadBatches[Hash % MAX_BATCHES];
+    
+    if !Batch.Initialized {
+        Batch.Texture = QuadCommand.Texture;
         Batch.Initialized = true;
     }
     

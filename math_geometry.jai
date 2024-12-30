@@ -216,7 +216,7 @@ collision_mesh :: struct {
     Tris: [] triangle;
 }
 
-CreateCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) -> collision_mesh {
+CreateCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld := IdentityMatrix) -> collision_mesh {
     TriangleCount := Mesh.NumIndices / 3;
     
     Tris := PushFixedArena(Arena, triangle, TriangleCount);

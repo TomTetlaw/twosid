@@ -26,23 +26,6 @@ KeyState :: (c: SDL_Scancode) -> float {
 GDevice: *SDL_GPUDevice;
 GWindow: *SDL_Window;
 
-entity_traveller :: struct {
-    using #as Base: entity;
-    
-    ApproachSpeed := 5.0;
-    GoalPosition: float3;
-    LastUpdateTime: float;
-    TimePerUpdate: float;
-    
-    HeightAboveGround := 3.0;
-}
-
-entity_man :: struct {
-    using #as Base: entity;
-    
-    HeightAboveGround := 0.0;
-}
-
 entity_player :: struct {
     using #as Base: entity;
     
@@ -82,14 +65,13 @@ main :: () {
     
     if !SDL_ClaimWindowForGPUDevice(GDevice, GWindow) FatalError("Failed to claim window for GPU Device: %", SdlGetError());
     
-    print("SDL_GPU Driver: %\n", SdlGetGpuDeviceDriver());
-    
     InitShaderSystem();
     InitRenderer();
     InitTextureSystem();
     InitMeshSystem();
     InitTerrain();
     InitEntitySystem();
+    InitEditor();
     
     KeyStates = SDL_GetKeyboardState(null);
     SDL_SetWindowRelativeMouseMode(GWindow, true);
@@ -101,33 +83,6 @@ main :: () {
     
     GameStartTime := current_time_monotonic();
     OldTime: Apollo_Time;
-    
-    for 0..99 {
-        Entity := CreateEntity(entity_traveller);
-        Entity.HeightAboveGround = 3.0;
-        
-        Entity.Mesh = LoadMesh("meshes/cube.mesh");
-        Entity.Textures = ArenaPushN(*WorkingArena, *texture, .[LoadTexture("textures/bamboo_diffuse.png"), LoadTexture("textures/bamboo_normal.png"), LoadTexture("textures/bamboo_rmaoh.png")]);
-        Entity.Colour = RandomFloat4();
-        Entity.TimePerUpdate = 0.5 + RandomFloat(0.0, 2.0);
-        Entity.ApproachSpeed = 0.25;
-    }
-    
-    {
-        Entity := CreateEntity(entity_man);
-        Entity.Mesh = LoadMesh("meshes/man.mesh");
-        Entity.AnimPlayer = CreateAnimPlayer(Entity.Mesh, LoadAnimation("meshes/man_run.anim"));
-        AnimPlay(*Entity.AnimPlayer);
-        Entity.Textures = ArenaPushN(*WorkingArena, *texture, .[LoadTexture("textures/uv_check.png"), LoadTexture("textures/unit_normal.png"), LoadTexture("textures/unit_rmaoh.png")]);
-        Entity.HeightAboveGround = 0.0;
-    }
-    
-    {
-        Entity := CreateEntity(entity_player);
-        Entity.CylinderAxis = .{0, 0, 1};
-        Entity.CylinderRadius = 3.0;
-        Entity.CylinderHeight = 6.0;
-    }
     
     Quit := false;
     while !Quit {
@@ -171,18 +126,14 @@ main :: () {
         Quit = ProcessWindowEvents();
         if Quit break;
         
-        if KeyPressed(.SDL_SCANCODE_F1) {
-            UseFlyingCamera = !UseFlyingCamera;
-            if UseFlyingCamera {
-                FlyingCamera.Position = PlayerCamera.Position;
-                FlyingCamera.Yaw = PlayerCamera.Yaw;
-                FlyingCamera.Pitch = PlayerCamera.Pitch;
-                FlyingCamera.Rotation = PlayerCamera.Rotation;
-            }
-        }
-        
         if KeyPressed(.SDL_SCANCODE_F2) {
             GamePaused = !GamePaused;
+        }
+        
+        if KeyPressed(.SDL_SCANCODE_F5) {
+            ToggleEditor();
+            if !GEditorOpen UseFlyingCamera = false;
+            else UseFlyingCamera = true;
         }
         
         if UseFlyingCamera {
@@ -190,37 +141,16 @@ main :: () {
             ViewParameters = FlyingCamera.ViewParameters;
         }
         
-        for * EntityTypes.Traveller {
-            if (GameTime - it.LastUpdateTime >= it.TimePerUpdate) {
-                it.LastUpdateTime = GameTime;
-                it.GoalPosition = float3.{
-                    RandomFloat(-500.0, 500.0),
-                    RandomFloat(-500.0, 500.0),
-                    0.0
-                };
-            }
+        for * :OnlyActiveEntities EntityTypes.Player {
+            Player := it;
             
-            it.Position = Approach(it.Position, it.GoalPosition, 1.0, DeltaTime * it.ApproachSpeed);
+            MoveSpeed := Player.WalkSpeed;
+            if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed = Player.RunSpeed;
             
-            PositionEntityAboveGround(it, it.HeightAboveGround);
-            
-            DrawEntity(it);
-        }
-        
-        for * EntityTypes.Man {
-            PositionEntityAboveGround(it, it.HeightAboveGround);
-            UpdateEntityAnimation(it);
-            DrawEntity(it);
-        }
-        
-        for * EntityTypes.Player {
-            MoveSpeed := it.WalkSpeed;
-            if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed = it.RunSpeed;
-            
-            EyeHeight := it.StandingHeight;
+            EyeHeight := Player.StandingHeight;
             if KeyState(.SDL_SCANCODE_LCTRL) {
-                MoveSpeed = it.CrouchSpeed;
-                EyeHeight = it.CrouchingHeight;
+                MoveSpeed = Player.CrouchSpeed;
+                EyeHeight = Player.CrouchingHeight;
             }
             
             MoveInput: float2;
@@ -228,23 +158,28 @@ main :: () {
             MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
             MoveInput = RotateVector(MoveInput, PlayerCamera.Yaw);
             
-            it.GoalVelocity = xyz(MoveInput * MoveSpeed, 0.0);
+            Player.GoalVelocity = xyz(MoveInput * MoveSpeed, 0.0);
             
-            IntegrateEntityPhysics(it, *it.Physics);
+            IntegrateEntityPhysics(Player, *Player.Physics);
             
-            HandleEntityMovementCollision(it, *it.Collision, .[]);
+            HandleEntityMovementCollision(Player, *Player.Collision);
             
-            it.GoalEyeHeight = EyeHeight;
-            it.EyeHeight = Approach(it.EyeHeight, it.GoalEyeHeight, 8.0, DeltaTime * 10.0);
-            PositionEntityAboveGround(it, it.EyeHeight);
+            Player.GoalEyeHeight = EyeHeight;
+            Player.EyeHeight = Approach(Player.EyeHeight, Player.GoalEyeHeight, 8.0, DeltaTime * 10.0);
+            PositionEntityAboveGround(Player, Player.EyeHeight);
             
-            PlayerCamera.Position = it.DrawPosition;
-            
+            PlayerCamera.Position = Player.DrawPosition;
             UpdateCameraPlayer(*PlayerCamera);
-            if !UseFlyingCamera ViewParameters = PlayerCamera.ViewParameters;
+            ViewParameters = PlayerCamera.ViewParameters;
         }
         
+        UpdateEditor(*FlyingCamera);
+        
+        DrawEditor();
+        
         DrawTerrain();
+        
+        DrawScreenSpaceQuad(.{100, 100}, .{100, 100}, .{1, 0, 0, 1});
         
         DrawFrame(*ViewParameters);
         

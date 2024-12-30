@@ -105,7 +105,7 @@ AnimUpdate :: (Player: *anim_player) {
         }
         else {
             Pose.ModelSpaceTransforms[Bone.Id] = LocalTransform;
-            Pose.ParentModelSpaceTransforms[Bone.Id] = IdentityMatrix();
+            Pose.ParentModelSpaceTransforms[Bone.Id] = IdentityMatrix;
         }
     }
     

@@ -27,16 +27,14 @@ float4x4 :: struct {
     Coef: [4][4] float = ---;
 #place _11; 
     Floats: [16] float = ---;
-};
-
-IdentityMatrix :: () -> float4x4 {
-    return float4x4.{
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    };
 }
+
+IdentityMatrix :: float4x4.{
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 1.0
+};
 
 TranslateMatrix :: (m: float4x4, v: float3) -> float4x4 {
     Result := m;
@@ -74,7 +72,7 @@ ViewToProjectionMatrix :: () -> float4x4 {
 }
 
 ProjectionMatrix :: (FovTurns: float, Aspect: float, Near: float, Far: float, $TransformFromViewSpace := true) -> float4x4 {
-    Result := IdentityMatrix();
+    Result := IdentityMatrix;
     
     TanTheta := TanTurns(FovTurns * 0.5);
     CotTheta := 1 / TanTheta;
@@ -112,7 +110,7 @@ OrthoProjectionMatrix :: (Left: float, Right: float, Bottom: float, Top: float, 
 }
 
 TranslationMatrix:: (t: float3) -> float4x4 {
-    Result := IdentityMatrix();
+    Result := IdentityMatrix;
     
     Result._14 = t.x;
     Result._24 = t.y;
@@ -122,7 +120,7 @@ TranslationMatrix:: (t: float3) -> float4x4 {
 }
 
 RotationMatrix :: (q: quat) -> float4x4 {
-    m := IdentityMatrix();
+    m := IdentityMatrix;
     s :: 2.0;
     
     xs := q.x * s;
@@ -157,7 +155,7 @@ RotationMatrix :: (q: quat) -> float4x4 {
 }
 
 ScaleMatrix :: (v: float3) -> float4x4 {
-    Result := IdentityMatrix();
+    Result := IdentityMatrix;
     
     Result._11 = v.x;
     Result._22 = v.y;

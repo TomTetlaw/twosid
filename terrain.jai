@@ -1,9 +1,27 @@
 
 GetGroundHeight :: (Position: float3) -> float {
     Triangles := GetRelevantTrianglesForRay(*TerrainBVH, .{xyz(Position.xy, 1000.0), .{0, 0, -1}});
+    if TerrainDebug print("Relevant tris: % (% packed)\n", Triangles.count, Triangles.count/8);
+    
     Mesh := CreateSurfaceCollisionMesh(*FrameArena, Triangles);
     Hit := RaySurfaceIntersection(*Mesh, Position.xy);
     return Hit.Z;
+}
+
+GetGroundPositionAlongRay :: (Ray: ray) -> float3, bool {
+    Triangles := GetRelevantTrianglesForRay(*TerrainBVH, Ray);
+    
+    BestT := FLOAT32_MAX;
+    BestPoint: float3;
+    for Triangles {
+        Hit := RayTriangleIntersection(Ray, it);
+        if Hit.Intersected && Hit.T < BestT {
+            BestT = Hit.T;
+            BestPoint = Hit.Point;
+        }
+    }
+    
+    return BestPoint, BestT != FLOAT32_MAX;
 }
 
 InitTerrain :: () {
@@ -39,9 +57,9 @@ DrawTerrain :: () {
         Command.Instance.DiffuseColour = .{1, 1, 1, 1};
         Command.Flags = .DEBUG;
         AddDrawCommand(*Command);
+        
+        DrawBVH(*TerrainBVH);
     }
-    
-    //DrawBVH(*TerrainBVH);
 }
 
 #scope_file
@@ -94,7 +112,7 @@ BuildBVH :: (Arena: *arena, Triangles: [] triangle) -> bvh {
 Subdivide :: (BVH: *bvh, NodeIndex: int, Depth := 0) {
     Node := *BVH.Nodes[NodeIndex];
     
-    if Node.TriCount <= 8 return;
+    if Node.TriCount <= 2 return;
     
     Mid := (Node.Bounds.Min + Node.Bounds.Max) * .5;
     Axis := Depth % 2;

@@ -3,6 +3,7 @@
 struct Frag_Input {
 	float4 ndc_position: SV_Position;
 	float2 tex_coord: TEXCOORD0;
+	float4 colour: TEXCOORD1;
 };
 
 #ifdef VERTEX_SHADER
@@ -16,12 +17,27 @@ cbuffer Constant_Buffer : register(b0, space1) {
 	row_major float4x4 projection;
 };
 
-Frag_Input vertex_main(Vertex_Input input) {
-	float4 ndc_position = mul(projection, float4(input.position, 1));
+struct Instance_Data {
+	float2 position;
+	float2 size;
+	float4 colour;
+};
+
+StructuredBuffer<Instance_Data> instance_data;
+
+Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
+	Instance_Data instance = instance_data[instance_id];
+
+	float2 position = instance.position + input.position.xy*instance.size;
+
+	float4 model_position = float4(position.x, position.y, 0, 1);
+
+	float4 ndc_position = mul(projection, model_position);
 
 	Frag_Input output;
-	output.tex_coord = input.tex_coord;
 	output.ndc_position = ndc_position;
+	output.tex_coord = input.tex_coord;
+	output.colour = instance.colour;
 	return output;
 }
 
@@ -33,9 +49,8 @@ Texture2D<float4> diffuse_texture: register(t0, space2);
 SamplerState diffuse_sampler: register(s0, space2);
 
 float4 fragment_main(Frag_Input input): SV_Target {
-	float sample = diffuse_texture.Sample(diffuse_sampler, input.tex_coord).r;
-	float4 colour = float4(sample, sample, sample, 1);
-	return colour;
+	float4 sample = diffuse_texture.Sample(diffuse_sampler, input.tex_coord);
+	return sample * input.colour;
 }
 
 #endif

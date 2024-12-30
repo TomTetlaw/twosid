@@ -30,7 +30,7 @@ InitShaderSystem :: () {
     MeshFrag := CreateShader("fragment", "mesh", 4, 0, 0, 1);
     ShaderMesh = .{MeshVert, MeshFrag};
     
-    ScreenSpaceMeshVert := CreateShader("vertex", "screen_space_mesh", 0, 0, 0, 1);
+    ScreenSpaceMeshVert := CreateShader("vertex", "screen_space_mesh", 0, 0, 1, 1);
     ScreenSpaceMeshFrag := CreateShader("fragment", "screen_space_mesh", 1, 0, 0, 0);
     ShaderScreenSpaceMesh = .{ScreenSpaceMeshVert, ScreenSpaceMeshFrag};
     

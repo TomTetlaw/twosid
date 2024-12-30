@@ -49,15 +49,19 @@ collider :: struct {
 
 collider_box :: struct {
     using #as Base: collider;
+    Base.Kind = .BOX;
+    
     Box: bounding_box;
 }
 
 collider_cylinder :: struct {
     using #as Base: collider;
+    Base.Kind = .CYLINDER;
+    
     Cylinder: cylinder;
 }
 
-HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision, Colliders: [] *collider) {
+HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision) {
     
     ClosestPointOnSegment :: (P: float3, A: float3, B: float3) -> float3 {
         AB := B - A;
@@ -66,7 +70,7 @@ HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision, Collide
         return A + AB * T;
     }
     
-    for Colliders {
+    for GColliders {
         if it.Kind == .BOX {
             Collider := cast (*collider_box) it;
             Box := Collider.Box;
@@ -154,7 +158,17 @@ CreateEntity :: ($T: Type) -> *T {
     return Entity;
 }
 
+RemoveEntity :: (Entity: *entity) {
+    Entity.Active = false;
+}
+
+RemoveAllEntities :: () {
+    ResetEntityArenas();
+}
+
 DrawEntity :: (Entity: *entity) {
+    if !Entity.Active return;
+    
     Command: draw_command_mesh;
     Command.Flags = 0;
     Command.Mesh = Entity.Mesh;
@@ -164,6 +178,30 @@ DrawEntity :: (Entity: *entity) {
     Command.Instance.DiffuseColour = Entity.Colour;
     Command.Instance.MaterialParams = .{1, 1, 1, 1};
     AddDrawCommand(*Command);
+}
+
+OnlyActiveEntities :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
+    num := cast (int) (Arena.Used / size_of(A.T));
+    
+    for Index: 0..num-1 {
+        ActualIndex := Index;
+#if Flags & .REVERSE {
+            ActualIndex = Num - 1 - Index;
+        }
+        
+        Entity := *Arena.TypedBase[ActualIndex];
+        if !Entity.Active continue;
+        
+#if Flags & .POINTER {
+            `it := *Arena.TypedBase[ActualIndex];
+        } else {
+            `it := Arena.TypedBase[ActualIndex];
+        }
+        
+        `it_index := ActualIndex;
+        
+#insert Body;
+    }
 }
 
 entity_type_info :: struct {
@@ -178,7 +216,6 @@ InitEntitySystem :: () {
 EntityTypes: entity_types;
 
 #scope_file 
-
 
 NextId: s32 = 0;
 
