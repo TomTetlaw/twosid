@@ -137,16 +137,16 @@ DrawText :: (Position: float2, Font: *font, S: string, Colour := float4.{1, 1, 1
     }
 }
 
-DrawTextSDF :: (Position: float2, Font: *sdf_font, S: string, Colour := float4.{1, 1, 1, 1}) {
+DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colour := float4.{1, 1, 1, 1}) {
     CurrentPos := Position;
     for S {
         Char := GetCharFromDistanceFont(Font, it);
         
-        Left := CurrentPos.x + Char.Left;
-        Right := CurrentPos.x + Char.Right;
-        Bottom := CurrentPos.y + Char.Bottom;
-        Top := CurrentPos.y + Char.Top;
-        CurrentPos.x += Char.Advance;
+        Left := CurrentPos.x + Char.Left*Size;
+        Right := CurrentPos.x + Char.Right*Size;
+        Bottom := CurrentPos.y + Char.Bottom*Size;
+        Top := CurrentPos.y + Char.Top*Size;
+        CurrentPos.x += Char.Advance*Size;
         
         Width := Right - Left;
         Height := Top - Bottom;
@@ -159,7 +159,7 @@ DrawTextSDF :: (Position: float2, Font: *sdf_font, S: string, Colour := float4.{
             Char.U1 - Char.U0, Char.V1 - Char.V0
         };
         
-        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true, .{1, Width/32.0 * 10.0, 0, 0});
+        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true, .{1, Width/32.0 * 2.0, Size, 0});
     }
 }
 

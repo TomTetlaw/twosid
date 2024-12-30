@@ -61,7 +61,7 @@ LoadFont :: (Path: string, Size: float) -> *font {
 }
 
 sdf_char :: struct {
-    Ascii: u8;
+    Ascii: int;
     Advance: float;
     U0, U1, V0, V1: float; // texture coords
     Left, Bottom, Right, Top: float; // layout
@@ -71,12 +71,11 @@ sdf_font :: struct {
     Path: string;
     Texture: *texture;
     Chars: [] sdf_char;
-    Size: float;
 }
 
-LoadDistanceFont :: (TexturePath: string, Size: float) -> *sdf_font {
+LoadDistanceFont :: (TexturePath: string) -> *sdf_font {
     for * DistanceFonts {
-        if equal(TexturePath, it.Path) && it.Size == Size return it;
+        if equal(TexturePath, it.Path) return it;
     }
     
     DistanceTexture := LoadTexture(TexturePath);
@@ -88,14 +87,14 @@ LoadDistanceFont :: (TexturePath: string, Size: float) -> *sdf_font {
         Values := split(it, ",");
         Char := ArenaPush(*FontArena, sdf_char);
         
-        Char.Ascii = cast (u8) string_to_int(Values[0]);
+        Char.Ascii = string_to_int(Values[0]);
         
-        Char.Advance = string_to_float(Values[1]) * Size;
+        Char.Advance = string_to_float(Values[1]);
         
-        Char.Left = string_to_float(Values[2]) * Size;
-        Char.Bottom = string_to_float(Values[3]) * Size;
-        Char.Right = string_to_float(Values[4]) * Size;
-        Char.Top = string_to_float(Values[5]) * Size;
+        Char.Left = string_to_float(Values[2]);
+        Char.Bottom = string_to_float(Values[3]);
+        Char.Right = string_to_float(Values[4]);
+        Char.Top = string_to_float(Values[5]);
         
         Char.U0 = string_to_float(Values[6]) / DistanceTexture.Width;
         Char.V0 = string_to_float(Values[7]) / DistanceTexture.Height;
@@ -108,7 +107,6 @@ LoadDistanceFont :: (TexturePath: string, Size: float) -> *sdf_font {
     Font.Path = TexturePath;
     Font.Texture = DistanceTexture;
     Font.Chars = Chars;
-    Font.Size = Size;
     
     return Font;
 }

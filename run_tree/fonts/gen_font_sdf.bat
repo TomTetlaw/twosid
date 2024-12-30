@@ -1,1 +1,1 @@
-msdf-atlas-gen.exe -font %1 -imageout %2 -csv %2.csv -yorigin top -size 32 -pxrange 10 -uniformcell 32 32
+msdf-atlas-gen.exe -font %1 -imageout %2 -csv %2.csv -yorigin top -pots -uniformcellconstraint pots -size 32

@@ -59,14 +59,14 @@ float4 fragment_main(Frag_Input input): SV_Target {
 	float2 tex_coord = input.tex_coord;
 	float4 sample = diffuse_texture.Sample(diffuse_sampler, input.tex_coord);
 	
+	// The text is not using a SDF font
 	if (input.TextParams.x <= 0) {
 		return float4(1, 1, 1, sample.r) * input.colour;
 	}
 
-	float sd = max(min(sample.r, sample.g), min(max(sample.r, sample.g), sample.b));
-	sd = input.TextParams.y * (sd - 0.5);
-	sd = clamp(sd + 0.5, 0, 1);
-	return float4(1, 1, 1, sd) * input.colour;
+	float msdf = max(min(sample.r, sample.g), min(max(sample.r, sample.g), sample.b));
+	msdf = smoothstep(0, .9, msdf);
+	return float4(1, 1, 1, msdf) * input.colour;
 }
 
 #endif

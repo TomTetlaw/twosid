@@ -85,7 +85,7 @@ main :: () {
     OldTime: Apollo_Time;
     
     Font := LoadFont("fonts/consolas.ttf", 32.0);
-    DistanceFont := LoadDistanceFont("fonts/consolas_sdf.png", 32.0);
+    DistanceFont := LoadDistanceFont("fonts/inconsolata_sdf.png");
     
     Quit := false;
     while !Quit {
@@ -186,7 +186,7 @@ main :: () {
         
         DrawText(.{100, 100}, Font, "Hello, world!");
         
-        DrawTextSDF(.{100, 200}, DistanceFont, "Hello, world! This is more TEXT. Test/{}()*I%UWJPIOE!!!2345");
+        DrawTextSDF(.{100, 200}, DistanceFont, 32.0, "Hello, world!");
         
         DrawFrame(*ViewParameters);
         
