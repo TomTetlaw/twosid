@@ -5,9 +5,10 @@ shader :: struct {
 }
 
 ShaderMesh: shader;
-ShaderScreenSpaceMesh: shader;
+ShaderScreenSpace: shader;
 ShaderDepthPass: shader;
 ShaderDebug: shader;
+ShaderText: shader;
 
 InitShaderSystem :: () {
     Formats := SDL_GetGPUShaderFormats(GDevice);
@@ -30,9 +31,13 @@ InitShaderSystem :: () {
     MeshFrag := CreateShader("fragment", "mesh", 4, 0, 0, 1);
     ShaderMesh = .{MeshVert, MeshFrag};
     
-    ScreenSpaceMeshVert := CreateShader("vertex", "screen_space_mesh", 0, 0, 1, 1);
-    ScreenSpaceMeshFrag := CreateShader("fragment", "screen_space_mesh", 1, 0, 0, 0);
-    ShaderScreenSpaceMesh = .{ScreenSpaceMeshVert, ScreenSpaceMeshFrag};
+    ScreenSpaceVert := CreateShader("vertex", "screen_space", 0, 0, 1, 1);
+    ScreenSpaceFrag := CreateShader("fragment", "screen_space", 1, 0, 0, 0);
+    ShaderScreenSpace = .{ScreenSpaceVert, ScreenSpaceFrag};
+    
+    TextVert := CreateShader("vertex", "text", 0, 0, 1, 1);
+    TextFrag := CreateShader("fragment", "text", 1, 0, 0, 0);
+    ShaderText = .{TextVert, TextFrag};
     
     DepthPassVert := CreateShader("vertex", "depth_pass", 0, 0, 2, 1);
     DepthPassFrag := CreateShader("fragment", "depth_pass", 0, 0, 0, 0);

@@ -30,10 +30,15 @@ draw_command_mesh :: struct {
     Instance: ibuffer_mesh;
 }
 
+ss_quad_command_flags :: enum_flags u32 {
+    TEXT;
+}
+
 draw_command_ss_quad :: struct {
 #as using Base: draw_command;
     Base.Kind = .SCREEN_SPACE_QUAD;
     
+    Flags: ss_quad_command_flags;
     Texture: *texture;
     Instance: ibuffer_ss_quad;
 }
@@ -52,6 +57,7 @@ draw_batch_mesh :: struct {
 }
 
 draw_batch_quad :: struct {
+    Flags: ss_quad_command_flags;
     Texture: *texture;
     InstanceData: arena(ibuffer_ss_quad);
     Initialized: bool;
@@ -96,7 +102,7 @@ DrawCylinder :: (Cylinder: cylinder, Colour := float4.{1, 1, 1, 1}) {
     AddDrawCommand(*Command);
 }
 
-DrawScreenSpaceQuad :: (Position: float2, Size: float2, Colour := float4.{1, 1, 1, 1}, Texture: *texture = null) {
+DrawScreenSpaceQuad :: (Position: float2, Size: float2, Colour := float4.{1, 1, 1, 1}, Texture: *texture = null, TexCoord := float4.{0, 0, 1, 1}, IsText := false, TextParams := float4.{0, 0, 0, 0}) {
     Command: draw_command_ss_quad;
     
     if Texture Command.Texture = Texture;
@@ -105,8 +111,56 @@ DrawScreenSpaceQuad :: (Position: float2, Size: float2, Colour := float4.{1, 1, 
     Command.Instance.Position = Position;
     Command.Instance.Size = Size;
     Command.Instance.Colour = Colour;
-    
+    Command.Instance.TexCoord = TexCoord;
+    if IsText Command.Flags = .TEXT;
+    Command.Instance.TextParams = TextParams;
     AddDrawCommand(*Command);
+}
+
+DrawText :: (Position: float2, Font: *font, S: string, Colour := float4.{1, 1, 1, 1}) {
+    CurrentPos := Position;
+    for S {
+        
+        Quad: Stb_Aligned_Quad;
+        stb_get_packed_quad(Font.Chars.data, xx Font.Texture.Width, xx Font.Texture.Height, it - 32, *CurrentPos.x, *CurrentPos.y, *Quad, 1);
+        
+        W := Quad.x1 - Quad.x0;
+        H := Quad.y1 - Quad.y0;
+        P := float2.{Quad.x0 + W*.5, Quad.y0 + H*.5};
+        S := float2.{W, H};
+        
+        RangeX := Quad.s1 - Quad.s0;
+        RangeY := Quad.t1 - Quad.t0;
+        T := float4.{Quad.s0, Quad.t0, RangeX, RangeY};
+        
+        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true);
+    }
+}
+
+DrawTextSDF :: (Position: float2, Font: *sdf_font, S: string, Colour := float4.{1, 1, 1, 1}) {
+    CurrentPos := Position;
+    for S {
+        Char := GetCharFromDistanceFont(Font, it);
+        
+        Left := CurrentPos.x + Char.Left;
+        Right := CurrentPos.x + Char.Right;
+        Bottom := CurrentPos.y + Char.Bottom;
+        Top := CurrentPos.y + Char.Top;
+        CurrentPos.x += Char.Advance;
+        
+        Width := Right - Left;
+        Height := Top - Bottom;
+        
+        P := float2.{Left + Width*.5, Bottom + Height*.5};
+        S := float2.{Width, Height};
+        
+        T := float4.{
+            Char.U0, Char.V0,
+            Char.U1 - Char.U0, Char.V1 - Char.V0
+        };
+        
+        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true, .{1, Width/32.0 * 10.0, 0, 0});
+    }
 }
 
 AddDrawCommand :: (Command: *$T/draw_command) {
@@ -154,7 +208,10 @@ ProcessDrawCommands :: () {
     for * FrontendQuadBatches {
         if it.InstanceData.Count == 0 continue;
         
-        Command := ArenaPush(*ScreenSpacePass.Commands);
+        Pass := ScreenSpacePass;
+        if it.Flags & .TEXT Pass = TextPass;
+        
+        Command := ArenaPush(*Pass.Commands);
         Command.Textures = ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, .[.{it.Texture.GpuTexture, DefaultSampler}]);
         
         VertexBuffers := ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, 2);
@@ -166,7 +223,7 @@ ProcessDrawCommands :: () {
         Command.IndexCount = 6;
         
         Command.InstanceCount = it.InstanceData.Count;
-        WriteStructuredBuffer(ScreenSpacePass.InstanceBuffer, ArenaToView(*it.InstanceData));
+        WriteStructuredBuffer(Pass.InstanceBuffer, ArenaToView(*it.InstanceData));
     }
 }
 
@@ -215,13 +272,15 @@ GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
 }
 
 GetQuadBatch :: (QuadCommand: *draw_command_ss_quad) -> *draw_batch_quad {
-    Hash := 0;
+    Hash: u32 = 0;
     if QuadCommand.Texture Hash = GetHash(QuadCommand.Texture.Path);
     else Hash = GetHash("no_texture");
+    Hash = GetHash(cast (u32) QuadCommand.Flags, Hash);
     
     Batch := *FrontendQuadBatches[Hash % MAX_BATCHES];
     
     if !Batch.Initialized {
+        Batch.Flags = QuadCommand.Flags;
         Batch.Texture = QuadCommand.Texture;
         Batch.Initialized = true;
     }

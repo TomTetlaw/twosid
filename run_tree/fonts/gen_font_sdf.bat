@@ -1,0 +1,1 @@
+msdf-atlas-gen.exe -font %1 -imageout %2 -csv %2.csv -yorigin top -size 32 -pxrange 10 -uniformcell 32 32

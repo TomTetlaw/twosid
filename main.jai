@@ -84,6 +84,9 @@ main :: () {
     GameStartTime := current_time_monotonic();
     OldTime: Apollo_Time;
     
+    Font := LoadFont("fonts/consolas.ttf", 32.0);
+    DistanceFont := LoadDistanceFont("fonts/consolas_sdf.png", 32.0);
+    
     Quit := false;
     while !Quit {
         // update Time
@@ -180,6 +183,10 @@ main :: () {
         DrawTerrain();
         
         DrawScreenSpaceQuad(.{100, 100}, .{100, 100}, .{1, 0, 0, 1});
+        
+        DrawText(.{100, 100}, Font, "Hello, world!");
+        
+        DrawTextSDF(.{100, 200}, DistanceFont, "Hello, world! This is more TEXT. Test/{}()*I%UWJPIOE!!!2345");
         
         DrawFrame(*ViewParameters);
         

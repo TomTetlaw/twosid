@@ -19,8 +19,12 @@ cbuffer Constant_Buffer : register(b0, space1) {
 
 struct Instance_Data {
 	float2 position;
+	float2 Pad0;
 	float2 size;
+	float2 Pad1;
 	float4 colour;
+	float4 tex_coord;
+	float4 TextParams;
 };
 
 StructuredBuffer<Instance_Data> instance_data;
@@ -30,13 +34,14 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
 
 	float2 position = instance.position + input.position.xy*instance.size;
 
-	float4 model_position = float4(position.x, position.y, 0, 1);
+	float2 tex_coord = instance.tex_coord.xy + instance.tex_coord.zw*input.tex_coord;
 
+	float4 model_position = float4(position.x, position.y, 0, 1);
 	float4 ndc_position = mul(projection, model_position);
 
 	Frag_Input output;
 	output.ndc_position = ndc_position;
-	output.tex_coord = input.tex_coord;
+	output.tex_coord = tex_coord;
 	output.colour = instance.colour;
 	return output;
 }
