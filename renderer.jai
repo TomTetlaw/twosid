@@ -157,6 +157,9 @@ InitRenderer :: () {
         
         MeshPipeline = SDL_CreateGPUGraphicsPipeline(GDevice, *MeshCreateInfo);
         
+        MeshCreateInfo.rasterizer_state.cull_mode = .SDL_GPU_CULLMODE_NONE;
+        UnlitPipeline = SDL_CreateGPUGraphicsPipeline(GDevice, *MeshCreateInfo);
+        
         MeshCreateInfo.vertex_input_state.num_vertex_buffers = 1;
         MeshCreateInfo.vertex_input_state.num_vertex_attributes = 1;
         MeshCreateInfo.rasterizer_state.cull_mode = .SDL_GPU_CULLMODE_NONE;
@@ -302,6 +305,9 @@ InitRenderer :: () {
     SamplerInfo.address_mode_w = .SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
     DefaultSampler = SDL_CreateGPUSampler(GDevice, *SamplerInfo);
     
+    SamplerInfo.max_lod = 0;
+    NoMipMapSampler = SDL_CreateGPUSampler(GDevice, *SamplerInfo);
+    
     SamplerInfo.min_lod = 0;
     SamplerInfo.max_lod = 0;
     SamplerInfo.min_filter = .SDL_GPU_FILTER_NEAREST;
@@ -414,6 +420,31 @@ InitPasses :: () {
     }
     
     {
+        UnlitPass = ArenaPush(*RendererArena, draw_pass(ibuffer_mesh));
+        UnlitPass.Name = "UnlitPass";
+        UnlitPass.Type = .OPAQUE;
+        UnlitPass.BuffersNeeded = .MESH;
+        UnlitPass.TexturesNeeded = .DIFFUSE_NORMAL_RMAOH;
+        UnlitPass.Pipeline = UnlitPipeline;
+        
+        UnlitPass.VertConstants = ArenaPush(*RendererArena, cbuffer_mesh_vertex);
+        UnlitPass.VertConstantsSize = size_of(cbuffer_mesh_vertex);
+        UnlitPass.FragConstants = ArenaPush(*RendererArena, cbuffer_mesh_fragment);
+        UnlitPass.FragConstantsSize = size_of(cbuffer_mesh_fragment);
+        
+        UnlitPass.Textures = ArenaPushN(*RendererArena, SDL_GPUTextureSamplerBinding, .[.{ShadowTexture, ShadowSampler}]);
+        
+        UnlitPass.ColourTarget = true;
+        UnlitPass.ClearColour = false;
+        UnlitPass.ClearDepth = false;
+        UnlitPass.DepthTarget = DepthTexture;
+        UnlitPass.Viewport = .{1366, 768};
+        
+        UnlitPass.InstanceBuffer = CreateStructuredBuffer(ibuffer_mesh, "opaque_instance", MAX_INSTANCES);
+        UnlitPass.SkinningBuffer = CreateStructuredBuffer(float4x4, "opaque_skinning", MAX_BONES);
+    }
+    
+    {
         DebugPass = ArenaPush(*RendererArena, draw_pass(ibuffer_debug));
         DebugPass.Name = "DebugPass";
         DebugPass.Type = .OPAQUE;
@@ -508,24 +539,23 @@ ResetPasses :: () {
     ResetPass(DebugPass);
     ResetPass(ScreenSpacePass);
     ResetPass(TextPass);
+    ResetPass(UnlitPass);
 }
 
 DrawFrame :: (Camera: *$T/interface view_parameters) {
-    if KeyPressed(.SDL_SCANCODE_LEFT) {
+    if KeyPressed(.SDL_SCANCODE_UP) {
         FragDebugMode = clamp(FragDebugMode - 1, 0, MAX_FRAG_DEBUG_MODE);
     }
-    if KeyPressed(.SDL_SCANCODE_RIGHT) {
+    if KeyPressed(.SDL_SCANCODE_DOWN) {
         FragDebugMode = clamp(FragDebugMode + 1, 0, MAX_FRAG_DEBUG_MODE);
     }
-    
-    Projection := ProjectionMatrix(45.0 * Deg2Turn, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
     
     LightPos := float3.{0, 0, 10};
     LightTarget := float3.{1, -1, 1};
     LightDir := Normalize(LightTarget - LightPos);
     
     LightColour := float3.{1.0, 1.0, 0.8};
-    LightMatrix := CalcLightSpaceMatrix(LightPos, LightDir, Projection, Camera.View);
+    LightMatrix := CalcLightSpaceMatrix(LightPos, LightDir, Camera.Proj, Camera.View);
     
     {
         VertConstants: cbuffer_shadow_vertex;
@@ -537,7 +567,7 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     {
         VertConstants: cbuffer_mesh_vertex;
         VertConstants.View = Camera.View;
-        VertConstants.Projection = Projection;
+        VertConstants.Projection = Camera.Proj;
         VertConstants.ViewPos = Camera.Position;
         VertConstants.LightDir = LightDir;
         VertConstants.Time = .{RealTime, 0, 0, 0};
@@ -553,6 +583,8 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
         memcpy(TranslucentPass.FragConstants, *FragConstants, size_of(cbuffer_mesh_fragment));
         memcpy(DebugPass.VertConstants, *VertConstants, size_of(cbuffer_mesh_vertex));
         memcpy(DebugPass.FragConstants, *FragConstants, size_of(cbuffer_mesh_fragment));
+        memcpy(UnlitPass.VertConstants, *VertConstants, size_of(cbuffer_mesh_vertex));
+        memcpy(UnlitPass.FragConstants, *FragConstants, size_of(cbuffer_mesh_fragment));
     }
     
     {
@@ -575,26 +607,25 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
         return;
     }
     
-    SDL_InsertGPUDebugLabel(CommandBuffer, "Mapping structured buffers");
-    
     MapStructuredBuffer(DepthPass.InstanceBuffer);
     MapStructuredBuffer(OpaquePass.InstanceBuffer);
     MapStructuredBuffer(TranslucentPass.InstanceBuffer);
     MapStructuredBuffer(DebugPass.InstanceBuffer);
     MapStructuredBuffer(ScreenSpacePass.InstanceBuffer);
     MapStructuredBuffer(TextPass.InstanceBuffer);
+    MapStructuredBuffer(UnlitPass.InstanceBuffer);
     
     MapStructuredBuffer(DepthPass.SkinningBuffer);
     MapStructuredBuffer(OpaquePass.SkinningBuffer);
+    MapStructuredBuffer(UnlitPass.SkinningBuffer);
     MapStructuredBuffer(TranslucentPass.SkinningBuffer);
     
     ProcessDrawCommands();
     
-    SDL_InsertGPUDebugLabel(CommandBuffer, "Unmapping structured buffers");
-    
     SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.SkinningBuffer.TransferBuffer);
     SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.SkinningBuffer.TransferBuffer);
     SDL_UnmapGPUTransferBuffer(GDevice, TranslucentPass.SkinningBuffer.TransferBuffer);
+    SDL_UnmapGPUTransferBuffer(GDevice, UnlitPass.SkinningBuffer.TransferBuffer);
     
     SDL_UnmapGPUTransferBuffer(GDevice, DepthPass.InstanceBuffer.TransferBuffer);
     SDL_UnmapGPUTransferBuffer(GDevice, OpaquePass.InstanceBuffer.TransferBuffer);
@@ -602,13 +633,13 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     SDL_UnmapGPUTransferBuffer(GDevice, DebugPass.InstanceBuffer.TransferBuffer);
     SDL_UnmapGPUTransferBuffer(GDevice, ScreenSpacePass.InstanceBuffer.TransferBuffer);
     SDL_UnmapGPUTransferBuffer(GDevice, TextPass.InstanceBuffer.TransferBuffer);
-    
-    SDL_InsertGPUDebugLabel(CommandBuffer, "Committing structured buffers");
+    SDL_UnmapGPUTransferBuffer(GDevice, UnlitPass.SkinningBuffer.TransferBuffer);
     
     CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
     CommitStructuredBuffer(DepthPass.SkinningBuffer, CopyPass);
     CommitStructuredBuffer(OpaquePass.SkinningBuffer, CopyPass);
     CommitStructuredBuffer(TranslucentPass.SkinningBuffer, CopyPass);
+    CommitStructuredBuffer(UnlitPass.SkinningBuffer, CopyPass);
     
     CommitStructuredBuffer(DepthPass.InstanceBuffer, CopyPass);
     CommitStructuredBuffer(OpaquePass.InstanceBuffer, CopyPass);
@@ -616,9 +647,9 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     CommitStructuredBuffer(DebugPass.InstanceBuffer, CopyPass);
     CommitStructuredBuffer(ScreenSpacePass.InstanceBuffer, CopyPass);
     CommitStructuredBuffer(TextPass.InstanceBuffer, CopyPass);
-    SDL_EndGPUCopyPass(CopyPass);
+    CommitStructuredBuffer(UnlitPass.InstanceBuffer, CopyPass);
     
-    SDL_InsertGPUDebugLabel(CommandBuffer, "Drawing passes");
+    SDL_EndGPUCopyPass(CopyPass);
     
     DrawPass(DepthPass, CommandBuffer);
     DrawPass(OpaquePass, CommandBuffer);
@@ -626,8 +657,7 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     DrawPass(DebugPass, CommandBuffer);
     DrawPass(ScreenSpacePass, CommandBuffer);
     DrawPass(TextPass, CommandBuffer);
-    
-    SDL_InsertGPUDebugLabel(CommandBuffer, "Finnito");
+    DrawPass(UnlitPass, CommandBuffer);
     
     SDL_SubmitGPUCommandBuffer(CommandBuffer);
     
@@ -677,6 +707,7 @@ ibuffer_mesh :: struct {
     Transform: float4x4;
     DiffuseColour: float4;
     MaterialParams: float4;
+    FeatureFlags: float4;
 }
 
 ibuffer_debug :: struct {
@@ -778,8 +809,11 @@ DepthPass: *draw_pass(ibuffer_mesh);
 TranslucentPass: *draw_pass(ibuffer_mesh);
 ScreenSpacePass: *draw_pass(ibuffer_ss_quad);
 TextPass: *draw_pass(ibuffer_ss_quad);
+UnlitPass: *draw_pass(ibuffer_mesh);
 
 DefaultSampler: *SDL_GPUSampler;
+NoMipMapSampler: *SDL_GPUSampler;
+ShadowSampler: *SDL_GPUSampler;
 
 RendererFrameArena: arena;
 
@@ -798,14 +832,13 @@ DepthPipeline: *SDL_GPUGraphicsPipeline;
 ScreenSpacePipeline: *SDL_GPUGraphicsPipeline;
 TextPipeline: *SDL_GPUGraphicsPipeline;
 TranslucentPipeline: *SDL_GPUGraphicsPipeline;
+UnlitPipeline: *SDL_GPUGraphicsPipeline;
 
 SwapTexture: *SDL_GPUTexture;
 
 ShadowTexture: *SDL_GPUTexture;
 
 DepthTexture: *SDL_GPUTexture;
-
-ShadowSampler: *SDL_GPUSampler;
 
 DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
     SDL_PushGPUDebugGroup(CommandBuffer, Pass.Name.data);

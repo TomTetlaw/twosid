@@ -171,7 +171,7 @@ build_game :: (profiling: bool) {
         append(*builder, "CreateEntityTypeInfo :: (EntityInfo: *entity_types) {\n");
         append(*builder, "\tEntityTypesList: [..] entity_type_info;\n");
         for entity_types {
-            print_to_builder(*builder, "\tarray_add(*EntityTypesList, .{%, *EntityInfo.%});\n", it.name, convert_case(it.name));
+            print_to_builder(*builder, "\tarray_add(*EntityTypesList, .{\"%2\", %1, *EntityInfo.%2});\n", it.name, convert_case(it.name));
         }
         append(*builder, "\tEntityInfo.InfoList = EntityTypesList;\n");
         append(*builder, "}\n");
@@ -180,6 +180,13 @@ build_game :: (profiling: bool) {
         for entity_types {
             print_to_builder(*builder, "\tArenaReset(*EntityTypes.%);\n", convert_case(it.name));
         }
+        append(*builder, "}\n");
+        
+        append(*builder, "CreateEntityFromInfoIndex :: (Index: int) -> *entity {\n");
+        for entity_types {
+            print_to_builder(*builder, "\tif Index == % return CreateEntity(%);\n", it_index, it.name);
+        }
+        append(*builder, "\treturn null;\n");
         append(*builder, "}\n");
         
         add_build_string(builder_to_string(*builder), workspace);

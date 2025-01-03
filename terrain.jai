@@ -29,7 +29,7 @@ InitTerrain :: () {
     
     TerrainMesh = LoadMesh("meshes/terrain.mesh");
     
-    CollisionMesh = CreateCollisionMesh(*TerrainArena, TerrainMesh, TerrainTransform);
+    CollisionMesh = CreateStaticCollisionMesh(*TerrainArena, TerrainMesh, TerrainTransform);
     TerrainBVH = BuildBVH(*TerrainArena, CollisionMesh.Tris);
     
     TerrainTextures = ArenaPushN(*TerrainArena, *texture, 3);
@@ -227,24 +227,4 @@ DrawBoundingBox :: (Box: bounding_box, Origin: float3, Colour := float4.{1, 1, 1
     Command.Instance.Transform = TranslationMatrix(Origin) * ScaleMatrix(Scale);
     Command.Instance.DiffuseColour = Colour;
     AddDrawCommand(*Command);
-}
-
-RayIntersectsBox :: (Box: bounding_box, Ray: ray) -> bool {
-    InvDir := xyz(1.0) / Ray.Direction;
-    
-    T1 := (Box.Min.x - Ray.Origin.x) * InvDir.x;
-    T2 := (Box.Max.x - Ray.Origin.x) * InvDir.x;
-    
-    TMin := Min(T1, T2);
-    TMax := Max(T1, T2);
-    
-    for 0..2 {
-        T1 = (Box.Min[it] - Ray.Origin[it]) * InvDir[it];
-        T2 = (Box.Max[it] - Ray.Origin[it]) * InvDir[it];
-        
-        TMin = Max(TMin, Min(T1, T2));
-        TMax = Min(TMax, Max(T1, T2));
-    }
-    
-    return TMax > Max(TMin, 0.0);
 }

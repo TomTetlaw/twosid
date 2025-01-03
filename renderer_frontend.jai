@@ -8,6 +8,7 @@ mesh_draw_command_flags :: enum_flags u32 {
     DEBUG;
     TRANSLUCENT;
     NO_CAST_SHADOWS;
+    UNLIT;
 }
 
 draw_command_kind :: enum {
@@ -63,11 +64,45 @@ draw_batch_quad :: struct {
     Initialized: bool;
 }
 
+DebugString :: (Format: string, Args: ..Any) {
+    Builder: String_Builder;
+    print_to_builder(*Builder, Format, ..Args);
+    Message := builder_to_string(*Builder);
+    ArenaPush(*DebugStrings, Message);
+}
+
+DebugString :: (String: string) {
+    ArenaPush(*DebugStrings, String);
+}
+
+DebugVars :: ($Args: ..Code) #expand {
+    Builder: String_Builder;
+    Config: Print_Vars_Config;
+    Config.control_flags = .PRINT_NAME | .PRINT_VALUE;
+    Config.after_value = "";
+    Config.after_type = "";
+    print_vars_helper(*Builder, Config, Args);
+    
+    Strings := split(builder_to_string(*Builder), "\n");
+    for Strings DebugString(it);
+}
+
 DrawDebugMesh :: (Position: float3, Mesh: *mesh, Colour := float4.{1, 1, 1, 1}) {
     Command: draw_command_mesh;
     Command.Mesh = Mesh;
     Command.Flags = .DEBUG;
     Command.Instance.Transform = TranslationMatrix(Position);
+    Command.Instance.DiffuseColour = Colour;
+    AddDrawCommand(*Command);
+}
+
+DrawMesh :: (Transform: float4x4, Mesh: *mesh, Colour := float4.{1, 1, 1, 1}) {
+    Command: draw_command_mesh;
+    Command.Flags = .UNLIT;
+    Command.Mesh = Mesh;
+    Command.Instance.Transform = Transform;
+    Grey := LoadTexture("textures/grey.png");
+    Command.Textures = ArenaPushN(*RendererFrameArena, *texture, .[Grey, Grey, Grey]);
     Command.Instance.DiffuseColour = Colour;
     AddDrawCommand(*Command);
 }
@@ -138,6 +173,8 @@ DrawText :: (Position: float2, Font: *font, S: string, Colour := float4.{1, 1, 1
 }
 
 DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colour := float4.{1, 1, 1, 1}) {
+    StringSize := GetStringSize(Font, Size, S);
+    
     CurrentPos := Position;
     for S {
         Char := GetCharFromDistanceFont(Font, it);
@@ -159,13 +196,17 @@ DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colou
             Char.U1 - Char.U0, Char.V1 - Char.V0
         };
         
-        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true, .{1, Width/32.0 * 2.0, Size, 0});
+        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true, .{1, Size/32*4, Width, Height});
     }
 }
 
 AddDrawCommand :: (Command: *$T/draw_command) {
     if Command.Kind == .MESH {
         MeshCommand := cast (*draw_command_mesh) Command;
+        if MeshCommand.Flags & .UNLIT {
+            MeshCommand.Instance.FeatureFlags.x = 1.0;
+        }
+        
         Batch := GetMeshBatch(MeshCommand);
         ArenaPush(*Batch.InstanceData, MeshCommand.Instance);
     } else if Command.Kind == .SCREEN_SPACE_QUAD {
@@ -178,9 +219,16 @@ AddDrawCommand :: (Command: *$T/draw_command) {
 Temp: arena(ibuffer_debug);
 
 ProcessDrawCommands :: () {
+    DebugStart := float2.{15, 300};
+    for DebugStrings {
+        DrawTextSDF(DebugStart, DebugFont, 16.0, it);
+        DebugStart.y += 15;
+    }
+    ArenaReset(*DebugStrings);
+    
     for * FrontendMeshBatches {
         if it.InstanceData.Count > 0 {
-            DrawInDepthPass := !(it.Flags & .NO_CAST_SHADOWS) && !(it.Flags & .DEBUG);
+            DrawInDepthPass := !(it.Flags & .NO_CAST_SHADOWS) && !(it.Flags & .DEBUG) && !(it.Flags & .UNLIT);
             
             if DrawInDepthPass {
                 DrawMeshInstanced(DepthPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
@@ -199,6 +247,8 @@ ProcessDrawCommands :: () {
                 DrawMeshInstanced(DebugPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*Temp));
                 
                 ArenaReset(*Temp);
+            } else if it.Flags & .UNLIT {
+                DrawMeshInstanced(UnlitPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
             } else {
                 DrawMeshInstanced(OpaquePass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
             }
@@ -230,6 +280,7 @@ ProcessDrawCommands :: () {
 InitRendererFrontend :: () {
     FrontendMeshBatches = ArenaPushN(*RendererArena, draw_batch_mesh, MAX_BATCHES);
     FrontendQuadBatches = ArenaPushN(*RendererArena, draw_batch_quad, MAX_BATCHES);
+    DebugFont = LoadDistanceFont("fonts/roboto.png");
 }
 
 ResetRendererFrontend :: () {
@@ -250,6 +301,9 @@ MAX_BATCHES :: 2048;
 
 FrontendMeshBatches: [] draw_batch_mesh;
 FrontendQuadBatches: [] draw_batch_quad;
+
+DebugStrings: arena(string);
+DebugFont: *sdf_font;
 
 GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
     Hash := GetHash(MeshCommand.Mesh.Path, cast (u32) MeshCommand.Flags);

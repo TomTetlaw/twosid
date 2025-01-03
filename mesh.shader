@@ -12,6 +12,7 @@ struct Frag_Input {
 	float4 colour: TEXCOORD7;
 
 	nointerpolation float4 material_params: TEXCOORD9;
+	nointerpolation float4 feature_flags: TEXCOORD10;
 };
 
 #ifdef VERTEX_SHADER
@@ -29,7 +30,8 @@ cbuffer Constant_Buffer : register(b0, space1) {
 struct Instance_Data {
 	row_major float4x4 transform;
 	float4 diffuse_colour;
-	float4 material_params; 
+	float4 material_params;
+	float4 feature_flags;
 };
 
 struct Skinning_Data {
@@ -97,7 +99,7 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
 	output.ts_view_pos = mul(TBN, view_pos);
 	output.tex_coord = input.tex_coord;
 	output.colour = instance.diffuse_colour;
-	output.material_params = instance.material_params;
+	output.feature_flags = instance.feature_flags;
 	return output;
 }
 
@@ -129,6 +131,10 @@ float shadow_calculation(float depth, float2 shadow_tex_coord, float bias) {
 }
 
 float4 fragment_main(Frag_Input input): SV_Target {
+	if (input.feature_flags.x > 0.0) {
+		return float4(input.colour);
+	}
+
 	float2 tex_coord = input.tex_coord * input.material_params.w;
 
 	float3 diffuse = diffuse_map.Sample(diffuse_sampler, tex_coord).xyz;

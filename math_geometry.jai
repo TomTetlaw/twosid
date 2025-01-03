@@ -6,18 +6,83 @@
     return D < 0;
 }
 
-ray :: struct {
-    Origin: float3;
-    Direction: float3;
+GetCameraForward :: (Camera: *$T/interface view_parameters) -> float3 {
+    return Normalize(Camera.View.Rows[0].xyz);
 }
 
 GetRayFromCamera :: (Camera: *$T/interface view_parameters) -> ray {
     Result: ray;
     
     Result.Origin = Camera.Position;
-    Result.Direction = Normalize(Camera.View.Rows[0].xyz); // @todo: Need to normalize?
+    Result.Direction = GetCameraForward(Camera);
     
     return Result;
+}
+
+GetRayForMousePosition :: (ViewParams: view_parameters, Pos: float2) -> ray {
+    NDCx := (2.0 * Pos.x) / 1366.0 - 1.0;
+    NDCy := 1.0 - (2.0 * Pos.y) / 768.0;
+    NDCz := -1.0;
+    
+    ClipNear := float4.{NDCx, NDCy, -1.0, 1.0};
+    ClipFar := float4.{NDCx, NDCy, 1.0, 1.0};
+    
+    InvProj := InverseMatrix(ViewParams.Proj);
+    
+    ViewSpaceNear := InvProj * ClipNear;
+    ViewSpaceFar := InvProj * ClipFar;
+    
+    ViewSpaceNear /= xyzw(xyz(ViewSpaceNear.w), 1.0);
+    ViewSpaceFar /= xyzw(xyz(ViewSpaceFar.w), 1.0);
+    
+    InvView := InverseMatrix(ViewParams.View);
+    
+    WorldSpaceNear := InvView * ViewSpaceNear;
+    WorldSpaceFar := InvView * ViewSpaceFar;
+    
+    WorldSpaceNear /= xyzw(xyz(WorldSpaceNear.w), 1.0);
+    WorldSpaceFar /= xyzw(xyz(WorldSpaceFar.w), 1.0);
+    
+    return .{WorldSpaceNear.xyz, Normalize(WorldSpaceFar.xyz - WorldSpaceNear.xyz)};
+}
+
+RayIntersectsBox :: (Box: bounding_box, Ray: ray) -> bool {
+    InvDir := xyz(1.0) / Ray.Direction;
+    
+    T1 := (Box.Min.x - Ray.Origin.x) * InvDir.x;
+    T2 := (Box.Max.x - Ray.Origin.x) * InvDir.x;
+    
+    TMin := Min(T1, T2);
+    TMax := Max(T1, T2);
+    
+    for 0..2 {
+        T1 = (Box.Min[it] - Ray.Origin[it]) * InvDir[it];
+        T2 = (Box.Max[it] - Ray.Origin[it]) * InvDir[it];
+        
+        TMin = Max(TMin, Min(T1, T2));
+        TMax = Min(TMax, Max(T1, T2));
+    }
+    
+    return TMax > Max(TMin, 0.0);
+}
+
+ray_hit :: struct {
+    Intersected: bool;
+    T := FLOAT32_MAX;
+    Point: float3;
+}
+
+RayPlaneIntersection :: (Ray: ray, Plane: plane) -> ray_hit {
+    Denominator := Dot(Plane.Normal, Ray.Direction);
+    
+    Epsilon :: 0.000001;
+    if Abs(Denominator) < Epsilon return .{Intersected=false};
+    
+    T := (Plane.D - Dot(Plane.Normal, Ray.Origin)) / Denominator;
+    if T < 0.0 return .{Intersected=false};
+    
+    Point := Ray.Origin + T * Ray.Direction;
+    return .{true, T, Point};
 }
 
 triangle :: struct {
@@ -33,13 +98,7 @@ operator [] :: (Tri: triangle, Index: int) -> float3 {
     return Tri.Points[Index];
 }
 
-ray_triangle_hit :: struct {
-    Intersected: bool;
-    T := FLOAT32_MAX;
-    Point: float3;
-}
-
-RayTriangleIntersection :: (Ray: ray, Triangle: triangle) -> ray_triangle_hit {
+RayTriangleIntersection :: (Ray: ray, Triangle: triangle) -> ray_hit {
     Epsilon := 0.0000001;
     
     E1 := Triangle.P2 - Triangle.P1;
@@ -64,6 +123,43 @@ RayTriangleIntersection :: (Ray: ray, Triangle: triangle) -> ray_triangle_hit {
         return .{true, T, Point};
     }
     
+    return .{Intersected = false};
+}
+
+RayMeshIntersection :: (Ray: ray, Mesh: collision_mesh, ToWorld: float4x4) -> ray_hit {
+    BestT := FLOAT32_MAX;
+    BestHit: ray_hit;
+    
+    for Mesh.Tris {
+        Tri: triangle;
+        Tri.P1 = (ToWorld * xyzw(it.P1, 1.0)).xyz;
+        Tri.P2 = (ToWorld * xyzw(it.P2, 1.0)).xyz;
+        Tri.P3 = (ToWorld * xyzw(it.P3, 1.0)).xyz;
+        
+        Hit := RayTriangleIntersection(Ray, Tri);
+        if Hit.Intersected && Hit.T < BestT {
+            BestT = Hit.T;
+            BestHit = Hit;
+        }
+    }
+    
+    if BestT < FLOAT32_MAX return BestHit;
+    return .{Intersected = false};
+}
+
+RayMeshIntersection :: (Ray: ray, Mesh: collision_mesh) -> ray_hit {
+    BestT := FLOAT32_MAX;
+    BestHit: ray_hit;
+    
+    for Mesh.Tris {
+        Hit := RayTriangleIntersection(Ray, it);
+        if Hit.Intersected && Hit.T < BestT {
+            BestT = Hit.T;
+            BestHit = Hit;
+        }
+    }
+    
+    if BestT < FLOAT32_MAX return BestHit;
     return .{Intersected = false};
 }
 
@@ -216,7 +312,29 @@ collision_mesh :: struct {
     Tris: [] triangle;
 }
 
-CreateCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld := IdentityMatrix) -> collision_mesh {
+CreateCollisionMesh :: (Arena: *arena, Mesh: *mesh) -> collision_mesh {
+    TriangleCount := Mesh.NumIndices / 3;
+    
+    Tris := PushFixedArena(Arena, triangle, TriangleCount);
+    
+    for 0..TriangleCount-1 {
+        Index1 := Mesh.Indices[it*3 + 0];
+        Index2 := Mesh.Indices[it*3 + 1];
+        Index3 := Mesh.Indices[it*3 + 2];
+        
+        P1 := Mesh.Positions[Index1];
+        P2 := Mesh.Positions[Index2];
+        P3 := Mesh.Positions[Index3];
+        
+        ArenaPush(Tris, .{P1, P2, P3});
+    }
+    
+    Result: collision_mesh;
+    Result.Tris = ArenaToView(Tris);
+    return Result;
+}
+
+CreateStaticCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) -> collision_mesh {
     TriangleCount := Mesh.NumIndices / 3;
     
     Tris := PushFixedArena(Arena, triangle, TriangleCount);

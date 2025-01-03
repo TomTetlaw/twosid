@@ -7,16 +7,25 @@ operator [] :: (v: float3, Index: int) -> float {
     return v.Components[Index];
 }
 
-operator []= :: (v: *float3, Index: int, Value: float) {
-    v.Components[Index] = Value;
-}
-
 operator [] :: (v: float4, Index: int) -> float {
     return v.Components[Index];
 }
 
 operator [] :: (v: quat, Index: int) -> float {
     return v.Components[Index];
+}
+
+operator []= :: (v: *float2, Index: int, Value: float) {
+    v.Components[Index] = Value;
+}
+operator []= :: (v: *float3, Index: int, Value: float) {
+    v.Components[Index] = Value;
+}
+operator []= :: (v: *float4, Index: int, Value: float) {
+    v.Components[Index] = Value;
+}
+operator []= :: (v: *quat, Index: int, Value: float) {
+    v.Components[Index] = Value;
 }
 
 operator + :: (a: float2, b: float2) -> float2 {

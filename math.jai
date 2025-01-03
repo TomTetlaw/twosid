@@ -86,8 +86,15 @@ TanTurns :: (t: float) -> float {
 }
 
 plane :: struct {
-    Point: float3;
+    A, B, C, D: float;
+    
+#place A;
     Normal: float3;
+}
+
+ray :: struct {
+    Origin: float3;
+    Direction: float3;
 }
 
 cylinder :: struct {
@@ -277,6 +284,10 @@ DistanceSquared :: (a: float3, b: float3) -> float {
     return LengthSquared(Delta);
 }
 
+Project :: (A: float3, B: float3) -> float3 {
+    return B * Dot(A, B);
+}
+
 Lerp :: (a: float2, b: float2, t: float) -> float2 {
     return .{
         Lerp(a.x, b.x, t),
@@ -368,32 +379,36 @@ Saturate :: (v: float3) -> float3 {
 }
 
 Exp :: exp;
+Log :: log;
 
-Approach :: (C: float, G: float, Decay: float, Dt: float) -> float {
-    return G + (C - G) * Exp(-Decay * Dt);
+// TimeToGoal = desired time in seconds to reach the goal
+// Decay = ??? (https://www.youtube.com/watch?v=LSNQuFEDOyQ)
+Approach :: (C: float, G: float, TimeToGoal := 1.0) -> float {
+    Decay :: 4.6;
+    return G + (C - G) * Exp(-Decay * DeltaTime * (1.0 / TimeToGoal));
 }
 
-Approach :: (C: float2, G: float2, Decay: float, Dt: float) -> float2 {
+Approach :: (C: float2, G: float2, TimeToGoal := 1.0) -> float2 {
     return .{
-        Approach(C.x, G.x, Decay, Dt),
-        Approach(C.y, G.y, Decay, Dt)
+        Approach(C.x, G.x, TimeToGoal),
+        Approach(C.y, G.y, TimeToGoal)
     };
 }
 
-Approach :: (C: float3, G: float3, Decay: float, Dt: float) -> float3 {
+Approach :: (C: float3, G: float3, TimeToGoal := 1.0) -> float3 {
     return .{
-        Approach(C.x, G.x, Decay, Dt),
-        Approach(C.y, G.y, Decay, Dt),
-        Approach(C.z, G.z, Decay, Dt)
+        Approach(C.x, G.x, TimeToGoal),
+        Approach(C.y, G.y, TimeToGoal),
+        Approach(C.z, G.z, TimeToGoal)
     };
 }
 
-Approach :: (C: float4, G: float4, Decay: float, Dt: float) -> float4 {
+Approach :: (C: float4, G: float4, TimeToGoal := 1.0) -> float4 {
     return .{
-        Approach(C.x, G.x, Decay, Dt),
-        Approach(C.y, G.y, Decay, Dt),
-        Approach(C.z, G.z, Decay, Dt),
-        Approach(C.w, G.w, Decay, Dt)
+        Approach(C.x, G.x, TimeToGoal),
+        Approach(C.y, G.y, TimeToGoal),
+        Approach(C.z, G.z, TimeToGoal),
+        Approach(C.w, G.w, TimeToGoal)
     };
 }
 

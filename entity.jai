@@ -24,12 +24,11 @@ entity_physics :: struct {
     Velocity: float3;
     GoalVelocity: float3;
     
-    AccelDecay := 16.0;
-    AccelSpeed := 1.0;
+    AccelTime := 1.0;
 }
 
 IntegrateEntityPhysics :: (Entity: *entity, P: *entity_physics) {
-    P.Velocity = Approach(P.Velocity, P.GoalVelocity, P.AccelDecay, DeltaTime * P.AccelSpeed);
+    P.Velocity = Approach(P.Velocity, P.GoalVelocity, P.AccelTime);
     Entity.Position = Entity.Position + P.Velocity * DeltaTime;
 }
 
@@ -205,6 +204,7 @@ OnlyActiveEntities :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
 }
 
 entity_type_info :: struct {
+    Name: string;
     T: Type;
     Arena: *void; // *void so we can cast it to the actual type (arena(T)) later
 }

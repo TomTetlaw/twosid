@@ -18,6 +18,7 @@ struct Instance_Data {
 	float3 diffuse_colour;
 	float pad0;
 	float4 material_params;
+	float4 feature_flags;
 };
 
 struct Skinning_Data {

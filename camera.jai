@@ -2,6 +2,7 @@
  view_parameters :: struct {
     Position: float3;
     View: float4x4;
+    Proj: float4x4;
 }
 
 camera_flying :: struct {
@@ -44,6 +45,8 @@ UpdateCameraPlayer :: (Camera: *camera_player) {
     
     ViewTransform := TranslationMatrix(Camera.Position) * RotationMatrix(Camera.Rotation);
     Camera.View = InverseMatrix(ViewTransform);
+    
+    Camera.Proj = ProjectionMatrix(45.0 * Deg2Turn, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
 }
 
 UpdateCameraFlying :: (Camera: *camera_flying) {
@@ -52,14 +55,20 @@ UpdateCameraFlying :: (Camera: *camera_flying) {
     MoveSpeed := Camera.FLY_SPEED;
     if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed *= 10;
     
-    MoveInput.x = KeyState(.SDL_SCANCODE_W) - KeyState(.SDL_SCANCODE_S);
-    MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
-    MoveInput.z = KeyState(.SDL_SCANCODE_E) - KeyState(.SDL_SCANCODE_Q);
+    if !GIsUIOpen {
+        MoveInput.x = KeyState(.SDL_SCANCODE_W) - KeyState(.SDL_SCANCODE_S);
+        MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
+    }
+    
     MoveInput = RotateVector(MoveInput, Camera.Rotation);
     
 	Camera.Position += MoveInput * MoveSpeed * RealDeltaTime;
     
-    Camera.RotationInput = Lerp(Camera.RotationInput, Mouse.Delta, Camera.ROTATION_SMOOTHING);
+    Camera.RotationInput = float2.{0.0, 0.0};
+    if Mouse.RightDown {
+        Camera.RotationInput = Lerp(Camera.RotationInput, -Mouse.Delta, Camera.ROTATION_SMOOTHING);
+    }
+    
     Delta := Camera.RotationInput * Camera.ROTATION_SPEED;
     Camera.Yaw = Camera.Yaw + Delta.x*Deg2Turn;
     Camera.Pitch = Camera.Pitch + Delta.y*Deg2Turn;
@@ -72,6 +81,8 @@ UpdateCameraFlying :: (Camera: *camera_flying) {
     
     Camera.Transform = TranslationMatrix(Camera.Position) * RotationMatrix(Camera.Rotation);
     Camera.View = InverseMatrix(Camera.Transform);
+    
+    Camera.Proj = ProjectionMatrix(45.0 * Deg2Turn, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
 }
 
 #scope_file

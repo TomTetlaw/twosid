@@ -80,7 +80,7 @@ LoadDistanceFont :: (TexturePath: string) -> *sdf_font {
     
     DistanceTexture := LoadTexture(TexturePath);
     
-    Success, Lines := file_to_array(tprint("%.csv", TexturePath));
+    Success, Lines := file_to_array(tprint("%", replace(TexturePath, ".png", ".csv")));
     
     Mark := FontArena.Used;
     for Lines {
@@ -128,6 +128,22 @@ GetStringSize :: (Font: *font, S: string) -> float2 {
     }
     
     return .{Width * Font.Scale, Font.LineSkip};
+}
+
+GetStringSize :: (Font: *sdf_font, Size: float, S: string) -> float2 {
+    Bottom := FLOAT32_MAX;
+    Top := -FLOAT32_MAX;
+    
+    Width := 0.0;
+    
+    for S {
+        Char := GetCharFromDistanceFont(Font, it);
+        Width += Char.Advance*Size;
+        Bottom = Min(Bottom, Char.Bottom*Size);
+        Top = Max(Top, Char.Top*Size);
+    }
+    
+    return .{Width, Top - Bottom};
 }
 
 #scope_file
