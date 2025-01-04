@@ -179,16 +179,16 @@ DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colou
     for S {
         Char := GetCharFromDistanceFont(Font, it);
         
-        Left := CurrentPos.x + Char.Left*Size;
-        Right := CurrentPos.x + Char.Right*Size;
-        Bottom := CurrentPos.y + Char.Bottom*Size;
-        Top := CurrentPos.y + Char.Top*Size;
-        CurrentPos.x += Char.Advance*Size;
+        Left := Char.Left*Size;
+        Right := Char.Right*Size;
+        Bottom := Char.Bottom*Size;
+        Top := Char.Top*Size;
         
         Width := Right - Left;
         Height := Top - Bottom;
         
-        P := float2.{Left + Width*.5, Bottom + Height*.5};
+        // Baseline Y should be centered on the position
+        P := CurrentPos + float2.{Left, Bottom + Height*.75};
         S := float2.{Width, Height};
         
         T := float4.{
@@ -197,6 +197,8 @@ DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colou
         };
         
         DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true, .{1, Size/32*4, Width, Height});
+        
+        CurrentPos.x += Char.Advance*Size;
     }
 }
 

@@ -50,15 +50,12 @@ UpdateCameraPlayer :: (Camera: *camera_player) {
 }
 
 UpdateCameraFlying :: (Camera: *camera_flying) {
-	MoveInput: float3;
-    
     MoveSpeed := Camera.FLY_SPEED;
     if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed *= 10;
     
-    if !GIsUIOpen {
-        MoveInput.x = KeyState(.SDL_SCANCODE_W) - KeyState(.SDL_SCANCODE_S);
-        MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
-    }
+    MoveInput: float3;
+    MoveInput.x = KeyState(.SDL_SCANCODE_W) - KeyState(.SDL_SCANCODE_S);
+    MoveInput.y = KeyState(.SDL_SCANCODE_A) - KeyState(.SDL_SCANCODE_D);
     
     MoveInput = RotateVector(MoveInput, Camera.Rotation);
     

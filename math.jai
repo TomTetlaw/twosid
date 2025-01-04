@@ -85,6 +85,14 @@ TanTurns :: (t: float) -> float {
     return S / C;
 }
 
+bounding_box :: struct {
+    Min, Max: float3;
+}
+
+bounding_box_2d :: struct {
+    Min, Max: float2;
+}
+
 plane :: struct {
     A, B, C, D: float;
     
@@ -189,6 +197,10 @@ xyzw :: (x: float, yzw: float3) -> float4 {
 
 xyzw :: (xy: float2, zw: float2) -> float4 {
     return .{xy.x, xy.y, zw.x, zw.y};
+}
+
+rgba :: (R: int, G: int, B: int, A := 255) -> float4 {
+    return float4.{R / 255.0, G / 255.0, B / 255.0, A / 255.0};
 }
 
 Dot :: (a: float2, b: float2) -> float {

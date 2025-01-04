@@ -1,29 +1,4 @@
 
-generate_sdl3_bindings :: () -> bool {
-    options: Generate_Bindings_Options;
-    options.strip_enum_prefixes = false;
-    
-    output_filename := "";
-    
-    output_filename = "sdl_bindings.jai";
-    
-#if OS == .WINDOWS {
-        array_add(*options.libnames, "sdl3.lib");
-    } else {
-        report_error("Platform not supported.");
-    }
-    
-    array_add(*options.include_paths, "sdl3/include/");
-    array_add(*options.include_paths, "sdl3/include/SDL3");
-    array_add(*options.libpaths, "sdl3/lib/x64");
-    
-    array_add(*options.source_files, "SDL.h");
-    
-    if !generate_bindings(options, output_filename) return false;
-    
-    return true;
-}
-
 COMMAND_FORMAT :: "%1/SDL_shadercross/shadercross.exe %1/%2 -s HLSL -d %3 -t %5 -e %5_main -o %1/run_tree/shaders/%4.%5.%3 -D%6_SHADER";
 
 compile_shaders_for_format :: (output_format: string) {
@@ -77,16 +52,22 @@ build_game :: (profiling: bool) {
     
     plugin_names: [..] string;
     
+    lib_files: [..] string;
+    
 #if OS == .WINDOWS {
         options.use_natvis_compatible_types = true;
         if profiling {
-            options.additional_linker_arguments = .["Advapi32.lib", "user32.lib"];
+            array_add(*lib_files, "Advapi32.lib");
+            array_add(*lib_files, "user32.lib");
             array_add(*plugin_names, "jai-tracy");
         }
     } else #if OS == .LINUX {
     } else {
         report_error("Platform not supported.");
     }
+    
+    array_add(*lib_files, "Shell32.lib");
+    options.additional_linker_arguments = lib_files;
     
     machine_options := get_machine_options_x86(*options);
     enable_feature(*machine_options.features.leaves, .AVX);
@@ -189,6 +170,13 @@ build_game :: (profiling: bool) {
         append(*builder, "\treturn null;\n");
         append(*builder, "}\n");
         
+        append(*builder, "CreateEntityFromName :: (Name: string) -> *entity {\n");
+        for entity_types {
+            print_to_builder(*builder, "\tif equal(Name, \"%\") return CreateEntity(%);\n", convert_case(it.name), it.name);
+        }
+        append(*builder, "\treturn null;\n");
+        append(*builder, "}\n");
+        
         add_build_string(builder_to_string(*builder), workspace);
     }
     
@@ -229,15 +217,7 @@ build :: () {
     
     for args {
         if contains(it, "compile_shaders") compile_shaders = true;
-        if contains(it, "generate_sdl_bindings") generate_sdl_bindings = true;
         if contains(it, "prof") profiling = true;
-    }
-    
-    if generate_sdl_bindings {
-        if !generate_sdl3_bindings() compiler_set_workspace_status(.FAILED);
-        
-        copy_file("sdl3/lib/x64/sdl3.dll", "run_tree/sdl3.dll");
-        copy_file("sdl3/lib/x64/sdl3.pdb", "run_tree/sdl3.pdb");
     }
     
     if (compile_shaders) {

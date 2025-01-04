@@ -22,22 +22,6 @@ entity_player :: struct {
     Camera: camera_player;
 }
 
-entity_test1 :: struct {
-    using #as Base: entity;
-}
-
-entity_test2 :: struct {
-    using #as Base: entity;
-}
-
-entity_test3 :: struct {
-    using #as Base: entity;
-}
-
-entity_test4 :: struct {
-    using #as Base: entity;
-}
-
 UpdateGame :: () {
     for * :OnlyActiveEntities EntityTypes.Player {
         Player := it;
@@ -73,7 +57,6 @@ UpdateGame :: () {
 }
 
 DrawGame :: () {
-    DrawTextSDF(.{25, 25}, TextFont, 16.0, tprint("%", GameTime));
 }
 
 GetGameViewParams :: () -> view_parameters {

@@ -17,6 +17,8 @@ mouse :: struct {
 FrameKeys: [..] SDL_Scancode;
 Mouse: mouse;
 
+FrameClicks: [..] float2;
+
 KeyPressed :: (c: SDL_Scancode) -> bool {
     for FrameKeys if it == c return true;
     return false;
@@ -59,7 +61,7 @@ main :: () {
     InitTerrain();
     InitEntitySystem();
     InitEditor();
-    InitUISystem();
+    InitImmUI();
     InitGame();
     
     KeyStates = SDL_GetKeyboardState(null);
@@ -139,18 +141,13 @@ main :: () {
             }
         }
         
-        if UseFlyingCamera {
-            
-        }
-        
-        HandleUIInput();
         UpdateEditor();
         UpdateGame();
         
+        DrawUI();
         DrawEditor();
         DrawGame();
         DrawTerrain();
-        DrawUI();
         
         ViewParameters: view_parameters;
         
@@ -163,6 +160,7 @@ main :: () {
         DrawFrame(*ViewParameters);
         
         FrameKeys.count = 0;
+        FrameClicks.count = 0;
         ArenaReset(*FrameArena);
         
 #if PROFILE {
@@ -185,8 +183,14 @@ ProcessWindowEvents :: () -> bool {
             Mouse.Delta.x = xx Event.motion.xrel;
             Mouse.Delta.y = xx Event.motion.yrel;
         } else if IsEventType(*Event, .SDL_EVENT_MOUSE_BUTTON_DOWN) {
-            Mouse.DragStart = float2.{xx Event.button.x, xx Event.button.y};
+            ClickPos := float2.{xx Event.button.x, xx Event.button.y};
+            
+            Mouse.DragStart = ClickPos;
             EditorMouseInput(Event.button.button, true);
+            
+            if Event.button.button == SDL_BUTTON_LEFT {
+                array_add(*FrameClicks, ClickPos);
+            }
         } else if IsEventType(*Event, .SDL_EVENT_MOUSE_BUTTON_UP) {
             EditorMouseInput(Event.button.button, false);
         }
@@ -204,6 +208,7 @@ ProcessWindowEvents :: () -> bool {
 #import "Process";
 #import "Print_Vars";
 #import "Machine_X64";
+#import "sdl3";
 
 KeyStates: *bool;
 

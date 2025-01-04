@@ -1,7 +1,7 @@
 //
 // This file was auto-generated using the following command:
 //
-// jai first.jai - generate_sdl_bindings
+// jai generate.jai
 //
 
 
@@ -4820,7 +4820,7 @@ SDL_AssertState :: enum s32 {
     ABORT         :: 2;
     IGNORE        :: 3;
     ALWAYS_IGNORE :: 4;
-    
+
     SDL_ASSERTION_RETRY         :: RETRY;
     SDL_ASSERTION_BREAK         :: BREAK;
     SDL_ASSERTION_ABORT         :: ABORT;
@@ -5494,7 +5494,7 @@ SDL_PropertyType :: enum s32 {
     NUMBER  :: 3;
     FLOAT   :: 4;
     BOOLEAN :: 5;
-    
+
     SDL_PROPERTY_TYPE_INVALID :: INVALID;
     SDL_PROPERTY_TYPE_POINTER :: POINTER;
     SDL_PROPERTY_TYPE_STRING  :: STRING;
@@ -6002,7 +6002,7 @@ SDL_ThreadPriority :: enum s32 {
     NORMAL        :: 1;
     HIGH          :: 2;
     TIME_CRITICAL :: 3;
-    
+
     SDL_THREAD_PRIORITY_LOW           :: LOW;
     SDL_THREAD_PRIORITY_NORMAL        :: NORMAL;
     SDL_THREAD_PRIORITY_HIGH          :: HIGH;
@@ -6814,7 +6814,7 @@ SDL_InitStatus :: enum s32 {
     INITIALIZING   :: 1;
     INITIALIZED    :: 2;
     UNINITIALIZING :: 3;
-    
+
     SDL_INIT_STATUS_UNINITIALIZED  :: UNINITIALIZED;
     SDL_INIT_STATUS_INITIALIZING   :: INITIALIZING;
     SDL_INIT_STATUS_INITIALIZED    :: INITIALIZED;
@@ -6958,7 +6958,7 @@ SDL_IOStatus :: enum s32 {
     NOT_READY :: 3;
     READONLY  :: 4;
     WRITEONLY :: 5;
-    
+
     SDL_IO_STATUS_READY     :: READY;
     SDL_IO_STATUS_ERROR     :: ERROR;
     SDL_IO_STATUS_EOF       :: EOF;
@@ -6979,7 +6979,7 @@ SDL_IOWhence :: enum s32 {
     SET :: 0;
     CUR :: 1;
     END :: 2;
-    
+
     SDL_IO_SEEK_SET :: SET;
     SDL_IO_SEEK_CUR :: CUR;
     SDL_IO_SEEK_END :: END;
@@ -7002,14 +7002,14 @@ SDL_IOWhence :: enum s32 {
 SDL_IOStreamInterface :: struct {
     /* The version of this interface */
     version: Uint32;
-    
+
     /**
     *  Return the number of bytes in this SDL_IOStream
     *
     *  \return the total size of the data stream, or -1 on error.
     */
     size:    #type (userdata: *void) -> Sint64 #c_call;
-    
+
     /**
     *  Seek to `offset` relative to `whence`, one of stdio's whence values:
     *  SDL_IO_SEEK_SET, SDL_IO_SEEK_CUR, SDL_IO_SEEK_END
@@ -7017,7 +7017,7 @@ SDL_IOStreamInterface :: struct {
     *  \return the final offset in the data stream, or -1 on error.
     */
     seek:    #type (userdata: *void, offset: Sint64, whence: SDL_IOWhence) -> Sint64 #c_call;
-    
+
     /**
     *  Read up to `size` bytes from the data stream to the area pointed
     *  at by `ptr`.
@@ -7029,7 +7029,7 @@ SDL_IOStreamInterface :: struct {
     *  \return the number of bytes read
     */
     read:    #type (userdata: *void, ptr: *void, size: u64, status: *SDL_IOStatus) -> u64 #c_call;
-    
+
     /**
     *  Write exactly `size` bytes from the area pointed at by `ptr`
     *  to data stream.
@@ -7041,7 +7041,7 @@ SDL_IOStreamInterface :: struct {
     *  \return the number of bytes written
     */
     write:   #type (userdata: *void, ptr: *void, size: u64, status: *SDL_IOStatus) -> u64 #c_call;
-    
+
     /**
     *  If the stream is buffering, make sure the data is written out.
     *
@@ -7052,7 +7052,7 @@ SDL_IOStreamInterface :: struct {
     *  \return true if successful or false on write error when flushing data.
     */
     flush:   #type (userdata: *void, status: *SDL_IOStatus) -> bool #c_call;
-    
+
     /**
     *  Close and free any allocated resources.
     *
@@ -7998,42 +7998,42 @@ SDL_WriteS64BE :: (dst: *SDL_IOStream, value: Sint64) -> bool #foreign sdl3;
 SDL_AudioFormat :: enum s32 {
     UNKNOWN :: 0;
     U8      :: 8;
-    
+
     S8      :: 32776;
-    
+
     S16LE   :: 32784;
-    
+
     S16BE   :: 36880;
-    
+
     S32LE   :: 32800;
-    
+
     S32BE   :: 36896;
-    
+
     F32LE   :: 33056;
-    
+
     F32BE   :: 37152;
-    
+
     S16     :: 32784;
     S32     :: 32800;
     F32     :: 33056;
-    
+
     SDL_AUDIO_UNKNOWN :: UNKNOWN;
     SDL_AUDIO_U8      :: U8;
-    
+
     SDL_AUDIO_S8      :: S8;
-    
+
     SDL_AUDIO_S16LE   :: S16LE;
-    
+
     SDL_AUDIO_S16BE   :: S16BE;
-    
+
     SDL_AUDIO_S32LE   :: S32LE;
-    
+
     SDL_AUDIO_S32BE   :: S32BE;
-    
+
     SDL_AUDIO_F32LE   :: F32LE;
-    
+
     SDL_AUDIO_F32BE   :: F32BE;
-    
+
     SDL_AUDIO_S16     :: S16;
     SDL_AUDIO_S32     :: S32;
     SDL_AUDIO_F32     :: F32;
@@ -9731,7 +9731,7 @@ SDL_BlendOperation :: enum s32 {
     REV_SUBTRACT :: 3;
     MINIMUM      :: 4;
     MAXIMUM      :: 5;
-    
+
     SDL_BLENDOPERATION_ADD          :: ADD;
     SDL_BLENDOPERATION_SUBTRACT     :: SUBTRACT;
     SDL_BLENDOPERATION_REV_SUBTRACT :: REV_SUBTRACT;
@@ -9760,7 +9760,7 @@ SDL_BlendFactor :: enum s32 {
     ONE_MINUS_DST_COLOR :: 8;
     DST_ALPHA           :: 9;
     ONE_MINUS_DST_ALPHA :: 10;
-    
+
     SDL_BLENDFACTOR_ZERO                :: ZERO;
     SDL_BLENDFACTOR_ONE                 :: ONE;
     SDL_BLENDFACTOR_SRC_COLOR           :: SRC_COLOR;
@@ -9880,9 +9880,9 @@ SDL_PixelType :: enum s32 {
     ARRAYU32 :: 9;
     ARRAYF16 :: 10;
     ARRAYF32 :: 11;
-    
+
     INDEX2   :: 12;
-    
+
     SDL_PIXELTYPE_UNKNOWN  :: UNKNOWN;
     SDL_PIXELTYPE_INDEX1   :: INDEX1;
     SDL_PIXELTYPE_INDEX4   :: INDEX4;
@@ -9895,7 +9895,7 @@ SDL_PixelType :: enum s32 {
     SDL_PIXELTYPE_ARRAYU32 :: ARRAYU32;
     SDL_PIXELTYPE_ARRAYF16 :: ARRAYF16;
     SDL_PIXELTYPE_ARRAYF32 :: ARRAYF32;
-    
+
     SDL_PIXELTYPE_INDEX2   :: INDEX2;
 }
 
@@ -9908,7 +9908,7 @@ SDL_BitmapOrder :: enum s32 {
     NONE  :: 0;
     _4321 :: 1;
     _1234 :: 2;
-    
+
     SDL_BITMAPORDER_NONE :: NONE;
     SDL_BITMAPORDER_4321 :: _4321;
     SDL_BITMAPORDER_1234 :: _1234;
@@ -9929,7 +9929,7 @@ SDL_PackedOrder :: enum s32 {
     BGRX :: 6;
     ABGR :: 7;
     BGRA :: 8;
-    
+
     SDL_PACKEDORDER_NONE :: NONE;
     SDL_PACKEDORDER_XRGB :: XRGB;
     SDL_PACKEDORDER_RGBX :: RGBX;
@@ -9954,7 +9954,7 @@ SDL_ArrayOrder :: enum s32 {
     BGR  :: 4;
     BGRA :: 5;
     ABGR :: 6;
-    
+
     SDL_ARRAYORDER_NONE :: NONE;
     SDL_ARRAYORDER_RGB  :: RGB;
     SDL_ARRAYORDER_RGBA :: RGBA;
@@ -9979,7 +9979,7 @@ SDL_PackedLayout :: enum s32 {
     _8888    :: 6;
     _2101010 :: 7;
     _1010102 :: 8;
-    
+
     SDL_PACKEDLAYOUT_NONE    :: NONE;
     SDL_PACKEDLAYOUT_332     :: _332;
     SDL_PACKEDLAYOUT_4444    :: _4444;
@@ -10031,131 +10031,131 @@ SDL_PackedLayout :: enum s32 {
 SDL_PixelFormat :: enum s32 {
     UNKNOWN       :: 0;
     INDEX1LSB     :: 286261504;
-    
+
     INDEX1MSB     :: 287310080;
-    
+
     INDEX2LSB     :: 470811136;
-    
+
     INDEX2MSB     :: 471859712;
-    
+
     INDEX4LSB     :: 303039488;
-    
+
     INDEX4MSB     :: 304088064;
-    
+
     INDEX8        :: 318769153;
-    
+
     RGB332        :: 336660481;
-    
+
     XRGB4444      :: 353504258;
-    
+
     XBGR4444      :: 357698562;
-    
+
     XRGB1555      :: 353570562;
-    
+
     XBGR1555      :: 357764866;
-    
+
     ARGB4444      :: 355602434;
-    
+
     RGBA4444      :: 356651010;
-    
+
     ABGR4444      :: 359796738;
-    
+
     BGRA4444      :: 360845314;
-    
+
     ARGB1555      :: 355667970;
-    
+
     RGBA5551      :: 356782082;
-    
+
     ABGR1555      :: 359862274;
-    
+
     BGRA5551      :: 360976386;
-    
+
     RGB565        :: 353701890;
-    
+
     BGR565        :: 357896194;
-    
+
     RGB24         :: 386930691;
-    
+
     BGR24         :: 390076419;
-    
+
     XRGB8888      :: 370546692;
-    
+
     RGBX8888      :: 371595268;
-    
+
     XBGR8888      :: 374740996;
-    
+
     BGRX8888      :: 375789572;
-    
+
     ARGB8888      :: 372645892;
-    
+
     RGBA8888      :: 373694468;
-    
+
     ABGR8888      :: 376840196;
-    
+
     BGRA8888      :: 377888772;
-    
+
     XRGB2101010   :: 370614276;
-    
+
     XBGR2101010   :: 374808580;
-    
+
     ARGB2101010   :: 372711428;
-    
+
     ABGR2101010   :: 376905732;
-    
+
     RGB48         :: 403714054;
-    
+
     BGR48         :: 406859782;
-    
+
     RGBA64        :: 404766728;
-    
+
     ARGB64        :: 405815304;
-    
+
     BGRA64        :: 407912456;
-    
+
     ABGR64        :: 408961032;
-    
+
     RGB48_FLOAT   :: 437268486;
-    
+
     BGR48_FLOAT   :: 440414214;
-    
+
     RGBA64_FLOAT  :: 438321160;
-    
+
     ARGB64_FLOAT  :: 439369736;
-    
+
     BGRA64_FLOAT  :: 441466888;
-    
+
     ABGR64_FLOAT  :: 442515464;
-    
+
     RGB96_FLOAT   :: 454057996;
-    
+
     BGR96_FLOAT   :: 457203724;
-    
+
     RGBA128_FLOAT :: 455114768;
-    
+
     ARGB128_FLOAT :: 456163344;
-    
+
     BGRA128_FLOAT :: 458260496;
-    
+
     ABGR128_FLOAT :: 459309072;
-    
+
     YV12          :: 842094169;
-    
+
     IYUV          :: 1448433993;
-    
+
     YUY2          :: 844715353;
-    
+
     UYVY          :: 1498831189;
-    
+
     YVYU          :: 1431918169;
-    
+
     NV12          :: 842094158;
-    
+
     NV21          :: 825382478;
-    
+
     P010          :: 808530000;
-    
+
     EXTERNAL_OES  :: 542328143;
-    
+
     RGBA32        :: 376840196;
     ARGB32        :: 377888772;
     BGRA32        :: 372645892;
@@ -10164,134 +10164,134 @@ SDL_PixelFormat :: enum s32 {
     XRGB32        :: 375789572;
     BGRX32        :: 370546692;
     XBGR32        :: 371595268;
-    
+
     SDL_PIXELFORMAT_UNKNOWN       :: UNKNOWN;
     SDL_PIXELFORMAT_INDEX1LSB     :: INDEX1LSB;
-    
+
     SDL_PIXELFORMAT_INDEX1MSB     :: INDEX1MSB;
-    
+
     SDL_PIXELFORMAT_INDEX2LSB     :: INDEX2LSB;
-    
+
     SDL_PIXELFORMAT_INDEX2MSB     :: INDEX2MSB;
-    
+
     SDL_PIXELFORMAT_INDEX4LSB     :: INDEX4LSB;
-    
+
     SDL_PIXELFORMAT_INDEX4MSB     :: INDEX4MSB;
-    
+
     SDL_PIXELFORMAT_INDEX8        :: INDEX8;
-    
+
     SDL_PIXELFORMAT_RGB332        :: RGB332;
-    
+
     SDL_PIXELFORMAT_XRGB4444      :: XRGB4444;
-    
+
     SDL_PIXELFORMAT_XBGR4444      :: XBGR4444;
-    
+
     SDL_PIXELFORMAT_XRGB1555      :: XRGB1555;
-    
+
     SDL_PIXELFORMAT_XBGR1555      :: XBGR1555;
-    
+
     SDL_PIXELFORMAT_ARGB4444      :: ARGB4444;
-    
+
     SDL_PIXELFORMAT_RGBA4444      :: RGBA4444;
-    
+
     SDL_PIXELFORMAT_ABGR4444      :: ABGR4444;
-    
+
     SDL_PIXELFORMAT_BGRA4444      :: BGRA4444;
-    
+
     SDL_PIXELFORMAT_ARGB1555      :: ARGB1555;
-    
+
     SDL_PIXELFORMAT_RGBA5551      :: RGBA5551;
-    
+
     SDL_PIXELFORMAT_ABGR1555      :: ABGR1555;
-    
+
     SDL_PIXELFORMAT_BGRA5551      :: BGRA5551;
-    
+
     SDL_PIXELFORMAT_RGB565        :: RGB565;
-    
+
     SDL_PIXELFORMAT_BGR565        :: BGR565;
-    
+
     SDL_PIXELFORMAT_RGB24         :: RGB24;
-    
+
     SDL_PIXELFORMAT_BGR24         :: BGR24;
-    
+
     SDL_PIXELFORMAT_XRGB8888      :: XRGB8888;
-    
+
     SDL_PIXELFORMAT_RGBX8888      :: RGBX8888;
-    
+
     SDL_PIXELFORMAT_XBGR8888      :: XBGR8888;
-    
+
     SDL_PIXELFORMAT_BGRX8888      :: BGRX8888;
-    
+
     SDL_PIXELFORMAT_ARGB8888      :: ARGB8888;
-    
+
     SDL_PIXELFORMAT_RGBA8888      :: RGBA8888;
-    
+
     SDL_PIXELFORMAT_ABGR8888      :: ABGR8888;
-    
+
     SDL_PIXELFORMAT_BGRA8888      :: BGRA8888;
-    
+
     SDL_PIXELFORMAT_XRGB2101010   :: XRGB2101010;
-    
+
     SDL_PIXELFORMAT_XBGR2101010   :: XBGR2101010;
-    
+
     SDL_PIXELFORMAT_ARGB2101010   :: ARGB2101010;
-    
+
     SDL_PIXELFORMAT_ABGR2101010   :: ABGR2101010;
-    
+
     SDL_PIXELFORMAT_RGB48         :: RGB48;
-    
+
     SDL_PIXELFORMAT_BGR48         :: BGR48;
-    
+
     SDL_PIXELFORMAT_RGBA64        :: RGBA64;
-    
+
     SDL_PIXELFORMAT_ARGB64        :: ARGB64;
-    
+
     SDL_PIXELFORMAT_BGRA64        :: BGRA64;
-    
+
     SDL_PIXELFORMAT_ABGR64        :: ABGR64;
-    
+
     SDL_PIXELFORMAT_RGB48_FLOAT   :: RGB48_FLOAT;
-    
+
     SDL_PIXELFORMAT_BGR48_FLOAT   :: BGR48_FLOAT;
-    
+
     SDL_PIXELFORMAT_RGBA64_FLOAT  :: RGBA64_FLOAT;
-    
+
     SDL_PIXELFORMAT_ARGB64_FLOAT  :: ARGB64_FLOAT;
-    
+
     SDL_PIXELFORMAT_BGRA64_FLOAT  :: BGRA64_FLOAT;
-    
+
     SDL_PIXELFORMAT_ABGR64_FLOAT  :: ABGR64_FLOAT;
-    
+
     SDL_PIXELFORMAT_RGB96_FLOAT   :: RGB96_FLOAT;
-    
+
     SDL_PIXELFORMAT_BGR96_FLOAT   :: BGR96_FLOAT;
-    
+
     SDL_PIXELFORMAT_RGBA128_FLOAT :: RGBA128_FLOAT;
-    
+
     SDL_PIXELFORMAT_ARGB128_FLOAT :: ARGB128_FLOAT;
-    
+
     SDL_PIXELFORMAT_BGRA128_FLOAT :: BGRA128_FLOAT;
-    
+
     SDL_PIXELFORMAT_ABGR128_FLOAT :: ABGR128_FLOAT;
-    
+
     SDL_PIXELFORMAT_YV12          :: YV12;
-    
+
     SDL_PIXELFORMAT_IYUV          :: IYUV;
-    
+
     SDL_PIXELFORMAT_YUY2          :: YUY2;
-    
+
     SDL_PIXELFORMAT_UYVY          :: UYVY;
-    
+
     SDL_PIXELFORMAT_YVYU          :: YVYU;
-    
+
     SDL_PIXELFORMAT_NV12          :: NV12;
-    
+
     SDL_PIXELFORMAT_NV21          :: NV21;
-    
+
     SDL_PIXELFORMAT_P010          :: P010;
-    
+
     SDL_PIXELFORMAT_EXTERNAL_OES  :: EXTERNAL_OES;
-    
+
     SDL_PIXELFORMAT_RGBA32        :: RGBA32;
     SDL_PIXELFORMAT_ARGB32        :: ARGB32;
     SDL_PIXELFORMAT_BGRA32        :: BGRA32;
@@ -10311,7 +10311,7 @@ SDL_ColorType :: enum s32 {
     UNKNOWN :: 0;
     RGB     :: 1;
     YCBCR   :: 2;
-    
+
     SDL_COLOR_TYPE_UNKNOWN :: UNKNOWN;
     SDL_COLOR_TYPE_RGB     :: RGB;
     SDL_COLOR_TYPE_YCBCR   :: YCBCR;
@@ -10327,7 +10327,7 @@ SDL_ColorRange :: enum s32 {
     UNKNOWN :: 0;
     LIMITED :: 1;
     FULL    :: 2;
-    
+
     SDL_COLOR_RANGE_UNKNOWN :: UNKNOWN;
     SDL_COLOR_RANGE_LIMITED :: LIMITED;
     SDL_COLOR_RANGE_FULL    :: FULL;
@@ -10354,7 +10354,7 @@ SDL_ColorPrimaries :: enum s32 {
     SMPTE432     :: 12;
     EBU3213      :: 22;
     CUSTOM       :: 31;
-    
+
     SDL_COLOR_PRIMARIES_UNKNOWN      :: UNKNOWN;
     SDL_COLOR_PRIMARIES_BT709        :: BT709;
     SDL_COLOR_PRIMARIES_UNSPECIFIED  :: UNSPECIFIED;
@@ -10398,7 +10398,7 @@ SDL_TransferCharacteristics :: enum s32 {
     SMPTE428      :: 17;
     HLG           :: 18;
     CUSTOM        :: 31;
-    
+
     SDL_TRANSFER_CHARACTERISTICS_UNKNOWN       :: UNKNOWN;
     SDL_TRANSFER_CHARACTERISTICS_BT709         :: BT709;
     SDL_TRANSFER_CHARACTERISTICS_UNSPECIFIED   :: UNSPECIFIED;
@@ -10443,7 +10443,7 @@ SDL_MatrixCoefficients :: enum s32 {
     CHROMA_DERIVED_CL  :: 13;
     ICTCP              :: 14;
     CUSTOM             :: 31;
-    
+
     SDL_MATRIX_COEFFICIENTS_IDENTITY           :: IDENTITY;
     SDL_MATRIX_COEFFICIENTS_BT709              :: BT709;
     SDL_MATRIX_COEFFICIENTS_UNSPECIFIED        :: UNSPECIFIED;
@@ -10471,7 +10471,7 @@ SDL_ChromaLocation :: enum s32 {
     LEFT    :: 1;
     CENTER  :: 2;
     TOPLEFT :: 3;
-    
+
     SDL_CHROMA_LOCATION_NONE    :: NONE;
     SDL_CHROMA_LOCATION_LEFT    :: LEFT;
     SDL_CHROMA_LOCATION_CENTER  :: CENTER;
@@ -10495,52 +10495,52 @@ SDL_ChromaLocation :: enum s32 {
 */
 SDL_Colorspace :: enum s32 {
     UNKNOWN        :: 0;
-    
+
     SRGB           :: 301991328;
-    
+
     SRGB_LINEAR    :: 301991168;
-    
+
     HDR10          :: 301999616;
-    
+
     JPEG           :: 570426566;
-    
+
     BT601_LIMITED  :: 554703046;
-    
+
     BT601_FULL     :: 571480262;
-    
+
     BT709_LIMITED  :: 554697761;
-    
+
     BT709_FULL     :: 571474977;
-    
+
     BT2020_LIMITED :: 554706441;
-    
+
     BT2020_FULL    :: 571483657;
-    
+
     RGB_DEFAULT    :: 301991328;
     YUV_DEFAULT    :: 570426566;
-    
+
     SDL_COLORSPACE_UNKNOWN        :: UNKNOWN;
-    
+
     SDL_COLORSPACE_SRGB           :: SRGB;
-    
+
     SDL_COLORSPACE_SRGB_LINEAR    :: SRGB_LINEAR;
-    
+
     SDL_COLORSPACE_HDR10          :: HDR10;
-    
+
     SDL_COLORSPACE_JPEG           :: JPEG;
-    
+
     SDL_COLORSPACE_BT601_LIMITED  :: BT601_LIMITED;
-    
+
     SDL_COLORSPACE_BT601_FULL     :: BT601_FULL;
-    
+
     SDL_COLORSPACE_BT709_LIMITED  :: BT709_LIMITED;
-    
+
     SDL_COLORSPACE_BT709_FULL     :: BT709_FULL;
-    
+
     SDL_COLORSPACE_BT2020_LIMITED :: BT2020_LIMITED;
-    
+
     SDL_COLORSPACE_BT2020_FULL    :: BT2020_FULL;
-    
+
     SDL_COLORSPACE_RGB_DEFAULT    :: RGB_DEFAULT;
     SDL_COLORSPACE_YUV_DEFAULT    :: YUV_DEFAULT;
 }
@@ -11133,7 +11133,7 @@ SDL_SurfaceFlags :: Uint32;
 SDL_ScaleMode :: enum s32 {
     NEAREST :: 0;
     LINEAR  :: 1;
-    
+
     SDL_SCALEMODE_NEAREST :: NEAREST;
     SDL_SCALEMODE_LINEAR  :: LINEAR;
 }
@@ -11147,7 +11147,7 @@ SDL_FlipMode :: enum s32 {
     NONE       :: 0;
     HORIZONTAL :: 1;
     VERTICAL   :: 2;
-    
+
     SDL_FLIP_NONE       :: NONE;
     SDL_FLIP_HORIZONTAL :: HORIZONTAL;
     SDL_FLIP_VERTICAL   :: VERTICAL;
@@ -11180,9 +11180,9 @@ SDL_Surface :: struct {
     h:        s32; /**< The height of the surface, read-only. */
     pitch:    s32; /**< The distance in bytes between rows of pixels, read-only */
     pixels:   *void; /**< A pointer to the pixels of the surface, the pixels are writeable if non-NULL */
-    
+
     refcount: s32; /**< Application reference count, used when freeing surface */
-    
+
     reserved: *void; /**< Reserved for internal use */
 }
 
@@ -12507,7 +12507,7 @@ SDL_CameraPosition :: enum s32 {
     UNKNOWN      :: 0;
     FRONT_FACING :: 1;
     BACK_FACING  :: 2;
-    
+
     SDL_CAMERA_POSITION_UNKNOWN      :: UNKNOWN;
     SDL_CAMERA_POSITION_FRONT_FACING :: FRONT_FACING;
     SDL_CAMERA_POSITION_BACK_FACING  :: BACK_FACING;
@@ -13437,7 +13437,7 @@ SDL_SystemTheme :: enum s32 {
     UNKNOWN :: 0;
     LIGHT   :: 1;
     DARK    :: 2;
-    
+
     SDL_SYSTEM_THEME_UNKNOWN :: UNKNOWN;
     SDL_SYSTEM_THEME_LIGHT   :: LIGHT;
     SDL_SYSTEM_THEME_DARK    :: DARK;
@@ -13465,7 +13465,7 @@ SDL_DisplayMode :: struct {
     refresh_rate:             float; /**< refresh rate (or 0.0f for unspecified) */
     refresh_rate_numerator:   s32; /**< precise refresh rate numerator (or 0 for unspecified) */
     refresh_rate_denominator: s32; /**< precise refresh rate denominator */
-    
+
     internal:                 *SDL_DisplayModeData; /**< Private */
 }
 
@@ -13480,7 +13480,7 @@ SDL_DisplayOrientation :: enum s32 {
     LANDSCAPE_FLIPPED :: 2;
     PORTRAIT          :: 3;
     PORTRAIT_FLIPPED  :: 4;
-    
+
     SDL_ORIENTATION_UNKNOWN           :: UNKNOWN;
     SDL_ORIENTATION_LANDSCAPE         :: LANDSCAPE;
     SDL_ORIENTATION_LANDSCAPE_FLIPPED :: LANDSCAPE_FLIPPED;
@@ -13513,7 +13513,7 @@ SDL_FlashOperation :: enum s32 {
     CANCEL        :: 0;
     BRIEFLY       :: 1;
     UNTIL_FOCUSED :: 2;
-    
+
     SDL_FLASH_CANCEL        :: CANCEL;
     SDL_FLASH_BRIEFLY       :: BRIEFLY;
     SDL_FLASH_UNTIL_FOCUSED :: UNTIL_FOCUSED;
@@ -13642,7 +13642,7 @@ SDL_GLAttr :: enum s32 {
     CONTEXT_NO_ERROR           :: 25;
     FLOATBUFFERS               :: 26;
     EGL_PLATFORM               :: 27;
-    
+
     SDL_GL_RED_SIZE                   :: RED_SIZE;
     SDL_GL_GREEN_SIZE                 :: GREEN_SIZE;
     SDL_GL_BLUE_SIZE                  :: BLUE_SIZE;
@@ -15612,7 +15612,7 @@ SDL_HitTestResult :: enum s32 {
     RESIZE_BOTTOM      :: 7;
     RESIZE_BOTTOMLEFT  :: 8;
     RESIZE_LEFT        :: 9;
-    
+
     SDL_HITTEST_NORMAL             :: NORMAL;
     SDL_HITTEST_DRAGGABLE          :: DRAGGABLE;
     SDL_HITTEST_RESIZE_TOPLEFT     :: RESIZE_TOPLEFT;
@@ -16421,7 +16421,7 @@ SDL_PowerState :: enum s32 {
     NO_BATTERY :: 2;
     CHARGING   :: 3;
     CHARGED    :: 4;
-    
+
     SDL_POWERSTATE_ERROR      :: ERROR;
     SDL_POWERSTATE_UNKNOWN    :: UNKNOWN;
     SDL_POWERSTATE_ON_BATTERY :: ON_BATTERY;
@@ -16535,7 +16535,7 @@ SDL_SensorType :: enum s32 {
     GYRO_L  :: 4;
     ACCEL_R :: 5;
     GYRO_R  :: 6;
-    
+
     SDL_SENSOR_INVALID :: INVALID;
     SDL_SENSOR_UNKNOWN :: UNKNOWN;
     SDL_SENSOR_ACCEL   :: ACCEL;
@@ -16748,7 +16748,7 @@ SDL_JoystickType :: enum s32 {
     ARCADE_PAD   :: 8;
     THROTTLE     :: 9;
     COUNT        :: 10;
-    
+
     SDL_JOYSTICK_TYPE_UNKNOWN      :: UNKNOWN;
     SDL_JOYSTICK_TYPE_GAMEPAD      :: GAMEPAD;
     SDL_JOYSTICK_TYPE_WHEEL        :: WHEEL;
@@ -16775,7 +16775,7 @@ SDL_JoystickConnectionState :: enum s32 {
     UNKNOWN  :: 0;
     WIRED    :: 1;
     WIRELESS :: 2;
-    
+
     SDL_JOYSTICK_CONNECTION_INVALID  :: INVALID;
     SDL_JOYSTICK_CONNECTION_UNKNOWN  :: UNKNOWN;
     SDL_JOYSTICK_CONNECTION_WIRED    :: WIRED;
@@ -17052,15 +17052,15 @@ SDL_VirtualJoystickDesc :: struct {
     /**< A mask of which buttons are valid for this controller
     e.g. (1 << SDL_GAMEPAD_BUTTON_SOUTH) */
     button_mask:       Uint32;
-    
+
     /**< A mask of which axes are valid for this controller
     e.g. (1 << SDL_GAMEPAD_AXIS_LEFTX) */
     axis_mask:         Uint32;
-    
+
     name:              *u8; /**< the name of the joystick */
     touchpads:         *SDL_VirtualJoystickTouchpadDesc; /**< A pointer to an array of touchpad descriptions, required if `ntouchpads` is > 0 */
     sensors:           *SDL_VirtualJoystickSensorDesc; /**< A pointer to an array of sensor descriptions, required if `nsensors` is > 0 */
-    
+
     userdata:          *void; /**< User data pointer passed to callbacks */
     Update:            #type (userdata: *void) -> void #c_call; /**< Called when the joystick state should be updated */
     SetPlayerIndex:    #type (userdata: *void, player_index: s32) -> void #c_call; /**< Called when the player index is set */
@@ -17811,7 +17811,7 @@ SDL_GamepadType :: enum s32 {
     NINTENDO_SWITCH_JOYCON_RIGHT :: 9;
     NINTENDO_SWITCH_JOYCON_PAIR  :: 10;
     COUNT                        :: 11;
-    
+
     SDL_GAMEPAD_TYPE_UNKNOWN                      :: UNKNOWN;
     SDL_GAMEPAD_TYPE_STANDARD                     :: STANDARD;
     SDL_GAMEPAD_TYPE_XBOX360                      :: XBOX360;
@@ -17878,7 +17878,7 @@ SDL_GamepadButton :: enum s32 {
     MISC5          :: 24;
     MISC6          :: 25;
     COUNT          :: 26;
-    
+
     SDL_GAMEPAD_BUTTON_INVALID        :: INVALID;
     SDL_GAMEPAD_BUTTON_SOUTH          :: SOUTH;
     SDL_GAMEPAD_BUTTON_EAST           :: EAST;
@@ -17930,7 +17930,7 @@ SDL_GamepadButtonLabel :: enum s32 {
     CIRCLE   :: 6;
     SQUARE   :: 7;
     TRIANGLE :: 8;
-    
+
     SDL_GAMEPAD_BUTTON_LABEL_UNKNOWN  :: UNKNOWN;
     SDL_GAMEPAD_BUTTON_LABEL_A        :: A;
     SDL_GAMEPAD_BUTTON_LABEL_B        :: B;
@@ -17965,7 +17965,7 @@ SDL_GamepadAxis :: enum s32 {
     LEFT_TRIGGER  :: 4;
     RIGHT_TRIGGER :: 5;
     COUNT         :: 6;
-    
+
     SDL_GAMEPAD_AXIS_INVALID       :: INVALID;
     SDL_GAMEPAD_AXIS_LEFTX         :: LEFTX;
     SDL_GAMEPAD_AXIS_LEFTY         :: LEFTY;
@@ -17991,7 +17991,7 @@ SDL_GamepadBindingType :: enum s32 {
     BUTTON :: 1;
     AXIS   :: 2;
     HAT    :: 3;
-    
+
     SDL_GAMEPAD_BINDTYPE_NONE   :: NONE;
     SDL_GAMEPAD_BINDTYPE_BUTTON :: BUTTON;
     SDL_GAMEPAD_BINDTYPE_AXIS   :: AXIS;
@@ -18017,23 +18017,23 @@ SDL_GamepadBinding :: struct {
     input_type:  SDL_GamepadBindingType;
     input:       union {
         button: s32;
-        
+
         axis:   struct {
             axis:     s32;
             axis_min: s32;
             axis_max: s32;
         };
-        
+
         hat:    struct {
             hat:      s32;
             hat_mask: s32;
         };
     };
-    
+
     output_type: SDL_GamepadBindingType;
     output:      union {
         button: SDL_GamepadButton;
-        
+
         axis:   struct {
             axis:     SDL_GamepadAxis;
             axis_min: s32;
@@ -19254,7 +19254,7 @@ SDL_GetGamepadAppleSFSymbolsNameForAxis :: (gamepad: *SDL_Gamepad, axis: SDL_Gam
 */
 SDL_Scancode :: enum s32 {
     UNKNOWN              :: 0;
-    
+
     A                    :: 4;
     B                    :: 5;
     C                    :: 6;
@@ -19281,7 +19281,7 @@ SDL_Scancode :: enum s32 {
     X                    :: 27;
     Y                    :: 28;
     Z                    :: 29;
-    
+
     _1                   :: 30;
     _2                   :: 31;
     _3                   :: 32;
@@ -19292,31 +19292,31 @@ SDL_Scancode :: enum s32 {
     _8                   :: 37;
     _9                   :: 38;
     _0                   :: 39;
-    
+
     RETURN               :: 40;
     ESCAPE               :: 41;
     BACKSPACE            :: 42;
     TAB                  :: 43;
     SPACE                :: 44;
-    
+
     MINUS                :: 45;
     EQUALS               :: 46;
     LEFTBRACKET          :: 47;
     RIGHTBRACKET         :: 48;
     BACKSLASH            :: 49;
-    
+
     NONUSHASH            :: 50;
-    
+
     SEMICOLON            :: 51;
     APOSTROPHE           :: 52;
     GRAVE                :: 53;
-    
+
     COMMA                :: 54;
     PERIOD               :: 55;
     SLASH                :: 56;
-    
+
     CAPSLOCK             :: 57;
-    
+
     F1                   :: 58;
     F2                   :: 59;
     F3                   :: 60;
@@ -19329,12 +19329,12 @@ SDL_Scancode :: enum s32 {
     F10                  :: 67;
     F11                  :: 68;
     F12                  :: 69;
-    
+
     PRINTSCREEN          :: 70;
     SCROLLLOCK           :: 71;
     PAUSE                :: 72;
     INSERT               :: 73;
-    
+
     HOME                 :: 74;
     PAGEUP               :: 75;
     DELETE               :: 76;
@@ -19344,9 +19344,9 @@ SDL_Scancode :: enum s32 {
     LEFT                 :: 80;
     DOWN                 :: 81;
     UP                   :: 82;
-    
+
     NUMLOCKCLEAR         :: 83;
-    
+
     KP_DIVIDE            :: 84;
     KP_MULTIPLY          :: 85;
     KP_MINUS             :: 86;
@@ -19363,12 +19363,12 @@ SDL_Scancode :: enum s32 {
     KP_9                 :: 97;
     KP_0                 :: 98;
     KP_PERIOD            :: 99;
-    
+
     NONUSBACKSLASH       :: 100;
-    
+
     APPLICATION          :: 101;
     POWER                :: 102;
-    
+
     KP_EQUALS            :: 103;
     F13                  :: 104;
     F14                  :: 105;
@@ -19396,12 +19396,12 @@ SDL_Scancode :: enum s32 {
     MUTE                 :: 127;
     VOLUMEUP             :: 128;
     VOLUMEDOWN           :: 129;
-    
+
     KP_COMMA             :: 133;
     KP_EQUALSAS400       :: 134;
-    
+
     INTERNATIONAL1       :: 135;
-    
+
     INTERNATIONAL2       :: 136;
     INTERNATIONAL3       :: 137;
     INTERNATIONAL4       :: 138;
@@ -19419,7 +19419,7 @@ SDL_Scancode :: enum s32 {
     LANG7                :: 150;
     LANG8                :: 151;
     LANG9                :: 152;
-    
+
     ALTERASE             :: 153;
     SYSREQ               :: 154;
     CANCEL               :: 155;
@@ -19432,7 +19432,7 @@ SDL_Scancode :: enum s32 {
     CLEARAGAIN           :: 162;
     CRSEL                :: 163;
     EXSEL                :: 164;
-    
+
     KP_00                :: 176;
     KP_000               :: 177;
     THOUSANDSSEPARATOR   :: 178;
@@ -19479,7 +19479,7 @@ SDL_Scancode :: enum s32 {
     KP_OCTAL             :: 219;
     KP_DECIMAL           :: 220;
     KP_HEXADECIMAL       :: 221;
-    
+
     LCTRL                :: 224;
     LSHIFT               :: 225;
     LALT                 :: 226;
@@ -19488,15 +19488,15 @@ SDL_Scancode :: enum s32 {
     RSHIFT               :: 229;
     RALT                 :: 230;
     RGUI                 :: 231;
-    
+
     MODE                 :: 257;
-    
+
     SLEEP                :: 258;
     WAKE                 :: 259;
-    
+
     CHANNEL_INCREMENT    :: 260;
     CHANNEL_DECREMENT    :: 261;
-    
+
     MEDIA_PLAY           :: 262;
     MEDIA_PAUSE          :: 263;
     MEDIA_RECORD         :: 264;
@@ -19508,7 +19508,7 @@ SDL_Scancode :: enum s32 {
     MEDIA_EJECT          :: 270;
     MEDIA_PLAY_PAUSE     :: 271;
     MEDIA_SELECT         :: 272;
-    
+
     AC_NEW               :: 273;
     AC_OPEN              :: 274;
     AC_CLOSE             :: 275;
@@ -19516,7 +19516,7 @@ SDL_Scancode :: enum s32 {
     AC_SAVE              :: 277;
     AC_PRINT             :: 278;
     AC_PROPERTIES        :: 279;
-    
+
     AC_SEARCH            :: 280;
     AC_HOME              :: 281;
     AC_BACK              :: 282;
@@ -19524,20 +19524,20 @@ SDL_Scancode :: enum s32 {
     AC_STOP              :: 284;
     AC_REFRESH           :: 285;
     AC_BOOKMARKS         :: 286;
-    
+
     SOFTLEFT             :: 287;
-    
+
     SOFTRIGHT            :: 288;
-    
+
     CALL                 :: 289;
     ENDCALL              :: 290;
-    
+
     RESERVED             :: 400;
-    
+
     COUNT                :: 512;
-    
+
     SDL_SCANCODE_UNKNOWN              :: UNKNOWN;
-    
+
     SDL_SCANCODE_A                    :: A;
     SDL_SCANCODE_B                    :: B;
     SDL_SCANCODE_C                    :: C;
@@ -19564,7 +19564,7 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_X                    :: X;
     SDL_SCANCODE_Y                    :: Y;
     SDL_SCANCODE_Z                    :: Z;
-    
+
     SDL_SCANCODE_1                    :: _1;
     SDL_SCANCODE_2                    :: _2;
     SDL_SCANCODE_3                    :: _3;
@@ -19575,31 +19575,31 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_8                    :: _8;
     SDL_SCANCODE_9                    :: _9;
     SDL_SCANCODE_0                    :: _0;
-    
+
     SDL_SCANCODE_RETURN               :: RETURN;
     SDL_SCANCODE_ESCAPE               :: ESCAPE;
     SDL_SCANCODE_BACKSPACE            :: BACKSPACE;
     SDL_SCANCODE_TAB                  :: TAB;
     SDL_SCANCODE_SPACE                :: SPACE;
-    
+
     SDL_SCANCODE_MINUS                :: MINUS;
     SDL_SCANCODE_EQUALS               :: EQUALS;
     SDL_SCANCODE_LEFTBRACKET          :: LEFTBRACKET;
     SDL_SCANCODE_RIGHTBRACKET         :: RIGHTBRACKET;
     SDL_SCANCODE_BACKSLASH            :: BACKSLASH;
-    
+
     SDL_SCANCODE_NONUSHASH            :: NONUSHASH;
-    
+
     SDL_SCANCODE_SEMICOLON            :: SEMICOLON;
     SDL_SCANCODE_APOSTROPHE           :: APOSTROPHE;
     SDL_SCANCODE_GRAVE                :: GRAVE;
-    
+
     SDL_SCANCODE_COMMA                :: COMMA;
     SDL_SCANCODE_PERIOD               :: PERIOD;
     SDL_SCANCODE_SLASH                :: SLASH;
-    
+
     SDL_SCANCODE_CAPSLOCK             :: CAPSLOCK;
-    
+
     SDL_SCANCODE_F1                   :: F1;
     SDL_SCANCODE_F2                   :: F2;
     SDL_SCANCODE_F3                   :: F3;
@@ -19612,12 +19612,12 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_F10                  :: F10;
     SDL_SCANCODE_F11                  :: F11;
     SDL_SCANCODE_F12                  :: F12;
-    
+
     SDL_SCANCODE_PRINTSCREEN          :: PRINTSCREEN;
     SDL_SCANCODE_SCROLLLOCK           :: SCROLLLOCK;
     SDL_SCANCODE_PAUSE                :: PAUSE;
     SDL_SCANCODE_INSERT               :: INSERT;
-    
+
     SDL_SCANCODE_HOME                 :: HOME;
     SDL_SCANCODE_PAGEUP               :: PAGEUP;
     SDL_SCANCODE_DELETE               :: DELETE;
@@ -19627,9 +19627,9 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_LEFT                 :: LEFT;
     SDL_SCANCODE_DOWN                 :: DOWN;
     SDL_SCANCODE_UP                   :: UP;
-    
+
     SDL_SCANCODE_NUMLOCKCLEAR         :: NUMLOCKCLEAR;
-    
+
     SDL_SCANCODE_KP_DIVIDE            :: KP_DIVIDE;
     SDL_SCANCODE_KP_MULTIPLY          :: KP_MULTIPLY;
     SDL_SCANCODE_KP_MINUS             :: KP_MINUS;
@@ -19646,12 +19646,12 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_KP_9                 :: KP_9;
     SDL_SCANCODE_KP_0                 :: KP_0;
     SDL_SCANCODE_KP_PERIOD            :: KP_PERIOD;
-    
+
     SDL_SCANCODE_NONUSBACKSLASH       :: NONUSBACKSLASH;
-    
+
     SDL_SCANCODE_APPLICATION          :: APPLICATION;
     SDL_SCANCODE_POWER                :: POWER;
-    
+
     SDL_SCANCODE_KP_EQUALS            :: KP_EQUALS;
     SDL_SCANCODE_F13                  :: F13;
     SDL_SCANCODE_F14                  :: F14;
@@ -19679,12 +19679,12 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_MUTE                 :: MUTE;
     SDL_SCANCODE_VOLUMEUP             :: VOLUMEUP;
     SDL_SCANCODE_VOLUMEDOWN           :: VOLUMEDOWN;
-    
+
     SDL_SCANCODE_KP_COMMA             :: KP_COMMA;
     SDL_SCANCODE_KP_EQUALSAS400       :: KP_EQUALSAS400;
-    
+
     SDL_SCANCODE_INTERNATIONAL1       :: INTERNATIONAL1;
-    
+
     SDL_SCANCODE_INTERNATIONAL2       :: INTERNATIONAL2;
     SDL_SCANCODE_INTERNATIONAL3       :: INTERNATIONAL3;
     SDL_SCANCODE_INTERNATIONAL4       :: INTERNATIONAL4;
@@ -19702,7 +19702,7 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_LANG7                :: LANG7;
     SDL_SCANCODE_LANG8                :: LANG8;
     SDL_SCANCODE_LANG9                :: LANG9;
-    
+
     SDL_SCANCODE_ALTERASE             :: ALTERASE;
     SDL_SCANCODE_SYSREQ               :: SYSREQ;
     SDL_SCANCODE_CANCEL               :: CANCEL;
@@ -19715,7 +19715,7 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_CLEARAGAIN           :: CLEARAGAIN;
     SDL_SCANCODE_CRSEL                :: CRSEL;
     SDL_SCANCODE_EXSEL                :: EXSEL;
-    
+
     SDL_SCANCODE_KP_00                :: KP_00;
     SDL_SCANCODE_KP_000               :: KP_000;
     SDL_SCANCODE_THOUSANDSSEPARATOR   :: THOUSANDSSEPARATOR;
@@ -19762,7 +19762,7 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_KP_OCTAL             :: KP_OCTAL;
     SDL_SCANCODE_KP_DECIMAL           :: KP_DECIMAL;
     SDL_SCANCODE_KP_HEXADECIMAL       :: KP_HEXADECIMAL;
-    
+
     SDL_SCANCODE_LCTRL                :: LCTRL;
     SDL_SCANCODE_LSHIFT               :: LSHIFT;
     SDL_SCANCODE_LALT                 :: LALT;
@@ -19771,15 +19771,15 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_RSHIFT               :: RSHIFT;
     SDL_SCANCODE_RALT                 :: RALT;
     SDL_SCANCODE_RGUI                 :: RGUI;
-    
+
     SDL_SCANCODE_MODE                 :: MODE;
-    
+
     SDL_SCANCODE_SLEEP                :: SLEEP;
     SDL_SCANCODE_WAKE                 :: WAKE;
-    
+
     SDL_SCANCODE_CHANNEL_INCREMENT    :: CHANNEL_INCREMENT;
     SDL_SCANCODE_CHANNEL_DECREMENT    :: CHANNEL_DECREMENT;
-    
+
     SDL_SCANCODE_MEDIA_PLAY           :: MEDIA_PLAY;
     SDL_SCANCODE_MEDIA_PAUSE          :: MEDIA_PAUSE;
     SDL_SCANCODE_MEDIA_RECORD         :: MEDIA_RECORD;
@@ -19791,7 +19791,7 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_MEDIA_EJECT          :: MEDIA_EJECT;
     SDL_SCANCODE_MEDIA_PLAY_PAUSE     :: MEDIA_PLAY_PAUSE;
     SDL_SCANCODE_MEDIA_SELECT         :: MEDIA_SELECT;
-    
+
     SDL_SCANCODE_AC_NEW               :: AC_NEW;
     SDL_SCANCODE_AC_OPEN              :: AC_OPEN;
     SDL_SCANCODE_AC_CLOSE             :: AC_CLOSE;
@@ -19799,7 +19799,7 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_AC_SAVE              :: AC_SAVE;
     SDL_SCANCODE_AC_PRINT             :: AC_PRINT;
     SDL_SCANCODE_AC_PROPERTIES        :: AC_PROPERTIES;
-    
+
     SDL_SCANCODE_AC_SEARCH            :: AC_SEARCH;
     SDL_SCANCODE_AC_HOME              :: AC_HOME;
     SDL_SCANCODE_AC_BACK              :: AC_BACK;
@@ -19807,16 +19807,16 @@ SDL_Scancode :: enum s32 {
     SDL_SCANCODE_AC_STOP              :: AC_STOP;
     SDL_SCANCODE_AC_REFRESH           :: AC_REFRESH;
     SDL_SCANCODE_AC_BOOKMARKS         :: AC_BOOKMARKS;
-    
+
     SDL_SCANCODE_SOFTLEFT             :: SOFTLEFT;
-    
+
     SDL_SCANCODE_SOFTRIGHT            :: SOFTRIGHT;
-    
+
     SDL_SCANCODE_CALL                 :: CALL;
     SDL_SCANCODE_ENDCALL              :: ENDCALL;
-    
+
     SDL_SCANCODE_RESERVED             :: RESERVED;
-    
+
     SDL_SCANCODE_COUNT                :: COUNT;
 }
 
@@ -20158,7 +20158,7 @@ SDL_TextInputType :: enum s32 {
     NUMBER                  :: 6;
     NUMBER_PASSWORD_HIDDEN  :: 7;
     NUMBER_PASSWORD_VISIBLE :: 8;
-    
+
     SDL_TEXTINPUT_TYPE_TEXT                    :: TEXT;
     SDL_TEXTINPUT_TYPE_TEXT_NAME               :: TEXT_NAME;
     SDL_TEXTINPUT_TYPE_TEXT_EMAIL              :: TEXT_EMAIL;
@@ -20187,7 +20187,7 @@ SDL_Capitalization :: enum s32 {
     SENTENCES :: 1;
     WORDS     :: 2;
     LETTERS   :: 3;
-    
+
     SDL_CAPITALIZE_NONE      :: NONE;
     SDL_CAPITALIZE_SENTENCES :: SENTENCES;
     SDL_CAPITALIZE_WORDS     :: WORDS;
@@ -20392,7 +20392,7 @@ SDL_SystemCursor :: enum s32 {
     SW_RESIZE   :: 18;
     W_RESIZE    :: 19;
     COUNT       :: 20;
-    
+
     SDL_SYSTEM_CURSOR_DEFAULT     :: DEFAULT;
     SDL_SYSTEM_CURSOR_TEXT        :: TEXT;
     SDL_SYSTEM_CURSOR_WAIT        :: WAIT;
@@ -20424,7 +20424,7 @@ SDL_SystemCursor :: enum s32 {
 SDL_MouseWheelDirection :: enum s32 {
     NORMAL  :: 0;
     FLIPPED :: 1;
-    
+
     SDL_MOUSEWHEEL_NORMAL  :: NORMAL;
     SDL_MOUSEWHEEL_FLIPPED :: FLIPPED;
 }
@@ -20924,7 +20924,7 @@ SDL_PenAxis :: enum s32 {
     SLIDER              :: 5;
     TANGENTIAL_PRESSURE :: 6;
     COUNT               :: 7;
-    
+
     SDL_PEN_AXIS_PRESSURE            :: PRESSURE;
     SDL_PEN_AXIS_XTILT               :: XTILT;
     SDL_PEN_AXIS_YTILT               :: YTILT;
@@ -20943,7 +20943,7 @@ SDL_TouchDeviceType :: enum s32 {
     DIRECT            :: 0;
     INDIRECT_ABSOLUTE :: 1;
     INDIRECT_RELATIVE :: 2;
-    
+
     SDL_TOUCH_DEVICE_INVALID           :: INVALID;
     SDL_TOUCH_DEVICE_DIRECT            :: DIRECT;
     SDL_TOUCH_DEVICE_INDIRECT_ABSOLUTE :: INDIRECT_ABSOLUTE;
@@ -21028,25 +21028,25 @@ SDL_GetTouchFingers :: (touchID: SDL_TouchID, count: *s32) -> **SDL_Finger #fore
 */
 SDL_EventType :: enum s32 {
     FIRST                         :: 0;
-    
+
     QUIT                          :: 256;
-    
+
     TERMINATING                   :: 257;
-    
+
     LOW_MEMORY                    :: 258;
-    
+
     WILL_ENTER_BACKGROUND         :: 259;
-    
+
     DID_ENTER_BACKGROUND          :: 260;
-    
+
     WILL_ENTER_FOREGROUND         :: 261;
-    
+
     DID_ENTER_FOREGROUND          :: 262;
-    
+
     LOCALE_CHANGED                :: 263;
-    
+
     SYSTEM_THEME_CHANGED          :: 264;
-    
+
     DISPLAY_ORIENTATION           :: 337;
     DISPLAY_ADDED                 :: 338;
     DISPLAY_REMOVED               :: 339;
@@ -21056,7 +21056,7 @@ SDL_EventType :: enum s32 {
     DISPLAY_CONTENT_SCALE_CHANGED :: 343;
     DISPLAY_FIRST                 :: 337;
     DISPLAY_LAST                  :: 343;
-    
+
     WINDOW_SHOWN                  :: 514;
     WINDOW_HIDDEN                 :: 515;
     WINDOW_EXPOSED                :: 516;
@@ -21081,28 +21081,28 @@ SDL_EventType :: enum s32 {
     WINDOW_ENTER_FULLSCREEN       :: 535;
     WINDOW_LEAVE_FULLSCREEN       :: 536;
     WINDOW_DESTROYED              :: 537;
-    
+
     WINDOW_HDR_STATE_CHANGED      :: 538;
     WINDOW_FIRST                  :: 514;
     WINDOW_LAST                   :: 538;
-    
+
     KEY_DOWN                      :: 768;
     KEY_UP                        :: 769;
     TEXT_EDITING                  :: 770;
     TEXT_INPUT                    :: 771;
     KEYMAP_CHANGED                :: 772;
-    
+
     KEYBOARD_ADDED                :: 773;
     KEYBOARD_REMOVED              :: 774;
     TEXT_EDITING_CANDIDATES       :: 775;
-    
+
     MOUSE_MOTION                  :: 1024;
     MOUSE_BUTTON_DOWN             :: 1025;
     MOUSE_BUTTON_UP               :: 1026;
     MOUSE_WHEEL                   :: 1027;
     MOUSE_ADDED                   :: 1028;
     MOUSE_REMOVED                 :: 1029;
-    
+
     JOYSTICK_AXIS_MOTION          :: 1536;
     JOYSTICK_BALL_MOTION          :: 1537;
     JOYSTICK_HAT_MOTION           :: 1538;
@@ -21112,7 +21112,7 @@ SDL_EventType :: enum s32 {
     JOYSTICK_REMOVED              :: 1542;
     JOYSTICK_BATTERY_UPDATED      :: 1543;
     JOYSTICK_UPDATE_COMPLETE      :: 1544;
-    
+
     GAMEPAD_AXIS_MOTION           :: 1616;
     GAMEPAD_BUTTON_DOWN           :: 1617;
     GAMEPAD_BUTTON_UP             :: 1618;
@@ -21125,25 +21125,25 @@ SDL_EventType :: enum s32 {
     GAMEPAD_SENSOR_UPDATE         :: 1625;
     GAMEPAD_UPDATE_COMPLETE       :: 1626;
     GAMEPAD_STEAM_HANDLE_UPDATED  :: 1627;
-    
+
     FINGER_DOWN                   :: 1792;
     FINGER_UP                     :: 1793;
     FINGER_MOTION                 :: 1794;
-    
+
     CLIPBOARD_UPDATE              :: 2304;
-    
+
     DROP_FILE                     :: 4096;
     DROP_TEXT                     :: 4097;
     DROP_BEGIN                    :: 4098;
     DROP_COMPLETE                 :: 4099;
     DROP_POSITION                 :: 4100;
-    
+
     AUDIO_DEVICE_ADDED            :: 4352;
     AUDIO_DEVICE_REMOVED          :: 4353;
     AUDIO_DEVICE_FORMAT_CHANGED   :: 4354;
-    
+
     SENSOR_UPDATE                 :: 4608;
-    
+
     PEN_PROXIMITY_IN              :: 4864;
     PEN_PROXIMITY_OUT             :: 4865;
     PEN_DOWN                      :: 4866;
@@ -21152,49 +21152,49 @@ SDL_EventType :: enum s32 {
     PEN_BUTTON_UP                 :: 4869;
     PEN_MOTION                    :: 4870;
     PEN_AXIS                      :: 4871;
-    
+
     CAMERA_DEVICE_ADDED           :: 5120;
     CAMERA_DEVICE_REMOVED         :: 5121;
     CAMERA_DEVICE_APPROVED        :: 5122;
     CAMERA_DEVICE_DENIED          :: 5123;
-    
+
     RENDER_TARGETS_RESET          :: 8192;
     RENDER_DEVICE_RESET           :: 8193;
     RENDER_DEVICE_LOST            :: 8194;
-    
+
     PRIVATE0                      :: 16384;
     PRIVATE1                      :: 16385;
     PRIVATE2                      :: 16386;
     PRIVATE3                      :: 16387;
-    
+
     POLL_SENTINEL                 :: 32512;
-    
+
     USER                          :: 32768;
-    
+
     LAST                          :: 65535;
-    
+
     ENUM_PADDING                  :: 2147483647;
-    
+
     SDL_EVENT_FIRST                         :: FIRST;
-    
+
     SDL_EVENT_QUIT                          :: QUIT;
-    
+
     SDL_EVENT_TERMINATING                   :: TERMINATING;
-    
+
     SDL_EVENT_LOW_MEMORY                    :: LOW_MEMORY;
-    
+
     SDL_EVENT_WILL_ENTER_BACKGROUND         :: WILL_ENTER_BACKGROUND;
-    
+
     SDL_EVENT_DID_ENTER_BACKGROUND          :: DID_ENTER_BACKGROUND;
-    
+
     SDL_EVENT_WILL_ENTER_FOREGROUND         :: WILL_ENTER_FOREGROUND;
-    
+
     SDL_EVENT_DID_ENTER_FOREGROUND          :: DID_ENTER_FOREGROUND;
-    
+
     SDL_EVENT_LOCALE_CHANGED                :: LOCALE_CHANGED;
-    
+
     SDL_EVENT_SYSTEM_THEME_CHANGED          :: SYSTEM_THEME_CHANGED;
-    
+
     SDL_EVENT_DISPLAY_ORIENTATION           :: DISPLAY_ORIENTATION;
     SDL_EVENT_DISPLAY_ADDED                 :: DISPLAY_ADDED;
     SDL_EVENT_DISPLAY_REMOVED               :: DISPLAY_REMOVED;
@@ -21204,7 +21204,7 @@ SDL_EventType :: enum s32 {
     SDL_EVENT_DISPLAY_CONTENT_SCALE_CHANGED :: DISPLAY_CONTENT_SCALE_CHANGED;
     SDL_EVENT_DISPLAY_FIRST                 :: DISPLAY_FIRST;
     SDL_EVENT_DISPLAY_LAST                  :: DISPLAY_LAST;
-    
+
     SDL_EVENT_WINDOW_SHOWN                  :: WINDOW_SHOWN;
     SDL_EVENT_WINDOW_HIDDEN                 :: WINDOW_HIDDEN;
     SDL_EVENT_WINDOW_EXPOSED                :: WINDOW_EXPOSED;
@@ -21229,28 +21229,28 @@ SDL_EventType :: enum s32 {
     SDL_EVENT_WINDOW_ENTER_FULLSCREEN       :: WINDOW_ENTER_FULLSCREEN;
     SDL_EVENT_WINDOW_LEAVE_FULLSCREEN       :: WINDOW_LEAVE_FULLSCREEN;
     SDL_EVENT_WINDOW_DESTROYED              :: WINDOW_DESTROYED;
-    
+
     SDL_EVENT_WINDOW_HDR_STATE_CHANGED      :: WINDOW_HDR_STATE_CHANGED;
     SDL_EVENT_WINDOW_FIRST                  :: WINDOW_FIRST;
     SDL_EVENT_WINDOW_LAST                   :: WINDOW_LAST;
-    
+
     SDL_EVENT_KEY_DOWN                      :: KEY_DOWN;
     SDL_EVENT_KEY_UP                        :: KEY_UP;
     SDL_EVENT_TEXT_EDITING                  :: TEXT_EDITING;
     SDL_EVENT_TEXT_INPUT                    :: TEXT_INPUT;
     SDL_EVENT_KEYMAP_CHANGED                :: KEYMAP_CHANGED;
-    
+
     SDL_EVENT_KEYBOARD_ADDED                :: KEYBOARD_ADDED;
     SDL_EVENT_KEYBOARD_REMOVED              :: KEYBOARD_REMOVED;
     SDL_EVENT_TEXT_EDITING_CANDIDATES       :: TEXT_EDITING_CANDIDATES;
-    
+
     SDL_EVENT_MOUSE_MOTION                  :: MOUSE_MOTION;
     SDL_EVENT_MOUSE_BUTTON_DOWN             :: MOUSE_BUTTON_DOWN;
     SDL_EVENT_MOUSE_BUTTON_UP               :: MOUSE_BUTTON_UP;
     SDL_EVENT_MOUSE_WHEEL                   :: MOUSE_WHEEL;
     SDL_EVENT_MOUSE_ADDED                   :: MOUSE_ADDED;
     SDL_EVENT_MOUSE_REMOVED                 :: MOUSE_REMOVED;
-    
+
     SDL_EVENT_JOYSTICK_AXIS_MOTION          :: JOYSTICK_AXIS_MOTION;
     SDL_EVENT_JOYSTICK_BALL_MOTION          :: JOYSTICK_BALL_MOTION;
     SDL_EVENT_JOYSTICK_HAT_MOTION           :: JOYSTICK_HAT_MOTION;
@@ -21260,7 +21260,7 @@ SDL_EventType :: enum s32 {
     SDL_EVENT_JOYSTICK_REMOVED              :: JOYSTICK_REMOVED;
     SDL_EVENT_JOYSTICK_BATTERY_UPDATED      :: JOYSTICK_BATTERY_UPDATED;
     SDL_EVENT_JOYSTICK_UPDATE_COMPLETE      :: JOYSTICK_UPDATE_COMPLETE;
-    
+
     SDL_EVENT_GAMEPAD_AXIS_MOTION           :: GAMEPAD_AXIS_MOTION;
     SDL_EVENT_GAMEPAD_BUTTON_DOWN           :: GAMEPAD_BUTTON_DOWN;
     SDL_EVENT_GAMEPAD_BUTTON_UP             :: GAMEPAD_BUTTON_UP;
@@ -21273,25 +21273,25 @@ SDL_EventType :: enum s32 {
     SDL_EVENT_GAMEPAD_SENSOR_UPDATE         :: GAMEPAD_SENSOR_UPDATE;
     SDL_EVENT_GAMEPAD_UPDATE_COMPLETE       :: GAMEPAD_UPDATE_COMPLETE;
     SDL_EVENT_GAMEPAD_STEAM_HANDLE_UPDATED  :: GAMEPAD_STEAM_HANDLE_UPDATED;
-    
+
     SDL_EVENT_FINGER_DOWN                   :: FINGER_DOWN;
     SDL_EVENT_FINGER_UP                     :: FINGER_UP;
     SDL_EVENT_FINGER_MOTION                 :: FINGER_MOTION;
-    
+
     SDL_EVENT_CLIPBOARD_UPDATE              :: CLIPBOARD_UPDATE;
-    
+
     SDL_EVENT_DROP_FILE                     :: DROP_FILE;
     SDL_EVENT_DROP_TEXT                     :: DROP_TEXT;
     SDL_EVENT_DROP_BEGIN                    :: DROP_BEGIN;
     SDL_EVENT_DROP_COMPLETE                 :: DROP_COMPLETE;
     SDL_EVENT_DROP_POSITION                 :: DROP_POSITION;
-    
+
     SDL_EVENT_AUDIO_DEVICE_ADDED            :: AUDIO_DEVICE_ADDED;
     SDL_EVENT_AUDIO_DEVICE_REMOVED          :: AUDIO_DEVICE_REMOVED;
     SDL_EVENT_AUDIO_DEVICE_FORMAT_CHANGED   :: AUDIO_DEVICE_FORMAT_CHANGED;
-    
+
     SDL_EVENT_SENSOR_UPDATE                 :: SENSOR_UPDATE;
-    
+
     SDL_EVENT_PEN_PROXIMITY_IN              :: PEN_PROXIMITY_IN;
     SDL_EVENT_PEN_PROXIMITY_OUT             :: PEN_PROXIMITY_OUT;
     SDL_EVENT_PEN_DOWN                      :: PEN_DOWN;
@@ -21300,27 +21300,27 @@ SDL_EventType :: enum s32 {
     SDL_EVENT_PEN_BUTTON_UP                 :: PEN_BUTTON_UP;
     SDL_EVENT_PEN_MOTION                    :: PEN_MOTION;
     SDL_EVENT_PEN_AXIS                      :: PEN_AXIS;
-    
+
     SDL_EVENT_CAMERA_DEVICE_ADDED           :: CAMERA_DEVICE_ADDED;
     SDL_EVENT_CAMERA_DEVICE_REMOVED         :: CAMERA_DEVICE_REMOVED;
     SDL_EVENT_CAMERA_DEVICE_APPROVED        :: CAMERA_DEVICE_APPROVED;
     SDL_EVENT_CAMERA_DEVICE_DENIED          :: CAMERA_DEVICE_DENIED;
-    
+
     SDL_EVENT_RENDER_TARGETS_RESET          :: RENDER_TARGETS_RESET;
     SDL_EVENT_RENDER_DEVICE_RESET           :: RENDER_DEVICE_RESET;
     SDL_EVENT_RENDER_DEVICE_LOST            :: RENDER_DEVICE_LOST;
-    
+
     SDL_EVENT_PRIVATE0                      :: PRIVATE0;
     SDL_EVENT_PRIVATE1                      :: PRIVATE1;
     SDL_EVENT_PRIVATE2                      :: PRIVATE2;
     SDL_EVENT_PRIVATE3                      :: PRIVATE3;
-    
+
     SDL_EVENT_POLL_SENTINEL                 :: POLL_SENTINEL;
-    
+
     SDL_EVENT_USER                          :: USER;
-    
+
     SDL_EVENT_LAST                          :: LAST;
-    
+
     SDL_EVENT_ENUM_PADDING                  :: ENUM_PADDING;
 }
 
@@ -21582,7 +21582,7 @@ SDL_JoyHatEvent :: struct {
     *   Note that zero means the POV is centered.
     */
     value:     Uint8;
-    
+
     padding1:  Uint8;
     padding2:  Uint8;
 }
@@ -22014,7 +22014,7 @@ SDL_Event :: union {
     paxis:           SDL_PenAxisEvent; /**< Pen axis event data */
     drop:            SDL_DropEvent; /**< Drag and drop event data */
     clipboard:       SDL_ClipboardEvent; /**< Clipboard event data */
-    
+
     /* This is necessary for ABI compatibility between Visual C++ and GCC.
     Visual C++ will respect the push pack pragma and use 52 bytes (size of
     SDL_TextEditingEvent, the largest structure for 32-bit and 64-bit
@@ -22064,7 +22064,7 @@ SDL_EventAction :: enum s32 {
     ADDEVENT  :: 0;
     PEEKEVENT :: 1;
     GETEVENT  :: 2;
-    
+
     SDL_ADDEVENT  :: ADDEVENT;
     SDL_PEEKEVENT :: PEEKEVENT;
     SDL_GETEVENT  :: GETEVENT;
@@ -22689,51 +22689,51 @@ SDL_GetPrefPath :: (org: *u8, app: *u8) -> *u8 #foreign sdl3;
 */
 SDL_Folder :: enum s32 {
     HOME        :: 0;
-    
+
     DESKTOP     :: 1;
-    
+
     DOCUMENTS   :: 2;
-    
+
     DOWNLOADS   :: 3;
-    
+
     MUSIC       :: 4;
-    
+
     PICTURES    :: 5;
-    
+
     PUBLICSHARE :: 6;
-    
+
     SAVEDGAMES  :: 7;
-    
+
     SCREENSHOTS :: 8;
-    
+
     TEMPLATES   :: 9;
-    
+
     VIDEOS      :: 10;
-    
+
     COUNT       :: 11;
-    
+
     SDL_FOLDER_HOME        :: HOME;
-    
+
     SDL_FOLDER_DESKTOP     :: DESKTOP;
-    
+
     SDL_FOLDER_DOCUMENTS   :: DOCUMENTS;
-    
+
     SDL_FOLDER_DOWNLOADS   :: DOWNLOADS;
-    
+
     SDL_FOLDER_MUSIC       :: MUSIC;
-    
+
     SDL_FOLDER_PICTURES    :: PICTURES;
-    
+
     SDL_FOLDER_PUBLICSHARE :: PUBLICSHARE;
-    
+
     SDL_FOLDER_SAVEDGAMES  :: SAVEDGAMES;
-    
+
     SDL_FOLDER_SCREENSHOTS :: SCREENSHOTS;
-    
+
     SDL_FOLDER_TEMPLATES   :: TEMPLATES;
-    
+
     SDL_FOLDER_VIDEOS      :: VIDEOS;
-    
+
     SDL_FOLDER_COUNT       :: COUNT;
 }
 
@@ -22768,7 +22768,7 @@ SDL_PathType :: enum s32 {
     FILE      :: 1;
     DIRECTORY :: 2;
     OTHER     :: 3;
-    
+
     SDL_PATHTYPE_NONE      :: NONE;
     SDL_PATHTYPE_FILE      :: FILE;
     SDL_PATHTYPE_DIRECTORY :: DIRECTORY;
@@ -22820,7 +22820,7 @@ SDL_EnumerationResult :: enum s32 {
     CONTINUE :: 0;
     SUCCESS  :: 1;
     FAILURE  :: 2;
-    
+
     SDL_ENUM_CONTINUE :: CONTINUE;
     SDL_ENUM_SUCCESS  :: SUCCESS;
     SDL_ENUM_FAILURE  :: FAILURE;
@@ -23034,7 +23034,7 @@ SDL_GPUPrimitiveType :: enum s32 {
     LINELIST      :: 2;
     LINESTRIP     :: 3;
     POINTLIST     :: 4;
-    
+
     SDL_GPU_PRIMITIVETYPE_TRIANGLELIST  :: TRIANGLELIST;
     SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP :: TRIANGLESTRIP;
     SDL_GPU_PRIMITIVETYPE_LINELIST      :: LINELIST;
@@ -23054,7 +23054,7 @@ SDL_GPULoadOp :: enum s32 {
     LOAD      :: 0;
     CLEAR     :: 1;
     DONT_CARE :: 2;
-    
+
     SDL_GPU_LOADOP_LOAD      :: LOAD;
     SDL_GPU_LOADOP_CLEAR     :: CLEAR;
     SDL_GPU_LOADOP_DONT_CARE :: DONT_CARE;
@@ -23073,7 +23073,7 @@ SDL_GPUStoreOp :: enum s32 {
     DONT_CARE         :: 1;
     RESOLVE           :: 2;
     RESOLVE_AND_STORE :: 3;
-    
+
     SDL_GPU_STOREOP_STORE             :: STORE;
     SDL_GPU_STOREOP_DONT_CARE         :: DONT_CARE;
     SDL_GPU_STOREOP_RESOLVE           :: RESOLVE;
@@ -23090,7 +23090,7 @@ SDL_GPUStoreOp :: enum s32 {
 SDL_GPUIndexElementSize :: enum s32 {
     _16BIT :: 0;
     _32BIT :: 1;
-    
+
     SDL_GPU_INDEXELEMENTSIZE_16BIT :: _16BIT;
     SDL_GPU_INDEXELEMENTSIZE_32BIT :: _32BIT;
 }
@@ -23183,7 +23183,7 @@ SDL_GPUIndexElementSize :: enum s32 {
 */
 SDL_GPUTextureFormat :: enum s32 {
     INVALID               :: 0;
-    
+
     A8_UNORM              :: 1;
     R8_UNORM              :: 2;
     R8G8_UNORM            :: 3;
@@ -23196,34 +23196,34 @@ SDL_GPUTextureFormat :: enum s32 {
     B5G5R5A1_UNORM        :: 10;
     B4G4R4A4_UNORM        :: 11;
     B8G8R8A8_UNORM        :: 12;
-    
+
     BC1_RGBA_UNORM        :: 13;
     BC2_RGBA_UNORM        :: 14;
     BC3_RGBA_UNORM        :: 15;
     BC4_R_UNORM           :: 16;
     BC5_RG_UNORM          :: 17;
     BC7_RGBA_UNORM        :: 18;
-    
+
     BC6H_RGB_FLOAT        :: 19;
-    
+
     BC6H_RGB_UFLOAT       :: 20;
-    
+
     R8_SNORM              :: 21;
     R8G8_SNORM            :: 22;
     R8G8B8A8_SNORM        :: 23;
     R16_SNORM             :: 24;
     R16G16_SNORM          :: 25;
     R16G16B16A16_SNORM    :: 26;
-    
+
     R16_FLOAT             :: 27;
     R16G16_FLOAT          :: 28;
     R16G16B16A16_FLOAT    :: 29;
     R32_FLOAT             :: 30;
     R32G32_FLOAT          :: 31;
     R32G32B32A32_FLOAT    :: 32;
-    
+
     R11G11B10_UFLOAT      :: 33;
-    
+
     R8_UINT               :: 34;
     R8G8_UINT             :: 35;
     R8G8B8A8_UINT         :: 36;
@@ -23233,7 +23233,7 @@ SDL_GPUTextureFormat :: enum s32 {
     R32_UINT              :: 40;
     R32G32_UINT           :: 41;
     R32G32B32A32_UINT     :: 42;
-    
+
     R8_INT                :: 43;
     R8G8_INT              :: 44;
     R8G8B8A8_INT          :: 45;
@@ -23243,21 +23243,21 @@ SDL_GPUTextureFormat :: enum s32 {
     R32_INT               :: 49;
     R32G32_INT            :: 50;
     R32G32B32A32_INT      :: 51;
-    
+
     R8G8B8A8_UNORM_SRGB   :: 52;
     B8G8R8A8_UNORM_SRGB   :: 53;
-    
+
     BC1_RGBA_UNORM_SRGB   :: 54;
     BC2_RGBA_UNORM_SRGB   :: 55;
     BC3_RGBA_UNORM_SRGB   :: 56;
     BC7_RGBA_UNORM_SRGB   :: 57;
-    
+
     D16_UNORM             :: 58;
     D24_UNORM             :: 59;
     D32_FLOAT             :: 60;
     D24_UNORM_S8_UINT     :: 61;
     D32_FLOAT_S8_UINT     :: 62;
-    
+
     ASTC_4x4_UNORM        :: 63;
     ASTC_5x4_UNORM        :: 64;
     ASTC_5x5_UNORM        :: 65;
@@ -23272,7 +23272,7 @@ SDL_GPUTextureFormat :: enum s32 {
     ASTC_10x10_UNORM      :: 74;
     ASTC_12x10_UNORM      :: 75;
     ASTC_12x12_UNORM      :: 76;
-    
+
     ASTC_4x4_UNORM_SRGB   :: 77;
     ASTC_5x4_UNORM_SRGB   :: 78;
     ASTC_5x5_UNORM_SRGB   :: 79;
@@ -23287,7 +23287,7 @@ SDL_GPUTextureFormat :: enum s32 {
     ASTC_10x10_UNORM_SRGB :: 88;
     ASTC_12x10_UNORM_SRGB :: 89;
     ASTC_12x12_UNORM_SRGB :: 90;
-    
+
     ASTC_4x4_FLOAT        :: 91;
     ASTC_5x4_FLOAT        :: 92;
     ASTC_5x5_FLOAT        :: 93;
@@ -23302,9 +23302,9 @@ SDL_GPUTextureFormat :: enum s32 {
     ASTC_10x10_FLOAT      :: 102;
     ASTC_12x10_FLOAT      :: 103;
     ASTC_12x12_FLOAT      :: 104;
-    
+
     SDL_GPU_TEXTUREFORMAT_INVALID               :: INVALID;
-    
+
     SDL_GPU_TEXTUREFORMAT_A8_UNORM              :: A8_UNORM;
     SDL_GPU_TEXTUREFORMAT_R8_UNORM              :: R8_UNORM;
     SDL_GPU_TEXTUREFORMAT_R8G8_UNORM            :: R8G8_UNORM;
@@ -23317,34 +23317,34 @@ SDL_GPUTextureFormat :: enum s32 {
     SDL_GPU_TEXTUREFORMAT_B5G5R5A1_UNORM        :: B5G5R5A1_UNORM;
     SDL_GPU_TEXTUREFORMAT_B4G4R4A4_UNORM        :: B4G4R4A4_UNORM;
     SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM        :: B8G8R8A8_UNORM;
-    
+
     SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM        :: BC1_RGBA_UNORM;
     SDL_GPU_TEXTUREFORMAT_BC2_RGBA_UNORM        :: BC2_RGBA_UNORM;
     SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM        :: BC3_RGBA_UNORM;
     SDL_GPU_TEXTUREFORMAT_BC4_R_UNORM           :: BC4_R_UNORM;
     SDL_GPU_TEXTUREFORMAT_BC5_RG_UNORM          :: BC5_RG_UNORM;
     SDL_GPU_TEXTUREFORMAT_BC7_RGBA_UNORM        :: BC7_RGBA_UNORM;
-    
+
     SDL_GPU_TEXTUREFORMAT_BC6H_RGB_FLOAT        :: BC6H_RGB_FLOAT;
-    
+
     SDL_GPU_TEXTUREFORMAT_BC6H_RGB_UFLOAT       :: BC6H_RGB_UFLOAT;
-    
+
     SDL_GPU_TEXTUREFORMAT_R8_SNORM              :: R8_SNORM;
     SDL_GPU_TEXTUREFORMAT_R8G8_SNORM            :: R8G8_SNORM;
     SDL_GPU_TEXTUREFORMAT_R8G8B8A8_SNORM        :: R8G8B8A8_SNORM;
     SDL_GPU_TEXTUREFORMAT_R16_SNORM             :: R16_SNORM;
     SDL_GPU_TEXTUREFORMAT_R16G16_SNORM          :: R16G16_SNORM;
     SDL_GPU_TEXTUREFORMAT_R16G16B16A16_SNORM    :: R16G16B16A16_SNORM;
-    
+
     SDL_GPU_TEXTUREFORMAT_R16_FLOAT             :: R16_FLOAT;
     SDL_GPU_TEXTUREFORMAT_R16G16_FLOAT          :: R16G16_FLOAT;
     SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT    :: R16G16B16A16_FLOAT;
     SDL_GPU_TEXTUREFORMAT_R32_FLOAT             :: R32_FLOAT;
     SDL_GPU_TEXTUREFORMAT_R32G32_FLOAT          :: R32G32_FLOAT;
     SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT    :: R32G32B32A32_FLOAT;
-    
+
     SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT      :: R11G11B10_UFLOAT;
-    
+
     SDL_GPU_TEXTUREFORMAT_R8_UINT               :: R8_UINT;
     SDL_GPU_TEXTUREFORMAT_R8G8_UINT             :: R8G8_UINT;
     SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UINT         :: R8G8B8A8_UINT;
@@ -23354,7 +23354,7 @@ SDL_GPUTextureFormat :: enum s32 {
     SDL_GPU_TEXTUREFORMAT_R32_UINT              :: R32_UINT;
     SDL_GPU_TEXTUREFORMAT_R32G32_UINT           :: R32G32_UINT;
     SDL_GPU_TEXTUREFORMAT_R32G32B32A32_UINT     :: R32G32B32A32_UINT;
-    
+
     SDL_GPU_TEXTUREFORMAT_R8_INT                :: R8_INT;
     SDL_GPU_TEXTUREFORMAT_R8G8_INT              :: R8G8_INT;
     SDL_GPU_TEXTUREFORMAT_R8G8B8A8_INT          :: R8G8B8A8_INT;
@@ -23364,21 +23364,21 @@ SDL_GPUTextureFormat :: enum s32 {
     SDL_GPU_TEXTUREFORMAT_R32_INT               :: R32_INT;
     SDL_GPU_TEXTUREFORMAT_R32G32_INT            :: R32G32_INT;
     SDL_GPU_TEXTUREFORMAT_R32G32B32A32_INT      :: R32G32B32A32_INT;
-    
+
     SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM_SRGB   :: R8G8B8A8_UNORM_SRGB;
     SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB   :: B8G8R8A8_UNORM_SRGB;
-    
+
     SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM_SRGB   :: BC1_RGBA_UNORM_SRGB;
     SDL_GPU_TEXTUREFORMAT_BC2_RGBA_UNORM_SRGB   :: BC2_RGBA_UNORM_SRGB;
     SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM_SRGB   :: BC3_RGBA_UNORM_SRGB;
     SDL_GPU_TEXTUREFORMAT_BC7_RGBA_UNORM_SRGB   :: BC7_RGBA_UNORM_SRGB;
-    
+
     SDL_GPU_TEXTUREFORMAT_D16_UNORM             :: D16_UNORM;
     SDL_GPU_TEXTUREFORMAT_D24_UNORM             :: D24_UNORM;
     SDL_GPU_TEXTUREFORMAT_D32_FLOAT             :: D32_FLOAT;
     SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT     :: D24_UNORM_S8_UINT;
     SDL_GPU_TEXTUREFORMAT_D32_FLOAT_S8_UINT     :: D32_FLOAT_S8_UINT;
-    
+
     SDL_GPU_TEXTUREFORMAT_ASTC_4x4_UNORM        :: ASTC_4x4_UNORM;
     SDL_GPU_TEXTUREFORMAT_ASTC_5x4_UNORM        :: ASTC_5x4_UNORM;
     SDL_GPU_TEXTUREFORMAT_ASTC_5x5_UNORM        :: ASTC_5x5_UNORM;
@@ -23393,7 +23393,7 @@ SDL_GPUTextureFormat :: enum s32 {
     SDL_GPU_TEXTUREFORMAT_ASTC_10x10_UNORM      :: ASTC_10x10_UNORM;
     SDL_GPU_TEXTUREFORMAT_ASTC_12x10_UNORM      :: ASTC_12x10_UNORM;
     SDL_GPU_TEXTUREFORMAT_ASTC_12x12_UNORM      :: ASTC_12x12_UNORM;
-    
+
     SDL_GPU_TEXTUREFORMAT_ASTC_4x4_UNORM_SRGB   :: ASTC_4x4_UNORM_SRGB;
     SDL_GPU_TEXTUREFORMAT_ASTC_5x4_UNORM_SRGB   :: ASTC_5x4_UNORM_SRGB;
     SDL_GPU_TEXTUREFORMAT_ASTC_5x5_UNORM_SRGB   :: ASTC_5x5_UNORM_SRGB;
@@ -23408,7 +23408,7 @@ SDL_GPUTextureFormat :: enum s32 {
     SDL_GPU_TEXTUREFORMAT_ASTC_10x10_UNORM_SRGB :: ASTC_10x10_UNORM_SRGB;
     SDL_GPU_TEXTUREFORMAT_ASTC_12x10_UNORM_SRGB :: ASTC_12x10_UNORM_SRGB;
     SDL_GPU_TEXTUREFORMAT_ASTC_12x12_UNORM_SRGB :: ASTC_12x12_UNORM_SRGB;
-    
+
     SDL_GPU_TEXTUREFORMAT_ASTC_4x4_FLOAT        :: ASTC_4x4_FLOAT;
     SDL_GPU_TEXTUREFORMAT_ASTC_5x4_FLOAT        :: ASTC_5x4_FLOAT;
     SDL_GPU_TEXTUREFORMAT_ASTC_5x5_FLOAT        :: ASTC_5x5_FLOAT;
@@ -23460,7 +23460,7 @@ SDL_GPUTextureType :: enum s32 {
     _3D        :: 2;
     CUBE       :: 3;
     CUBE_ARRAY :: 4;
-    
+
     SDL_GPU_TEXTURETYPE_2D         :: _2D;
     SDL_GPU_TEXTURETYPE_2D_ARRAY   :: _2D_ARRAY;
     SDL_GPU_TEXTURETYPE_3D         :: _3D;
@@ -23484,7 +23484,7 @@ SDL_GPUSampleCount :: enum s32 {
     _2 :: 1;
     _4 :: 2;
     _8 :: 3;
-    
+
     SDL_GPU_SAMPLECOUNT_1 :: _1;
     SDL_GPU_SAMPLECOUNT_2 :: _2;
     SDL_GPU_SAMPLECOUNT_4 :: _4;
@@ -23505,7 +23505,7 @@ SDL_GPUCubeMapFace :: enum s32 {
     NEGATIVEY :: 3;
     POSITIVEZ :: 4;
     NEGATIVEZ :: 5;
-    
+
     SDL_GPU_CUBEMAPFACE_POSITIVEX :: POSITIVEX;
     SDL_GPU_CUBEMAPFACE_NEGATIVEX :: NEGATIVEX;
     SDL_GPU_CUBEMAPFACE_POSITIVEY :: POSITIVEY;
@@ -23542,7 +23542,7 @@ SDL_GPUBufferUsageFlags :: Uint32;
 SDL_GPUTransferBufferUsage :: enum s32 {
     UPLOAD   :: 0;
     DOWNLOAD :: 1;
-    
+
     SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD   :: UPLOAD;
     SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD :: DOWNLOAD;
 }
@@ -23557,7 +23557,7 @@ SDL_GPUTransferBufferUsage :: enum s32 {
 SDL_GPUShaderStage :: enum s32 {
     VERTEX   :: 0;
     FRAGMENT :: 1;
-    
+
     SDL_GPU_SHADERSTAGE_VERTEX   :: VERTEX;
     SDL_GPU_SHADERSTAGE_FRAGMENT :: FRAGMENT;
 }
@@ -23582,90 +23582,90 @@ SDL_GPUShaderFormat :: Uint32;
 */
 SDL_GPUVertexElementFormat :: enum s32 {
     INVALID      :: 0;
-    
+
     INT          :: 1;
     INT2         :: 2;
     INT3         :: 3;
     INT4         :: 4;
-    
+
     UINT         :: 5;
     UINT2        :: 6;
     UINT3        :: 7;
     UINT4        :: 8;
-    
+
     FLOAT        :: 9;
     FLOAT2       :: 10;
     FLOAT3       :: 11;
     FLOAT4       :: 12;
-    
+
     BYTE2        :: 13;
     BYTE4        :: 14;
-    
+
     UBYTE2       :: 15;
     UBYTE4       :: 16;
-    
+
     BYTE2_NORM   :: 17;
     BYTE4_NORM   :: 18;
-    
+
     UBYTE2_NORM  :: 19;
     UBYTE4_NORM  :: 20;
-    
+
     SHORT2       :: 21;
     SHORT4       :: 22;
-    
+
     USHORT2      :: 23;
     USHORT4      :: 24;
-    
+
     SHORT2_NORM  :: 25;
     SHORT4_NORM  :: 26;
-    
+
     USHORT2_NORM :: 27;
     USHORT4_NORM :: 28;
-    
+
     HALF2        :: 29;
     HALF4        :: 30;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_INVALID      :: INVALID;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_INT          :: INT;
     SDL_GPU_VERTEXELEMENTFORMAT_INT2         :: INT2;
     SDL_GPU_VERTEXELEMENTFORMAT_INT3         :: INT3;
     SDL_GPU_VERTEXELEMENTFORMAT_INT4         :: INT4;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_UINT         :: UINT;
     SDL_GPU_VERTEXELEMENTFORMAT_UINT2        :: UINT2;
     SDL_GPU_VERTEXELEMENTFORMAT_UINT3        :: UINT3;
     SDL_GPU_VERTEXELEMENTFORMAT_UINT4        :: UINT4;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_FLOAT        :: FLOAT;
     SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2       :: FLOAT2;
     SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3       :: FLOAT3;
     SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4       :: FLOAT4;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_BYTE2        :: BYTE2;
     SDL_GPU_VERTEXELEMENTFORMAT_BYTE4        :: BYTE4;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2       :: UBYTE2;
     SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4       :: UBYTE4;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_BYTE2_NORM   :: BYTE2_NORM;
     SDL_GPU_VERTEXELEMENTFORMAT_BYTE4_NORM   :: BYTE4_NORM;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2_NORM  :: UBYTE2_NORM;
     SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM  :: UBYTE4_NORM;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_SHORT2       :: SHORT2;
     SDL_GPU_VERTEXELEMENTFORMAT_SHORT4       :: SHORT4;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_USHORT2      :: USHORT2;
     SDL_GPU_VERTEXELEMENTFORMAT_USHORT4      :: USHORT4;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_SHORT2_NORM  :: SHORT2_NORM;
     SDL_GPU_VERTEXELEMENTFORMAT_SHORT4_NORM  :: SHORT4_NORM;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_USHORT2_NORM :: USHORT2_NORM;
     SDL_GPU_VERTEXELEMENTFORMAT_USHORT4_NORM :: USHORT4_NORM;
-    
+
     SDL_GPU_VERTEXELEMENTFORMAT_HALF2        :: HALF2;
     SDL_GPU_VERTEXELEMENTFORMAT_HALF4        :: HALF4;
 }
@@ -23680,7 +23680,7 @@ SDL_GPUVertexElementFormat :: enum s32 {
 SDL_GPUVertexInputRate :: enum s32 {
     VERTEX   :: 0;
     INSTANCE :: 1;
-    
+
     SDL_GPU_VERTEXINPUTRATE_VERTEX   :: VERTEX;
     SDL_GPU_VERTEXINPUTRATE_INSTANCE :: INSTANCE;
 }
@@ -23695,7 +23695,7 @@ SDL_GPUVertexInputRate :: enum s32 {
 SDL_GPUFillMode :: enum s32 {
     FILL :: 0;
     LINE :: 1;
-    
+
     SDL_GPU_FILLMODE_FILL :: FILL;
     SDL_GPU_FILLMODE_LINE :: LINE;
 }
@@ -23711,7 +23711,7 @@ SDL_GPUCullMode :: enum s32 {
     NONE  :: 0;
     FRONT :: 1;
     BACK  :: 2;
-    
+
     SDL_GPU_CULLMODE_NONE  :: NONE;
     SDL_GPU_CULLMODE_FRONT :: FRONT;
     SDL_GPU_CULLMODE_BACK  :: BACK;
@@ -23728,7 +23728,7 @@ SDL_GPUCullMode :: enum s32 {
 SDL_GPUFrontFace :: enum s32 {
     COUNTER_CLOCKWISE :: 0;
     CLOCKWISE         :: 1;
-    
+
     SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE :: COUNTER_CLOCKWISE;
     SDL_GPU_FRONTFACE_CLOCKWISE         :: CLOCKWISE;
 }
@@ -23750,7 +23750,7 @@ SDL_GPUCompareOp :: enum s32 {
     NOT_EQUAL        :: 6;
     GREATER_OR_EQUAL :: 7;
     ALWAYS           :: 8;
-    
+
     SDL_GPU_COMPAREOP_INVALID          :: INVALID;
     SDL_GPU_COMPAREOP_NEVER            :: NEVER;
     SDL_GPU_COMPAREOP_LESS             :: LESS;
@@ -23780,7 +23780,7 @@ SDL_GPUStencilOp :: enum s32 {
     INVERT              :: 6;
     INCREMENT_AND_WRAP  :: 7;
     DECREMENT_AND_WRAP  :: 8;
-    
+
     SDL_GPU_STENCILOP_INVALID             :: INVALID;
     SDL_GPU_STENCILOP_KEEP                :: KEEP;
     SDL_GPU_STENCILOP_ZERO                :: ZERO;
@@ -23810,7 +23810,7 @@ SDL_GPUBlendOp :: enum s32 {
     REVERSE_SUBTRACT :: 3;
     MIN              :: 4;
     MAX              :: 5;
-    
+
     SDL_GPU_BLENDOP_INVALID          :: INVALID;
     SDL_GPU_BLENDOP_ADD              :: ADD;
     SDL_GPU_BLENDOP_SUBTRACT         :: SUBTRACT;
@@ -23845,7 +23845,7 @@ SDL_GPUBlendFactor :: enum s32 {
     CONSTANT_COLOR           :: 11;
     ONE_MINUS_CONSTANT_COLOR :: 12;
     SRC_ALPHA_SATURATE       :: 13;
-    
+
     SDL_GPU_BLENDFACTOR_INVALID                  :: INVALID;
     SDL_GPU_BLENDFACTOR_ZERO                     :: ZERO;
     SDL_GPU_BLENDFACTOR_ONE                      :: ONE;
@@ -23881,7 +23881,7 @@ SDL_GPUColorComponentFlags :: Uint8;
 SDL_GPUFilter :: enum s32 {
     NEAREST :: 0;
     LINEAR  :: 1;
-    
+
     SDL_GPU_FILTER_NEAREST :: NEAREST;
     SDL_GPU_FILTER_LINEAR  :: LINEAR;
 }
@@ -23896,7 +23896,7 @@ SDL_GPUFilter :: enum s32 {
 SDL_GPUSamplerMipmapMode :: enum s32 {
     NEAREST :: 0;
     LINEAR  :: 1;
-    
+
     SDL_GPU_SAMPLERMIPMAPMODE_NEAREST :: NEAREST;
     SDL_GPU_SAMPLERMIPMAPMODE_LINEAR  :: LINEAR;
 }
@@ -23913,7 +23913,7 @@ SDL_GPUSamplerAddressMode :: enum s32 {
     REPEAT          :: 0;
     MIRRORED_REPEAT :: 1;
     CLAMP_TO_EDGE   :: 2;
-    
+
     SDL_GPU_SAMPLERADDRESSMODE_REPEAT          :: REPEAT;
     SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT :: MIRRORED_REPEAT;
     SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE   :: CLAMP_TO_EDGE;
@@ -23954,7 +23954,7 @@ SDL_GPUPresentMode :: enum s32 {
     VSYNC     :: 0;
     IMMEDIATE :: 1;
     MAILBOX   :: 2;
-    
+
     SDL_GPU_PRESENTMODE_VSYNC     :: VSYNC;
     SDL_GPU_PRESENTMODE_IMMEDIATE :: IMMEDIATE;
     SDL_GPU_PRESENTMODE_MAILBOX   :: MAILBOX;
@@ -23990,7 +23990,7 @@ SDL_GPUSwapchainComposition :: enum s32 {
     SDR_LINEAR          :: 1;
     HDR_EXTENDED_LINEAR :: 2;
     HDR10_ST2048        :: 3;
-    
+
     SDL_GPU_SWAPCHAINCOMPOSITION_SDR                 :: SDR;
     SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR          :: SDR_LINEAR;
     SDL_GPU_SWAPCHAINCOMPOSITION_HDR_EXTENDED_LINEAR :: HDR_EXTENDED_LINEAR;
@@ -24206,7 +24206,7 @@ SDL_GPUSamplerCreateInfo :: struct {
     enable_compare:    bool; /**< true to enable comparison against a reference value during lookups. */
     padding1:          Uint8;
     padding2:          Uint8;
-    
+
     props:             SDL_PropertiesID; /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 }
 
@@ -24320,7 +24320,7 @@ SDL_GPUShaderCreateInfo :: struct {
     num_storage_textures: Uint32; /**< The number of storage textures defined in the shader. */
     num_storage_buffers:  Uint32; /**< The number of storage buffers defined in the shader. */
     num_uniform_buffers:  Uint32; /**< The number of uniform buffers defined in the shader. */
-    
+
     props:                SDL_PropertiesID; /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 }
 
@@ -24344,7 +24344,7 @@ SDL_GPUTextureCreateInfo :: struct {
     layer_count_or_depth: Uint32; /**< The layer count or depth of the texture. This value is treated as a layer count on 2D array textures, and as a depth value on 3D textures. */
     num_levels:           Uint32; /**< The number of mip levels in the texture. */
     sample_count:         SDL_GPUSampleCount; /**< The number of samples per texel. Only applies if the texture is used as a render target. */
-    
+
     props:                SDL_PropertiesID; /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 }
 
@@ -24361,7 +24361,7 @@ SDL_GPUTextureCreateInfo :: struct {
 SDL_GPUBufferCreateInfo :: struct {
     usage: SDL_GPUBufferUsageFlags; /**< How the buffer is intended to be used by the client. */
     size:  Uint32; /**< The size in bytes of the buffer. */
-    
+
     props: SDL_PropertiesID; /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 }
 
@@ -24375,7 +24375,7 @@ SDL_GPUBufferCreateInfo :: struct {
 SDL_GPUTransferBufferCreateInfo :: struct {
     usage: SDL_GPUTransferBufferUsage; /**< How the transfer buffer is intended to be used by the client. */
     size:  Uint32; /**< The size in bytes of the transfer buffer. */
-    
+
     props: SDL_PropertiesID; /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 }
 
@@ -24491,7 +24491,7 @@ SDL_GPUGraphicsPipelineCreateInfo :: struct {
     multisample_state:   SDL_GPUMultisampleState; /**< The multisample state of the graphics pipeline. */
     depth_stencil_state: SDL_GPUDepthStencilState; /**< The depth-stencil state of the graphics pipeline. */
     target_info:         SDL_GPUGraphicsPipelineTargetInfo; /**< Formats and blend modes for the render targets of the graphics pipeline. */
-    
+
     props:               SDL_PropertiesID; /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 }
 
@@ -24516,7 +24516,7 @@ SDL_GPUComputePipelineCreateInfo :: struct {
     threadcount_x:                  Uint32; /**< The number of threads in the X dimension. This should match the value in the shader. */
     threadcount_y:                  Uint32; /**< The number of threads in the Y dimension. This should match the value in the shader. */
     threadcount_z:                  Uint32; /**< The number of threads in the Z dimension. This should match the value in the shader. */
-    
+
     props:                          SDL_PropertiesID; /**< A properties ID for extensions. Should be 0 if no extensions are needed. */
 }
 
@@ -26382,15 +26382,15 @@ SDL_HapticDirection :: struct {
 SDL_HapticConstant :: struct {
     type:          Uint16; /**< SDL_HAPTIC_CONSTANT */
     direction:     SDL_HapticDirection; /**< Direction of the effect. */
-    
+
     length:        Uint32; /**< Duration of the effect. */
     delay:         Uint16; /**< Delay before starting the effect. */
-    
+
     button:        Uint16; /**< Button that triggers the effect. */
     interval:      Uint16; /**< How soon it can be triggered again after button. */
-    
+
     level:         Sint16; /**< Strength of the constant effect. */
-    
+
     attack_length: Uint16; /**< Duration of the attack. */
     attack_level:  Uint16; /**< Level at the start of the attack. */
     fade_length:   Uint16; /**< Duration of the fade. */
@@ -26464,20 +26464,20 @@ SDL_HapticPeriodic :: struct {
     SDL_HAPTIC_TRIANGLE, SDL_HAPTIC_SAWTOOTHUP or
     SDL_HAPTIC_SAWTOOTHDOWN */
     type:          Uint16;
-    
+
     direction:     SDL_HapticDirection; /**< Direction of the effect. */
-    
+
     length:        Uint32; /**< Duration of the effect. */
     delay:         Uint16; /**< Delay before starting the effect. */
-    
+
     button:        Uint16; /**< Button that triggers the effect. */
     interval:      Uint16; /**< How soon it can be triggered again after button. */
-    
+
     period:        Uint16; /**< Period of the wave. */
     magnitude:     Sint16; /**< Peak value; if negative, equivalent to 180 degrees extra phase shift. */
     offset:        Sint16; /**< Mean value of the wave. */
     phase:         Uint16; /**< Positive phase shift given by hundredth of a degree. */
-    
+
     attack_length: Uint16; /**< Duration of the attack. */
     attack_level:  Uint16; /**< Level at the start of the attack. */
     fade_length:   Uint16; /**< Duration of the fade. */
@@ -26515,15 +26515,15 @@ SDL_HapticCondition :: struct {
     /**< SDL_HAPTIC_SPRING, SDL_HAPTIC_DAMPER,
     SDL_HAPTIC_INERTIA or SDL_HAPTIC_FRICTION */
     type:        Uint16;
-    
+
     direction:   SDL_HapticDirection; /**< Direction of the effect - Not used ATM. */
-    
+
     length:      Uint32; /**< Duration of the effect. */
     delay:       Uint16; /**< Delay before starting the effect. */
-    
+
     button:      Uint16; /**< Button that triggers the effect. */
     interval:    Uint16; /**< How soon it can be triggered again after button. */
-    
+
     right_sat:   [3] Uint16; /**< Level when joystick is to the positive side; max 0xFFFF. */
     left_sat:    [3] Uint16; /**< Level when joystick is to the negative side; max 0xFFFF. */
     right_coeff: [3] Sint16; /**< How fast to increase the force towards the positive side. */
@@ -26550,16 +26550,16 @@ SDL_HapticCondition :: struct {
 SDL_HapticRamp :: struct {
     type:          Uint16; /**< SDL_HAPTIC_RAMP */
     direction:     SDL_HapticDirection; /**< Direction of the effect. */
-    
+
     length:        Uint32; /**< Duration of the effect. */
     delay:         Uint16; /**< Delay before starting the effect. */
-    
+
     button:        Uint16; /**< Button that triggers the effect. */
     interval:      Uint16; /**< How soon it can be triggered again after button. */
-    
+
     start:         Sint16; /**< Beginning strength level. */
     end:           Sint16; /**< Ending strength level. */
-    
+
     attack_length: Uint16; /**< Duration of the attack. */
     attack_level:  Uint16; /**< Level at the start of the attack. */
     fade_length:   Uint16; /**< Duration of the fade. */
@@ -26582,9 +26582,9 @@ SDL_HapticRamp :: struct {
 */
 SDL_HapticLeftRight :: struct {
     type:            Uint16; /**< SDL_HAPTIC_LEFTRIGHT */
-    
+
     length:          Uint32; /**< Duration of the effect in milliseconds. */
-    
+
     large_magnitude: Uint16; /**< Control of the large controller motor. */
     small_magnitude: Uint16; /**< Control of the small controller motor. */
 }
@@ -26609,18 +26609,18 @@ SDL_HapticLeftRight :: struct {
 SDL_HapticCustom :: struct {
     type:          Uint16; /**< SDL_HAPTIC_CUSTOM */
     direction:     SDL_HapticDirection; /**< Direction of the effect. */
-    
+
     length:        Uint32; /**< Duration of the effect. */
     delay:         Uint16; /**< Delay before starting the effect. */
-    
+
     button:        Uint16; /**< Button that triggers the effect. */
     interval:      Uint16; /**< How soon it can be triggered again after button. */
-    
+
     channels:      Uint8; /**< Axes to use, minimum of one. */
     period:        Uint16; /**< Sample periods. */
     samples:       Uint16; /**< Amount of samples. */
     data:          *Uint16; /**< Should contain channels*samples items. */
-    
+
     attack_length: Uint16; /**< Duration of the attack. */
     attack_level:  Uint16; /**< Level at the start of the attack. */
     fade_length:   Uint16; /**< Duration of the fade. */
@@ -27222,23 +27222,23 @@ SDL_hid_device :: struct {}
 */
 SDL_hid_bus_type :: enum s32 {
     UNKNOWN   :: 0;
-    
+
     USB       :: 1;
-    
+
     BLUETOOTH :: 2;
-    
+
     I2C       :: 3;
-    
+
     SPI       :: 4;
-    
+
     SDL_HID_API_BUS_UNKNOWN   :: UNKNOWN;
-    
+
     SDL_HID_API_BUS_USB       :: USB;
-    
+
     SDL_HID_API_BUS_BLUETOOTH :: BLUETOOTH;
-    
+
     SDL_HID_API_BUS_I2C       :: I2C;
-    
+
     SDL_HID_API_BUS_SPI       :: SPI;
 }
 
@@ -27250,34 +27250,34 @@ SDL_hid_bus_type :: enum s32 {
 SDL_hid_device_info :: struct {
     /** Platform-specific device path */
     path:                *u8;
-    
+
     /** Device Vendor ID */
     vendor_id:           u16;
-    
+
     /** Device Product ID */
     product_id:          u16;
-    
+
     /** Serial Number */
     serial_number:       *u16;
-    
+
     /** Device Release Number in binary-coded decimal,
     also known as Device Version Number */
     release_number:      u16;
-    
+
     /** Manufacturer String */
     manufacturer_string: *u16;
-    
+
     /** Product string */
     product_string:      *u16;
-    
+
     /** Usage Page for this Device/Interface
     (Windows/Mac/hidraw only) */
     usage_page:          u16;
-    
+
     /** Usage for this Device/Interface
     (Windows/Mac/hidraw only) */
     usage:               u16;
-    
+
     /** The USB interface which this logical device
     represents.
     
@@ -27285,16 +27285,16 @@ SDL_hid_device_info :: struct {
     Set to -1 in all other cases.
     */
     interface_number:    s32;
-    
+
     /** Additional information about the USB interface.
     Valid on libusb and Android implementations. */
     interface_class:     s32;
     interface_subclass:  s32;
     interface_protocol:  s32;
-    
+
     /** Underlying bus type */
     bus_type:            SDL_hid_bus_type;
-    
+
     /** Pointer to the next device */
     next:                *SDL_hid_device_info;
 }
@@ -27696,7 +27696,7 @@ SDL_HintPriority :: enum s32 {
     DEFAULT  :: 0;
     NORMAL   :: 1;
     OVERRIDE :: 2;
-    
+
     SDL_HINT_DEFAULT  :: DEFAULT;
     SDL_HINT_NORMAL   :: NORMAL;
     SDL_HINT_OVERRIDE :: OVERRIDE;
@@ -27917,7 +27917,7 @@ SDL_AppResult :: enum s32 {
     CONTINUE :: 0;
     SUCCESS  :: 1;
     FAILURE  :: 2;
-    
+
     SDL_APP_CONTINUE :: CONTINUE;
     SDL_APP_SUCCESS  :: SUCCESS;
     SDL_APP_FAILURE  :: FAILURE;
@@ -28315,7 +28315,7 @@ SDL_LogCategory :: enum s32 {
     INPUT       :: 7;
     TEST        :: 8;
     GPU         :: 9;
-    
+
     RESERVED2   :: 10;
     RESERVED3   :: 11;
     RESERVED4   :: 12;
@@ -28325,9 +28325,9 @@ SDL_LogCategory :: enum s32 {
     RESERVED8   :: 16;
     RESERVED9   :: 17;
     RESERVED10  :: 18;
-    
+
     CUSTOM      :: 19;
-    
+
     SDL_LOG_CATEGORY_APPLICATION :: APPLICATION;
     SDL_LOG_CATEGORY_ERROR       :: ERROR;
     SDL_LOG_CATEGORY_ASSERT      :: ASSERT;
@@ -28338,7 +28338,7 @@ SDL_LogCategory :: enum s32 {
     SDL_LOG_CATEGORY_INPUT       :: INPUT;
     SDL_LOG_CATEGORY_TEST        :: TEST;
     SDL_LOG_CATEGORY_GPU         :: GPU;
-    
+
     SDL_LOG_CATEGORY_RESERVED2   :: RESERVED2;
     SDL_LOG_CATEGORY_RESERVED3   :: RESERVED3;
     SDL_LOG_CATEGORY_RESERVED4   :: RESERVED4;
@@ -28348,7 +28348,7 @@ SDL_LogCategory :: enum s32 {
     SDL_LOG_CATEGORY_RESERVED8   :: RESERVED8;
     SDL_LOG_CATEGORY_RESERVED9   :: RESERVED9;
     SDL_LOG_CATEGORY_RESERVED10  :: RESERVED10;
-    
+
     SDL_LOG_CATEGORY_CUSTOM      :: CUSTOM;
 }
 
@@ -28367,7 +28367,7 @@ SDL_LogPriority :: enum s32 {
     ERROR    :: 6;
     CRITICAL :: 7;
     COUNT    :: 8;
-    
+
     SDL_LOG_PRIORITY_INVALID  :: INVALID;
     SDL_LOG_PRIORITY_TRACE    :: TRACE;
     SDL_LOG_PRIORITY_VERBOSE  :: VERBOSE;
@@ -28859,7 +28859,7 @@ SDL_MessageBoxColorType :: enum s32 {
     BUTTON_BACKGROUND :: 3;
     BUTTON_SELECTED   :: 4;
     COUNT             :: 5;
-    
+
     SDL_MESSAGEBOX_COLOR_BACKGROUND        :: BACKGROUND;
     SDL_MESSAGEBOX_COLOR_TEXT              :: TEXT;
     SDL_MESSAGEBOX_COLOR_BUTTON_BORDER     :: BUTTON_BORDER;
@@ -28887,10 +28887,10 @@ SDL_MessageBoxData :: struct {
     window:      *SDL_Window; /**< Parent window, can be NULL */
     title:       *u8; /**< UTF-8 title */
     message:     *u8; /**< UTF-8 message text */
-    
+
     numbuttons:  s32;
     buttons:     *SDL_MessageBoxButtonData;
-    
+
     colorScheme: *SDL_MessageBoxColorScheme; /**< SDL_MessageBoxColorScheme, can be NULL to use system settings */
 }
 
@@ -29163,7 +29163,7 @@ SDL_ProcessIO :: enum s32 {
     NULL      :: 1;
     APP       :: 2;
     REDIRECT  :: 3;
-    
+
     SDL_PROCESS_STDIO_INHERITED :: INHERITED;
     SDL_PROCESS_STDIO_NULL      :: NULL;
     SDL_PROCESS_STDIO_APP       :: APP;
@@ -29433,7 +29433,7 @@ SDL_TextureAccess :: enum s32 {
     STATIC    :: 0;
     STREAMING :: 1;
     TARGET    :: 2;
-    
+
     SDL_TEXTUREACCESS_STATIC    :: STATIC;
     SDL_TEXTUREACCESS_STREAMING :: STREAMING;
     SDL_TEXTUREACCESS_TARGET    :: TARGET;
@@ -29450,7 +29450,7 @@ SDL_RendererLogicalPresentation :: enum s32 {
     LETTERBOX     :: 2;
     OVERSCAN      :: 3;
     INTEGER_SCALE :: 4;
-    
+
     SDL_LOGICAL_PRESENTATION_DISABLED      :: DISABLED;
     SDL_LOGICAL_PRESENTATION_STRETCH       :: STRETCH;
     SDL_LOGICAL_PRESENTATION_LETTERBOX     :: LETTERBOX;
@@ -29474,7 +29474,7 @@ SDL_Texture :: struct {
     format:   SDL_PixelFormat; /**< The format of the texture, read-only */
     w:        s32; /**< The width of the texture, read-only. */
     h:        s32; /**< The height of the texture, read-only. */
-    
+
     refcount: s32; /**< Application reference count, used when freeing texture */
 }
 
@@ -31743,37 +31743,37 @@ SDL_RenderDebugText :: (renderer: *SDL_Renderer, x: float, y: float, str: *u8) -
 SDL_StorageInterface :: struct {
     /* The version of this interface */
     version:         Uint32;
-    
+
     /* Called when the storage is closed */
     close:           #type (userdata: *void) -> bool #c_call;
-    
+
     /* Optional, returns whether the storage is currently ready for access */
     ready:           #type (userdata: *void) -> bool #c_call;
-    
+
     /* Enumerate a directory, optional for write-only storage */
     enumerate:       #type (userdata: *void, path: *u8, callback: SDL_EnumerateDirectoryCallback, callback_userdata: *void) -> bool #c_call;
-    
+
     /* Get path information, optional for write-only storage */
     info:            #type (userdata: *void, path: *u8, info: *SDL_PathInfo) -> bool #c_call;
-    
+
     /* Read a file from storage, optional for write-only storage */
     read_file:       #type (userdata: *void, path: *u8, destination: *void, length: Uint64) -> bool #c_call;
-    
+
     /* Write a file to storage, optional for read-only storage */
     write_file:      #type (userdata: *void, path: *u8, source: *void, length: Uint64) -> bool #c_call;
-    
+
     /* Create a directory, optional for read-only storage */
     mkdir:           #type (userdata: *void, path: *u8) -> bool #c_call;
-    
+
     /* Remove a file or empty directory, optional for read-only storage */
     _remove:         #type (userdata: *void, path: *u8) -> bool #c_call;
-    
+
     /* Rename a path, optional for read-only storage */
     rename:          #type (userdata: *void, oldpath: *u8, newpath: *u8) -> bool #c_call;
-    
+
     /* Copy a file, optional for read-only storage */
     copy:            #type (userdata: *void, oldpath: *u8, newpath: *u8) -> bool #c_call;
-    
+
     /* Get the space remaining, optional for read-only storage */
     space_remaining: #type (userdata: *void) -> Uint64 #c_call;
 }
@@ -32238,7 +32238,7 @@ SDL_Sandbox :: enum s32 {
     FLATPAK           :: 2;
     SNAP              :: 3;
     MACOS             :: 4;
-    
+
     SDL_SANDBOX_NONE              :: NONE;
     SDL_SANDBOX_UNKNOWN_CONTAINER :: UNKNOWN_CONTAINER;
     SDL_SANDBOX_FLATPAK           :: FLATPAK;
@@ -32387,7 +32387,7 @@ SDL_DateFormat :: enum s32 {
     YYYYMMDD :: 0;
     DDMMYYYY :: 1;
     MMDDYYYY :: 2;
-    
+
     SDL_DATE_FORMAT_YYYYMMDD :: YYYYMMDD;
     SDL_DATE_FORMAT_DDMMYYYY :: DDMMYYYY;
     SDL_DATE_FORMAT_MMDDYYYY :: MMDDYYYY;
@@ -32403,7 +32403,7 @@ SDL_DateFormat :: enum s32 {
 SDL_TimeFormat :: enum s32 {
     _24HR :: 0;
     _12HR :: 1;
-    
+
     SDL_TIME_FORMAT_24HR :: _24HR;
     SDL_TIME_FORMAT_12HR :: _12HR;
 }
@@ -32845,7 +32845,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_alignment_test.b)) == 8, "SDL_alignment_test.b has unexpected size % instead of 8", size_of(type_of(SDL_alignment_test.b)));
         assert(size_of(SDL_alignment_test) == 16, "SDL_alignment_test has size % instead of 16", size_of(SDL_alignment_test));
     }
-    
+
     {
         instance: SDL_AssertData;
         assert(((cast(*void)(*instance.always_ignore)) - cast(*void)(*instance)) == 0, "SDL_AssertData.always_ignore has unexpected offset % instead of 0", ((cast(*void)(*instance.always_ignore)) - cast(*void)(*instance)));
@@ -32864,21 +32864,21 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_AssertData.next)) == 8, "SDL_AssertData.next has unexpected size % instead of 8", size_of(type_of(SDL_AssertData.next)));
         assert(size_of(SDL_AssertData) == 48, "SDL_AssertData has size % instead of 48", size_of(SDL_AssertData));
     }
-    
+
     {
         instance: SDL_AtomicInt;
         assert(((cast(*void)(*instance.value)) - cast(*void)(*instance)) == 0, "SDL_AtomicInt.value has unexpected offset % instead of 0", ((cast(*void)(*instance.value)) - cast(*void)(*instance)));
         assert(size_of(type_of(SDL_AtomicInt.value)) == 4, "SDL_AtomicInt.value has unexpected size % instead of 4", size_of(type_of(SDL_AtomicInt.value)));
         assert(size_of(SDL_AtomicInt) == 4, "SDL_AtomicInt has size % instead of 4", size_of(SDL_AtomicInt));
     }
-    
+
     {
         instance: SDL_AtomicU32;
         assert(((cast(*void)(*instance.value)) - cast(*void)(*instance)) == 0, "SDL_AtomicU32.value has unexpected offset % instead of 0", ((cast(*void)(*instance.value)) - cast(*void)(*instance)));
         assert(size_of(type_of(SDL_AtomicU32.value)) == 4, "SDL_AtomicU32.value has unexpected size % instead of 4", size_of(type_of(SDL_AtomicU32.value)));
         assert(size_of(SDL_AtomicU32) == 4, "SDL_AtomicU32 has size % instead of 4", size_of(SDL_AtomicU32));
     }
-    
+
     {
         instance: SDL_InitState;
         assert(((cast(*void)(*instance.status)) - cast(*void)(*instance)) == 0, "SDL_InitState.status has unexpected offset % instead of 0", ((cast(*void)(*instance.status)) - cast(*void)(*instance)));
@@ -32889,7 +32889,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_InitState.reserved)) == 8, "SDL_InitState.reserved has unexpected size % instead of 8", size_of(type_of(SDL_InitState.reserved)));
         assert(size_of(SDL_InitState) == 24, "SDL_InitState has size % instead of 24", size_of(SDL_InitState));
     }
-    
+
     {
         instance: SDL_IOStreamInterface;
         assert(((cast(*void)(*instance.version)) - cast(*void)(*instance)) == 0, "SDL_IOStreamInterface.version has unexpected offset % instead of 0", ((cast(*void)(*instance.version)) - cast(*void)(*instance)));
@@ -32908,7 +32908,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_IOStreamInterface.close)) == 8, "SDL_IOStreamInterface.close has unexpected size % instead of 8", size_of(type_of(SDL_IOStreamInterface.close)));
         assert(size_of(SDL_IOStreamInterface) == 56, "SDL_IOStreamInterface has size % instead of 56", size_of(SDL_IOStreamInterface));
     }
-    
+
     {
         instance: SDL_AudioSpec;
         assert(((cast(*void)(*instance.format)) - cast(*void)(*instance)) == 0, "SDL_AudioSpec.format has unexpected offset % instead of 0", ((cast(*void)(*instance.format)) - cast(*void)(*instance)));
@@ -32919,7 +32919,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_AudioSpec.freq)) == 4, "SDL_AudioSpec.freq has unexpected size % instead of 4", size_of(type_of(SDL_AudioSpec.freq)));
         assert(size_of(SDL_AudioSpec) == 12, "SDL_AudioSpec has size % instead of 12", size_of(SDL_AudioSpec));
     }
-    
+
     {
         instance: SDL_Color;
         assert(((cast(*void)(*instance.r)) - cast(*void)(*instance)) == 0, "SDL_Color.r has unexpected offset % instead of 0", ((cast(*void)(*instance.r)) - cast(*void)(*instance)));
@@ -32932,7 +32932,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Color.a)) == 1, "SDL_Color.a has unexpected size % instead of 1", size_of(type_of(SDL_Color.a)));
         assert(size_of(SDL_Color) == 4, "SDL_Color has size % instead of 4", size_of(SDL_Color));
     }
-    
+
     {
         instance: SDL_FColor;
         assert(((cast(*void)(*instance.r)) - cast(*void)(*instance)) == 0, "SDL_FColor.r has unexpected offset % instead of 0", ((cast(*void)(*instance.r)) - cast(*void)(*instance)));
@@ -32945,7 +32945,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_FColor.a)) == 4, "SDL_FColor.a has unexpected size % instead of 4", size_of(type_of(SDL_FColor.a)));
         assert(size_of(SDL_FColor) == 16, "SDL_FColor has size % instead of 16", size_of(SDL_FColor));
     }
-    
+
     {
         instance: SDL_Palette;
         assert(((cast(*void)(*instance.ncolors)) - cast(*void)(*instance)) == 0, "SDL_Palette.ncolors has unexpected offset % instead of 0", ((cast(*void)(*instance.ncolors)) - cast(*void)(*instance)));
@@ -32958,7 +32958,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Palette.refcount)) == 4, "SDL_Palette.refcount has unexpected size % instead of 4", size_of(type_of(SDL_Palette.refcount)));
         assert(size_of(SDL_Palette) == 24, "SDL_Palette has size % instead of 24", size_of(SDL_Palette));
     }
-    
+
     {
         instance: SDL_PixelFormatDetails;
         assert(((cast(*void)(*instance.format)) - cast(*void)(*instance)) == 0, "SDL_PixelFormatDetails.format has unexpected offset % instead of 0", ((cast(*void)(*instance.format)) - cast(*void)(*instance)));
@@ -32995,7 +32995,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_PixelFormatDetails.Ashift)) == 1, "SDL_PixelFormatDetails.Ashift has unexpected size % instead of 1", size_of(type_of(SDL_PixelFormatDetails.Ashift)));
         assert(size_of(SDL_PixelFormatDetails) == 32, "SDL_PixelFormatDetails has size % instead of 32", size_of(SDL_PixelFormatDetails));
     }
-    
+
     {
         instance: SDL_Point;
         assert(((cast(*void)(*instance.x)) - cast(*void)(*instance)) == 0, "SDL_Point.x has unexpected offset % instead of 0", ((cast(*void)(*instance.x)) - cast(*void)(*instance)));
@@ -33004,7 +33004,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Point.y)) == 4, "SDL_Point.y has unexpected size % instead of 4", size_of(type_of(SDL_Point.y)));
         assert(size_of(SDL_Point) == 8, "SDL_Point has size % instead of 8", size_of(SDL_Point));
     }
-    
+
     {
         instance: SDL_FPoint;
         assert(((cast(*void)(*instance.x)) - cast(*void)(*instance)) == 0, "SDL_FPoint.x has unexpected offset % instead of 0", ((cast(*void)(*instance.x)) - cast(*void)(*instance)));
@@ -33013,7 +33013,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_FPoint.y)) == 4, "SDL_FPoint.y has unexpected size % instead of 4", size_of(type_of(SDL_FPoint.y)));
         assert(size_of(SDL_FPoint) == 8, "SDL_FPoint has size % instead of 8", size_of(SDL_FPoint));
     }
-    
+
     {
         instance: SDL_Rect;
         assert(((cast(*void)(*instance.x)) - cast(*void)(*instance)) == 0, "SDL_Rect.x has unexpected offset % instead of 0", ((cast(*void)(*instance.x)) - cast(*void)(*instance)));
@@ -33026,7 +33026,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Rect.h)) == 4, "SDL_Rect.h has unexpected size % instead of 4", size_of(type_of(SDL_Rect.h)));
         assert(size_of(SDL_Rect) == 16, "SDL_Rect has size % instead of 16", size_of(SDL_Rect));
     }
-    
+
     {
         instance: SDL_FRect;
         assert(((cast(*void)(*instance.x)) - cast(*void)(*instance)) == 0, "SDL_FRect.x has unexpected offset % instead of 0", ((cast(*void)(*instance.x)) - cast(*void)(*instance)));
@@ -33039,7 +33039,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_FRect.h)) == 4, "SDL_FRect.h has unexpected size % instead of 4", size_of(type_of(SDL_FRect.h)));
         assert(size_of(SDL_FRect) == 16, "SDL_FRect has size % instead of 16", size_of(SDL_FRect));
     }
-    
+
     {
         instance: SDL_Surface;
         assert(((cast(*void)(*instance.flags)) - cast(*void)(*instance)) == 0, "SDL_Surface.flags has unexpected offset % instead of 0", ((cast(*void)(*instance.flags)) - cast(*void)(*instance)));
@@ -33060,7 +33060,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Surface.reserved)) == 8, "SDL_Surface.reserved has unexpected size % instead of 8", size_of(type_of(SDL_Surface.reserved)));
         assert(size_of(SDL_Surface) == 48, "SDL_Surface has size % instead of 48", size_of(SDL_Surface));
     }
-    
+
     {
         instance: SDL_CameraSpec;
         assert(((cast(*void)(*instance.format)) - cast(*void)(*instance)) == 0, "SDL_CameraSpec.format has unexpected offset % instead of 0", ((cast(*void)(*instance.format)) - cast(*void)(*instance)));
@@ -33077,7 +33077,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_CameraSpec.framerate_denominator)) == 4, "SDL_CameraSpec.framerate_denominator has unexpected size % instead of 4", size_of(type_of(SDL_CameraSpec.framerate_denominator)));
         assert(size_of(SDL_CameraSpec) == 24, "SDL_CameraSpec has size % instead of 24", size_of(SDL_CameraSpec));
     }
-    
+
     {
         instance: SDL_DisplayMode;
         assert(((cast(*void)(*instance.displayID)) - cast(*void)(*instance)) == 0, "SDL_DisplayMode.displayID has unexpected offset % instead of 0", ((cast(*void)(*instance.displayID)) - cast(*void)(*instance)));
@@ -33100,7 +33100,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_DisplayMode.internal)) == 8, "SDL_DisplayMode.internal has unexpected size % instead of 8", size_of(type_of(SDL_DisplayMode.internal)));
         assert(size_of(SDL_DisplayMode) == 40, "SDL_DisplayMode has size % instead of 40", size_of(SDL_DisplayMode));
     }
-    
+
     {
         instance: SDL_DialogFileFilter;
         assert(((cast(*void)(*instance.name)) - cast(*void)(*instance)) == 0, "SDL_DialogFileFilter.name has unexpected offset % instead of 0", ((cast(*void)(*instance.name)) - cast(*void)(*instance)));
@@ -33109,14 +33109,14 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_DialogFileFilter.pattern)) == 8, "SDL_DialogFileFilter.pattern has unexpected size % instead of 8", size_of(type_of(SDL_DialogFileFilter.pattern)));
         assert(size_of(SDL_DialogFileFilter) == 16, "SDL_DialogFileFilter has size % instead of 16", size_of(SDL_DialogFileFilter));
     }
-    
+
     {
         instance: SDL_GUID;
         assert(((cast(*void)(*instance.data)) - cast(*void)(*instance)) == 0, "SDL_GUID.data has unexpected offset % instead of 0", ((cast(*void)(*instance.data)) - cast(*void)(*instance)));
         assert(size_of(type_of(SDL_GUID.data)) == 16, "SDL_GUID.data has unexpected size % instead of 16", size_of(type_of(SDL_GUID.data)));
         assert(size_of(SDL_GUID) == 16, "SDL_GUID has size % instead of 16", size_of(SDL_GUID));
     }
-    
+
     {
         instance: SDL_VirtualJoystickTouchpadDesc;
         assert(((cast(*void)(*instance.nfingers)) - cast(*void)(*instance)) == 0, "SDL_VirtualJoystickTouchpadDesc.nfingers has unexpected offset % instead of 0", ((cast(*void)(*instance.nfingers)) - cast(*void)(*instance)));
@@ -33125,7 +33125,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_VirtualJoystickTouchpadDesc.padding)) == 6, "SDL_VirtualJoystickTouchpadDesc.padding has unexpected size % instead of 6", size_of(type_of(SDL_VirtualJoystickTouchpadDesc.padding)));
         assert(size_of(SDL_VirtualJoystickTouchpadDesc) == 8, "SDL_VirtualJoystickTouchpadDesc has size % instead of 8", size_of(SDL_VirtualJoystickTouchpadDesc));
     }
-    
+
     {
         instance: SDL_VirtualJoystickSensorDesc;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_VirtualJoystickSensorDesc.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33134,7 +33134,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_VirtualJoystickSensorDesc.rate)) == 4, "SDL_VirtualJoystickSensorDesc.rate has unexpected size % instead of 4", size_of(type_of(SDL_VirtualJoystickSensorDesc.rate)));
         assert(size_of(SDL_VirtualJoystickSensorDesc) == 8, "SDL_VirtualJoystickSensorDesc has size % instead of 8", size_of(SDL_VirtualJoystickSensorDesc));
     }
-    
+
     {
         instance: SDL_VirtualJoystickDesc;
         assert(((cast(*void)(*instance.version)) - cast(*void)(*instance)) == 0, "SDL_VirtualJoystickDesc.version has unexpected offset % instead of 0", ((cast(*void)(*instance.version)) - cast(*void)(*instance)));
@@ -33191,7 +33191,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_VirtualJoystickDesc.Cleanup)) == 8, "SDL_VirtualJoystickDesc.Cleanup has unexpected size % instead of 8", size_of(type_of(SDL_VirtualJoystickDesc.Cleanup)));
         assert(size_of(SDL_VirtualJoystickDesc) == 136, "SDL_VirtualJoystickDesc has size % instead of 136", size_of(SDL_VirtualJoystickDesc));
     }
-    
+
     {
         instance: SDL_GamepadBinding;
         assert(((cast(*void)(*instance.input_type)) - cast(*void)(*instance)) == 0, "SDL_GamepadBinding.input_type has unexpected offset % instead of 0", ((cast(*void)(*instance.input_type)) - cast(*void)(*instance)));
@@ -33204,7 +33204,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GamepadBinding.output)) == 12, "SDL_GamepadBinding.output has unexpected size % instead of 12", size_of(type_of(SDL_GamepadBinding.output)));
         assert(size_of(SDL_GamepadBinding) == 32, "SDL_GamepadBinding has size % instead of 32", size_of(SDL_GamepadBinding));
     }
-    
+
     {
         instance: SDL_Finger;
         assert(((cast(*void)(*instance.id)) - cast(*void)(*instance)) == 0, "SDL_Finger.id has unexpected offset % instead of 0", ((cast(*void)(*instance.id)) - cast(*void)(*instance)));
@@ -33217,7 +33217,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Finger.pressure)) == 4, "SDL_Finger.pressure has unexpected size % instead of 4", size_of(type_of(SDL_Finger.pressure)));
         assert(size_of(SDL_Finger) == 24, "SDL_Finger has size % instead of 24", size_of(SDL_Finger));
     }
-    
+
     {
         instance: SDL_CommonEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_CommonEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33228,7 +33228,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_CommonEvent.timestamp)) == 8, "SDL_CommonEvent.timestamp has unexpected size % instead of 8", size_of(type_of(SDL_CommonEvent.timestamp)));
         assert(size_of(SDL_CommonEvent) == 16, "SDL_CommonEvent has size % instead of 16", size_of(SDL_CommonEvent));
     }
-    
+
     {
         instance: SDL_DisplayEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_DisplayEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33245,7 +33245,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_DisplayEvent.data2)) == 4, "SDL_DisplayEvent.data2 has unexpected size % instead of 4", size_of(type_of(SDL_DisplayEvent.data2)));
         assert(size_of(SDL_DisplayEvent) == 32, "SDL_DisplayEvent has size % instead of 32", size_of(SDL_DisplayEvent));
     }
-    
+
     {
         instance: SDL_WindowEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_WindowEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33262,7 +33262,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_WindowEvent.data2)) == 4, "SDL_WindowEvent.data2 has unexpected size % instead of 4", size_of(type_of(SDL_WindowEvent.data2)));
         assert(size_of(SDL_WindowEvent) == 32, "SDL_WindowEvent has size % instead of 32", size_of(SDL_WindowEvent));
     }
-    
+
     {
         instance: SDL_KeyboardDeviceEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_KeyboardDeviceEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33275,7 +33275,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_KeyboardDeviceEvent.which)) == 4, "SDL_KeyboardDeviceEvent.which has unexpected size % instead of 4", size_of(type_of(SDL_KeyboardDeviceEvent.which)));
         assert(size_of(SDL_KeyboardDeviceEvent) == 24, "SDL_KeyboardDeviceEvent has size % instead of 24", size_of(SDL_KeyboardDeviceEvent));
     }
-    
+
     {
         instance: SDL_KeyboardEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_KeyboardEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33302,7 +33302,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_KeyboardEvent.repeat)) == 1, "SDL_KeyboardEvent.repeat has unexpected size % instead of 1", size_of(type_of(SDL_KeyboardEvent.repeat)));
         assert(size_of(SDL_KeyboardEvent) == 40, "SDL_KeyboardEvent has size % instead of 40", size_of(SDL_KeyboardEvent));
     }
-    
+
     {
         instance: SDL_TextEditingEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_TextEditingEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33321,7 +33321,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_TextEditingEvent.length)) == 4, "SDL_TextEditingEvent.length has unexpected size % instead of 4", size_of(type_of(SDL_TextEditingEvent.length)));
         assert(size_of(SDL_TextEditingEvent) == 40, "SDL_TextEditingEvent has size % instead of 40", size_of(SDL_TextEditingEvent));
     }
-    
+
     {
         instance: SDL_TextEditingCandidatesEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_TextEditingCandidatesEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33348,7 +33348,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_TextEditingCandidatesEvent.padding3)) == 1, "SDL_TextEditingCandidatesEvent.padding3 has unexpected size % instead of 1", size_of(type_of(SDL_TextEditingCandidatesEvent.padding3)));
         assert(size_of(SDL_TextEditingCandidatesEvent) == 48, "SDL_TextEditingCandidatesEvent has size % instead of 48", size_of(SDL_TextEditingCandidatesEvent));
     }
-    
+
     {
         instance: SDL_TextInputEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_TextInputEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33363,7 +33363,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_TextInputEvent.text)) == 8, "SDL_TextInputEvent.text has unexpected size % instead of 8", size_of(type_of(SDL_TextInputEvent.text)));
         assert(size_of(SDL_TextInputEvent) == 32, "SDL_TextInputEvent has size % instead of 32", size_of(SDL_TextInputEvent));
     }
-    
+
     {
         instance: SDL_MouseDeviceEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_MouseDeviceEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33376,7 +33376,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_MouseDeviceEvent.which)) == 4, "SDL_MouseDeviceEvent.which has unexpected size % instead of 4", size_of(type_of(SDL_MouseDeviceEvent.which)));
         assert(size_of(SDL_MouseDeviceEvent) == 24, "SDL_MouseDeviceEvent has size % instead of 24", size_of(SDL_MouseDeviceEvent));
     }
-    
+
     {
         instance: SDL_MouseMotionEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_MouseMotionEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33401,7 +33401,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_MouseMotionEvent.yrel)) == 4, "SDL_MouseMotionEvent.yrel has unexpected size % instead of 4", size_of(type_of(SDL_MouseMotionEvent.yrel)));
         assert(size_of(SDL_MouseMotionEvent) == 48, "SDL_MouseMotionEvent has size % instead of 48", size_of(SDL_MouseMotionEvent));
     }
-    
+
     {
         instance: SDL_MouseButtonEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_MouseButtonEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33428,7 +33428,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_MouseButtonEvent.y)) == 4, "SDL_MouseButtonEvent.y has unexpected size % instead of 4", size_of(type_of(SDL_MouseButtonEvent.y)));
         assert(size_of(SDL_MouseButtonEvent) == 40, "SDL_MouseButtonEvent has size % instead of 40", size_of(SDL_MouseButtonEvent));
     }
-    
+
     {
         instance: SDL_MouseWheelEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_MouseWheelEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33453,7 +33453,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_MouseWheelEvent.mouse_y)) == 4, "SDL_MouseWheelEvent.mouse_y has unexpected size % instead of 4", size_of(type_of(SDL_MouseWheelEvent.mouse_y)));
         assert(size_of(SDL_MouseWheelEvent) == 48, "SDL_MouseWheelEvent has size % instead of 48", size_of(SDL_MouseWheelEvent));
     }
-    
+
     {
         instance: SDL_JoyAxisEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_JoyAxisEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33478,7 +33478,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_JoyAxisEvent.padding4)) == 2, "SDL_JoyAxisEvent.padding4 has unexpected size % instead of 2", size_of(type_of(SDL_JoyAxisEvent.padding4)));
         assert(size_of(SDL_JoyAxisEvent) == 32, "SDL_JoyAxisEvent has size % instead of 32", size_of(SDL_JoyAxisEvent));
     }
-    
+
     {
         instance: SDL_JoyBallEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_JoyBallEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33503,7 +33503,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_JoyBallEvent.yrel)) == 2, "SDL_JoyBallEvent.yrel has unexpected size % instead of 2", size_of(type_of(SDL_JoyBallEvent.yrel)));
         assert(size_of(SDL_JoyBallEvent) == 32, "SDL_JoyBallEvent has size % instead of 32", size_of(SDL_JoyBallEvent));
     }
-    
+
     {
         instance: SDL_JoyHatEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_JoyHatEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33524,7 +33524,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_JoyHatEvent.padding2)) == 1, "SDL_JoyHatEvent.padding2 has unexpected size % instead of 1", size_of(type_of(SDL_JoyHatEvent.padding2)));
         assert(size_of(SDL_JoyHatEvent) == 24, "SDL_JoyHatEvent has size % instead of 24", size_of(SDL_JoyHatEvent));
     }
-    
+
     {
         instance: SDL_JoyButtonEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_JoyButtonEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33545,7 +33545,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_JoyButtonEvent.padding2)) == 1, "SDL_JoyButtonEvent.padding2 has unexpected size % instead of 1", size_of(type_of(SDL_JoyButtonEvent.padding2)));
         assert(size_of(SDL_JoyButtonEvent) == 24, "SDL_JoyButtonEvent has size % instead of 24", size_of(SDL_JoyButtonEvent));
     }
-    
+
     {
         instance: SDL_JoyDeviceEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_JoyDeviceEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33558,7 +33558,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_JoyDeviceEvent.which)) == 4, "SDL_JoyDeviceEvent.which has unexpected size % instead of 4", size_of(type_of(SDL_JoyDeviceEvent.which)));
         assert(size_of(SDL_JoyDeviceEvent) == 24, "SDL_JoyDeviceEvent has size % instead of 24", size_of(SDL_JoyDeviceEvent));
     }
-    
+
     {
         instance: SDL_JoyBatteryEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_JoyBatteryEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33575,7 +33575,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_JoyBatteryEvent.percent)) == 4, "SDL_JoyBatteryEvent.percent has unexpected size % instead of 4", size_of(type_of(SDL_JoyBatteryEvent.percent)));
         assert(size_of(SDL_JoyBatteryEvent) == 32, "SDL_JoyBatteryEvent has size % instead of 32", size_of(SDL_JoyBatteryEvent));
     }
-    
+
     {
         instance: SDL_GamepadAxisEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_GamepadAxisEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33600,7 +33600,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GamepadAxisEvent.padding4)) == 2, "SDL_GamepadAxisEvent.padding4 has unexpected size % instead of 2", size_of(type_of(SDL_GamepadAxisEvent.padding4)));
         assert(size_of(SDL_GamepadAxisEvent) == 32, "SDL_GamepadAxisEvent has size % instead of 32", size_of(SDL_GamepadAxisEvent));
     }
-    
+
     {
         instance: SDL_GamepadButtonEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_GamepadButtonEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33621,7 +33621,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GamepadButtonEvent.padding2)) == 1, "SDL_GamepadButtonEvent.padding2 has unexpected size % instead of 1", size_of(type_of(SDL_GamepadButtonEvent.padding2)));
         assert(size_of(SDL_GamepadButtonEvent) == 24, "SDL_GamepadButtonEvent has size % instead of 24", size_of(SDL_GamepadButtonEvent));
     }
-    
+
     {
         instance: SDL_GamepadDeviceEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_GamepadDeviceEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33634,7 +33634,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GamepadDeviceEvent.which)) == 4, "SDL_GamepadDeviceEvent.which has unexpected size % instead of 4", size_of(type_of(SDL_GamepadDeviceEvent.which)));
         assert(size_of(SDL_GamepadDeviceEvent) == 24, "SDL_GamepadDeviceEvent has size % instead of 24", size_of(SDL_GamepadDeviceEvent));
     }
-    
+
     {
         instance: SDL_GamepadTouchpadEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_GamepadTouchpadEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33657,7 +33657,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GamepadTouchpadEvent.pressure)) == 4, "SDL_GamepadTouchpadEvent.pressure has unexpected size % instead of 4", size_of(type_of(SDL_GamepadTouchpadEvent.pressure)));
         assert(size_of(SDL_GamepadTouchpadEvent) == 40, "SDL_GamepadTouchpadEvent has size % instead of 40", size_of(SDL_GamepadTouchpadEvent));
     }
-    
+
     {
         instance: SDL_GamepadSensorEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_GamepadSensorEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33676,7 +33676,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GamepadSensorEvent.sensor_timestamp)) == 8, "SDL_GamepadSensorEvent.sensor_timestamp has unexpected size % instead of 8", size_of(type_of(SDL_GamepadSensorEvent.sensor_timestamp)));
         assert(size_of(SDL_GamepadSensorEvent) == 48, "SDL_GamepadSensorEvent has size % instead of 48", size_of(SDL_GamepadSensorEvent));
     }
-    
+
     {
         instance: SDL_AudioDeviceEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_AudioDeviceEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33697,7 +33697,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_AudioDeviceEvent.padding3)) == 1, "SDL_AudioDeviceEvent.padding3 has unexpected size % instead of 1", size_of(type_of(SDL_AudioDeviceEvent.padding3)));
         assert(size_of(SDL_AudioDeviceEvent) == 24, "SDL_AudioDeviceEvent has size % instead of 24", size_of(SDL_AudioDeviceEvent));
     }
-    
+
     {
         instance: SDL_CameraDeviceEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_CameraDeviceEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33710,7 +33710,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_CameraDeviceEvent.which)) == 4, "SDL_CameraDeviceEvent.which has unexpected size % instead of 4", size_of(type_of(SDL_CameraDeviceEvent.which)));
         assert(size_of(SDL_CameraDeviceEvent) == 24, "SDL_CameraDeviceEvent has size % instead of 24", size_of(SDL_CameraDeviceEvent));
     }
-    
+
     {
         instance: SDL_TouchFingerEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_TouchFingerEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33737,7 +33737,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_TouchFingerEvent.windowID)) == 4, "SDL_TouchFingerEvent.windowID has unexpected size % instead of 4", size_of(type_of(SDL_TouchFingerEvent.windowID)));
         assert(size_of(SDL_TouchFingerEvent) == 56, "SDL_TouchFingerEvent has size % instead of 56", size_of(SDL_TouchFingerEvent));
     }
-    
+
     {
         instance: SDL_PenProximityEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_PenProximityEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33752,7 +33752,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_PenProximityEvent.which)) == 4, "SDL_PenProximityEvent.which has unexpected size % instead of 4", size_of(type_of(SDL_PenProximityEvent.which)));
         assert(size_of(SDL_PenProximityEvent) == 24, "SDL_PenProximityEvent has size % instead of 24", size_of(SDL_PenProximityEvent));
     }
-    
+
     {
         instance: SDL_PenMotionEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_PenMotionEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33773,7 +33773,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_PenMotionEvent.y)) == 4, "SDL_PenMotionEvent.y has unexpected size % instead of 4", size_of(type_of(SDL_PenMotionEvent.y)));
         assert(size_of(SDL_PenMotionEvent) == 40, "SDL_PenMotionEvent has size % instead of 40", size_of(SDL_PenMotionEvent));
     }
-    
+
     {
         instance: SDL_PenTouchEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_PenTouchEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33798,7 +33798,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_PenTouchEvent.down)) == 1, "SDL_PenTouchEvent.down has unexpected size % instead of 1", size_of(type_of(SDL_PenTouchEvent.down)));
         assert(size_of(SDL_PenTouchEvent) == 40, "SDL_PenTouchEvent has size % instead of 40", size_of(SDL_PenTouchEvent));
     }
-    
+
     {
         instance: SDL_PenButtonEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_PenButtonEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33823,7 +33823,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_PenButtonEvent.down)) == 1, "SDL_PenButtonEvent.down has unexpected size % instead of 1", size_of(type_of(SDL_PenButtonEvent.down)));
         assert(size_of(SDL_PenButtonEvent) == 40, "SDL_PenButtonEvent has size % instead of 40", size_of(SDL_PenButtonEvent));
     }
-    
+
     {
         instance: SDL_PenAxisEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_PenAxisEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33848,7 +33848,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_PenAxisEvent.value)) == 4, "SDL_PenAxisEvent.value has unexpected size % instead of 4", size_of(type_of(SDL_PenAxisEvent.value)));
         assert(size_of(SDL_PenAxisEvent) == 48, "SDL_PenAxisEvent has size % instead of 48", size_of(SDL_PenAxisEvent));
     }
-    
+
     {
         instance: SDL_DropEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_DropEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33869,7 +33869,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_DropEvent.data)) == 8, "SDL_DropEvent.data has unexpected size % instead of 8", size_of(type_of(SDL_DropEvent.data)));
         assert(size_of(SDL_DropEvent) == 48, "SDL_DropEvent has size % instead of 48", size_of(SDL_DropEvent));
     }
-    
+
     {
         instance: SDL_ClipboardEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_ClipboardEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33886,7 +33886,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_ClipboardEvent.mime_types)) == 8, "SDL_ClipboardEvent.mime_types has unexpected size % instead of 8", size_of(type_of(SDL_ClipboardEvent.mime_types)));
         assert(size_of(SDL_ClipboardEvent) == 32, "SDL_ClipboardEvent has size % instead of 32", size_of(SDL_ClipboardEvent));
     }
-    
+
     {
         instance: SDL_SensorEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_SensorEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33903,7 +33903,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_SensorEvent.sensor_timestamp)) == 8, "SDL_SensorEvent.sensor_timestamp has unexpected size % instead of 8", size_of(type_of(SDL_SensorEvent.sensor_timestamp)));
         assert(size_of(SDL_SensorEvent) == 56, "SDL_SensorEvent has size % instead of 56", size_of(SDL_SensorEvent));
     }
-    
+
     {
         instance: SDL_QuitEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_QuitEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33914,7 +33914,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_QuitEvent.timestamp)) == 8, "SDL_QuitEvent.timestamp has unexpected size % instead of 8", size_of(type_of(SDL_QuitEvent.timestamp)));
         assert(size_of(SDL_QuitEvent) == 16, "SDL_QuitEvent has size % instead of 16", size_of(SDL_QuitEvent));
     }
-    
+
     {
         instance: SDL_UserEvent;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_UserEvent.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -33933,7 +33933,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_UserEvent.data2)) == 8, "SDL_UserEvent.data2 has unexpected size % instead of 8", size_of(type_of(SDL_UserEvent.data2)));
         assert(size_of(SDL_UserEvent) == 40, "SDL_UserEvent has size % instead of 40", size_of(SDL_UserEvent));
     }
-    
+
     {
         instance: SDL_Event;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_Event.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34014,7 +34014,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Event.padding)) == 128, "SDL_Event.padding has unexpected size % instead of 128", size_of(type_of(SDL_Event.padding)));
         assert(size_of(SDL_Event) == 128, "SDL_Event has size % instead of 128", size_of(SDL_Event));
     }
-    
+
     {
         instance: SDL_PathInfo;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_PathInfo.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34029,7 +34029,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_PathInfo.access_time)) == 8, "SDL_PathInfo.access_time has unexpected size % instead of 8", size_of(type_of(SDL_PathInfo.access_time)));
         assert(size_of(SDL_PathInfo) == 40, "SDL_PathInfo has size % instead of 40", size_of(SDL_PathInfo));
     }
-    
+
     {
         instance: SDL_GPUViewport;
         assert(((cast(*void)(*instance.x)) - cast(*void)(*instance)) == 0, "SDL_GPUViewport.x has unexpected offset % instead of 0", ((cast(*void)(*instance.x)) - cast(*void)(*instance)));
@@ -34046,7 +34046,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUViewport.max_depth)) == 4, "SDL_GPUViewport.max_depth has unexpected size % instead of 4", size_of(type_of(SDL_GPUViewport.max_depth)));
         assert(size_of(SDL_GPUViewport) == 24, "SDL_GPUViewport has size % instead of 24", size_of(SDL_GPUViewport));
     }
-    
+
     {
         instance: SDL_GPUTextureTransferInfo;
         assert(((cast(*void)(*instance.transfer_buffer)) - cast(*void)(*instance)) == 0, "SDL_GPUTextureTransferInfo.transfer_buffer has unexpected offset % instead of 0", ((cast(*void)(*instance.transfer_buffer)) - cast(*void)(*instance)));
@@ -34059,7 +34059,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUTextureTransferInfo.rows_per_layer)) == 4, "SDL_GPUTextureTransferInfo.rows_per_layer has unexpected size % instead of 4", size_of(type_of(SDL_GPUTextureTransferInfo.rows_per_layer)));
         assert(size_of(SDL_GPUTextureTransferInfo) == 24, "SDL_GPUTextureTransferInfo has size % instead of 24", size_of(SDL_GPUTextureTransferInfo));
     }
-    
+
     {
         instance: SDL_GPUTransferBufferLocation;
         assert(((cast(*void)(*instance.transfer_buffer)) - cast(*void)(*instance)) == 0, "SDL_GPUTransferBufferLocation.transfer_buffer has unexpected offset % instead of 0", ((cast(*void)(*instance.transfer_buffer)) - cast(*void)(*instance)));
@@ -34068,7 +34068,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUTransferBufferLocation.offset)) == 4, "SDL_GPUTransferBufferLocation.offset has unexpected size % instead of 4", size_of(type_of(SDL_GPUTransferBufferLocation.offset)));
         assert(size_of(SDL_GPUTransferBufferLocation) == 16, "SDL_GPUTransferBufferLocation has size % instead of 16", size_of(SDL_GPUTransferBufferLocation));
     }
-    
+
     {
         instance: SDL_GPUTextureLocation;
         assert(((cast(*void)(*instance.texture)) - cast(*void)(*instance)) == 0, "SDL_GPUTextureLocation.texture has unexpected offset % instead of 0", ((cast(*void)(*instance.texture)) - cast(*void)(*instance)));
@@ -34085,7 +34085,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUTextureLocation.z)) == 4, "SDL_GPUTextureLocation.z has unexpected size % instead of 4", size_of(type_of(SDL_GPUTextureLocation.z)));
         assert(size_of(SDL_GPUTextureLocation) == 32, "SDL_GPUTextureLocation has size % instead of 32", size_of(SDL_GPUTextureLocation));
     }
-    
+
     {
         instance: SDL_GPUTextureRegion;
         assert(((cast(*void)(*instance.texture)) - cast(*void)(*instance)) == 0, "SDL_GPUTextureRegion.texture has unexpected offset % instead of 0", ((cast(*void)(*instance.texture)) - cast(*void)(*instance)));
@@ -34108,7 +34108,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUTextureRegion.d)) == 4, "SDL_GPUTextureRegion.d has unexpected size % instead of 4", size_of(type_of(SDL_GPUTextureRegion.d)));
         assert(size_of(SDL_GPUTextureRegion) == 40, "SDL_GPUTextureRegion has size % instead of 40", size_of(SDL_GPUTextureRegion));
     }
-    
+
     {
         instance: SDL_GPUBlitRegion;
         assert(((cast(*void)(*instance.texture)) - cast(*void)(*instance)) == 0, "SDL_GPUBlitRegion.texture has unexpected offset % instead of 0", ((cast(*void)(*instance.texture)) - cast(*void)(*instance)));
@@ -34127,7 +34127,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUBlitRegion.h)) == 4, "SDL_GPUBlitRegion.h has unexpected size % instead of 4", size_of(type_of(SDL_GPUBlitRegion.h)));
         assert(size_of(SDL_GPUBlitRegion) == 32, "SDL_GPUBlitRegion has size % instead of 32", size_of(SDL_GPUBlitRegion));
     }
-    
+
     {
         instance: SDL_GPUBufferLocation;
         assert(((cast(*void)(*instance.buffer)) - cast(*void)(*instance)) == 0, "SDL_GPUBufferLocation.buffer has unexpected offset % instead of 0", ((cast(*void)(*instance.buffer)) - cast(*void)(*instance)));
@@ -34136,7 +34136,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUBufferLocation.offset)) == 4, "SDL_GPUBufferLocation.offset has unexpected size % instead of 4", size_of(type_of(SDL_GPUBufferLocation.offset)));
         assert(size_of(SDL_GPUBufferLocation) == 16, "SDL_GPUBufferLocation has size % instead of 16", size_of(SDL_GPUBufferLocation));
     }
-    
+
     {
         instance: SDL_GPUBufferRegion;
         assert(((cast(*void)(*instance.buffer)) - cast(*void)(*instance)) == 0, "SDL_GPUBufferRegion.buffer has unexpected offset % instead of 0", ((cast(*void)(*instance.buffer)) - cast(*void)(*instance)));
@@ -34147,7 +34147,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUBufferRegion.size)) == 4, "SDL_GPUBufferRegion.size has unexpected size % instead of 4", size_of(type_of(SDL_GPUBufferRegion.size)));
         assert(size_of(SDL_GPUBufferRegion) == 16, "SDL_GPUBufferRegion has size % instead of 16", size_of(SDL_GPUBufferRegion));
     }
-    
+
     {
         instance: SDL_GPUIndirectDrawCommand;
         assert(((cast(*void)(*instance.num_vertices)) - cast(*void)(*instance)) == 0, "SDL_GPUIndirectDrawCommand.num_vertices has unexpected offset % instead of 0", ((cast(*void)(*instance.num_vertices)) - cast(*void)(*instance)));
@@ -34160,7 +34160,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUIndirectDrawCommand.first_instance)) == 4, "SDL_GPUIndirectDrawCommand.first_instance has unexpected size % instead of 4", size_of(type_of(SDL_GPUIndirectDrawCommand.first_instance)));
         assert(size_of(SDL_GPUIndirectDrawCommand) == 16, "SDL_GPUIndirectDrawCommand has size % instead of 16", size_of(SDL_GPUIndirectDrawCommand));
     }
-    
+
     {
         instance: SDL_GPUIndexedIndirectDrawCommand;
         assert(((cast(*void)(*instance.num_indices)) - cast(*void)(*instance)) == 0, "SDL_GPUIndexedIndirectDrawCommand.num_indices has unexpected offset % instead of 0", ((cast(*void)(*instance.num_indices)) - cast(*void)(*instance)));
@@ -34175,7 +34175,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUIndexedIndirectDrawCommand.first_instance)) == 4, "SDL_GPUIndexedIndirectDrawCommand.first_instance has unexpected size % instead of 4", size_of(type_of(SDL_GPUIndexedIndirectDrawCommand.first_instance)));
         assert(size_of(SDL_GPUIndexedIndirectDrawCommand) == 20, "SDL_GPUIndexedIndirectDrawCommand has size % instead of 20", size_of(SDL_GPUIndexedIndirectDrawCommand));
     }
-    
+
     {
         instance: SDL_GPUIndirectDispatchCommand;
         assert(((cast(*void)(*instance.groupcount_x)) - cast(*void)(*instance)) == 0, "SDL_GPUIndirectDispatchCommand.groupcount_x has unexpected offset % instead of 0", ((cast(*void)(*instance.groupcount_x)) - cast(*void)(*instance)));
@@ -34186,7 +34186,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUIndirectDispatchCommand.groupcount_z)) == 4, "SDL_GPUIndirectDispatchCommand.groupcount_z has unexpected size % instead of 4", size_of(type_of(SDL_GPUIndirectDispatchCommand.groupcount_z)));
         assert(size_of(SDL_GPUIndirectDispatchCommand) == 12, "SDL_GPUIndirectDispatchCommand has size % instead of 12", size_of(SDL_GPUIndirectDispatchCommand));
     }
-    
+
     {
         instance: SDL_GPUSamplerCreateInfo;
         assert(((cast(*void)(*instance.min_filter)) - cast(*void)(*instance)) == 0, "SDL_GPUSamplerCreateInfo.min_filter has unexpected offset % instead of 0", ((cast(*void)(*instance.min_filter)) - cast(*void)(*instance)));
@@ -34223,7 +34223,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUSamplerCreateInfo.props)) == 4, "SDL_GPUSamplerCreateInfo.props has unexpected size % instead of 4", size_of(type_of(SDL_GPUSamplerCreateInfo.props)));
         assert(size_of(SDL_GPUSamplerCreateInfo) == 52, "SDL_GPUSamplerCreateInfo has size % instead of 52", size_of(SDL_GPUSamplerCreateInfo));
     }
-    
+
     {
         instance: SDL_GPUVertexBufferDescription;
         assert(((cast(*void)(*instance.slot)) - cast(*void)(*instance)) == 0, "SDL_GPUVertexBufferDescription.slot has unexpected offset % instead of 0", ((cast(*void)(*instance.slot)) - cast(*void)(*instance)));
@@ -34236,7 +34236,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUVertexBufferDescription.instance_step_rate)) == 4, "SDL_GPUVertexBufferDescription.instance_step_rate has unexpected size % instead of 4", size_of(type_of(SDL_GPUVertexBufferDescription.instance_step_rate)));
         assert(size_of(SDL_GPUVertexBufferDescription) == 16, "SDL_GPUVertexBufferDescription has size % instead of 16", size_of(SDL_GPUVertexBufferDescription));
     }
-    
+
     {
         instance: SDL_GPUVertexAttribute;
         assert(((cast(*void)(*instance.location)) - cast(*void)(*instance)) == 0, "SDL_GPUVertexAttribute.location has unexpected offset % instead of 0", ((cast(*void)(*instance.location)) - cast(*void)(*instance)));
@@ -34249,7 +34249,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUVertexAttribute.offset)) == 4, "SDL_GPUVertexAttribute.offset has unexpected size % instead of 4", size_of(type_of(SDL_GPUVertexAttribute.offset)));
         assert(size_of(SDL_GPUVertexAttribute) == 16, "SDL_GPUVertexAttribute has size % instead of 16", size_of(SDL_GPUVertexAttribute));
     }
-    
+
     {
         instance: SDL_GPUVertexInputState;
         assert(((cast(*void)(*instance.vertex_buffer_descriptions)) - cast(*void)(*instance)) == 0, "SDL_GPUVertexInputState.vertex_buffer_descriptions has unexpected offset % instead of 0", ((cast(*void)(*instance.vertex_buffer_descriptions)) - cast(*void)(*instance)));
@@ -34262,7 +34262,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUVertexInputState.num_vertex_attributes)) == 4, "SDL_GPUVertexInputState.num_vertex_attributes has unexpected size % instead of 4", size_of(type_of(SDL_GPUVertexInputState.num_vertex_attributes)));
         assert(size_of(SDL_GPUVertexInputState) == 32, "SDL_GPUVertexInputState has size % instead of 32", size_of(SDL_GPUVertexInputState));
     }
-    
+
     {
         instance: SDL_GPUStencilOpState;
         assert(((cast(*void)(*instance.fail_op)) - cast(*void)(*instance)) == 0, "SDL_GPUStencilOpState.fail_op has unexpected offset % instead of 0", ((cast(*void)(*instance.fail_op)) - cast(*void)(*instance)));
@@ -34275,7 +34275,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUStencilOpState.compare_op)) == 4, "SDL_GPUStencilOpState.compare_op has unexpected size % instead of 4", size_of(type_of(SDL_GPUStencilOpState.compare_op)));
         assert(size_of(SDL_GPUStencilOpState) == 16, "SDL_GPUStencilOpState has size % instead of 16", size_of(SDL_GPUStencilOpState));
     }
-    
+
     {
         instance: SDL_GPUColorTargetBlendState;
         assert(((cast(*void)(*instance.src_color_blendfactor)) - cast(*void)(*instance)) == 0, "SDL_GPUColorTargetBlendState.src_color_blendfactor has unexpected offset % instead of 0", ((cast(*void)(*instance.src_color_blendfactor)) - cast(*void)(*instance)));
@@ -34302,7 +34302,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUColorTargetBlendState.padding2)) == 1, "SDL_GPUColorTargetBlendState.padding2 has unexpected size % instead of 1", size_of(type_of(SDL_GPUColorTargetBlendState.padding2)));
         assert(size_of(SDL_GPUColorTargetBlendState) == 32, "SDL_GPUColorTargetBlendState has size % instead of 32", size_of(SDL_GPUColorTargetBlendState));
     }
-    
+
     {
         instance: SDL_GPUShaderCreateInfo;
         assert(((cast(*void)(*instance.code_size)) - cast(*void)(*instance)) == 0, "SDL_GPUShaderCreateInfo.code_size has unexpected offset % instead of 0", ((cast(*void)(*instance.code_size)) - cast(*void)(*instance)));
@@ -34327,7 +34327,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUShaderCreateInfo.props)) == 4, "SDL_GPUShaderCreateInfo.props has unexpected size % instead of 4", size_of(type_of(SDL_GPUShaderCreateInfo.props)));
         assert(size_of(SDL_GPUShaderCreateInfo) == 56, "SDL_GPUShaderCreateInfo has size % instead of 56", size_of(SDL_GPUShaderCreateInfo));
     }
-    
+
     {
         instance: SDL_GPUTextureCreateInfo;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_GPUTextureCreateInfo.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34350,7 +34350,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUTextureCreateInfo.props)) == 4, "SDL_GPUTextureCreateInfo.props has unexpected size % instead of 4", size_of(type_of(SDL_GPUTextureCreateInfo.props)));
         assert(size_of(SDL_GPUTextureCreateInfo) == 36, "SDL_GPUTextureCreateInfo has size % instead of 36", size_of(SDL_GPUTextureCreateInfo));
     }
-    
+
     {
         instance: SDL_GPUBufferCreateInfo;
         assert(((cast(*void)(*instance.usage)) - cast(*void)(*instance)) == 0, "SDL_GPUBufferCreateInfo.usage has unexpected offset % instead of 0", ((cast(*void)(*instance.usage)) - cast(*void)(*instance)));
@@ -34361,7 +34361,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUBufferCreateInfo.props)) == 4, "SDL_GPUBufferCreateInfo.props has unexpected size % instead of 4", size_of(type_of(SDL_GPUBufferCreateInfo.props)));
         assert(size_of(SDL_GPUBufferCreateInfo) == 12, "SDL_GPUBufferCreateInfo has size % instead of 12", size_of(SDL_GPUBufferCreateInfo));
     }
-    
+
     {
         instance: SDL_GPUTransferBufferCreateInfo;
         assert(((cast(*void)(*instance.usage)) - cast(*void)(*instance)) == 0, "SDL_GPUTransferBufferCreateInfo.usage has unexpected offset % instead of 0", ((cast(*void)(*instance.usage)) - cast(*void)(*instance)));
@@ -34372,7 +34372,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUTransferBufferCreateInfo.props)) == 4, "SDL_GPUTransferBufferCreateInfo.props has unexpected size % instead of 4", size_of(type_of(SDL_GPUTransferBufferCreateInfo.props)));
         assert(size_of(SDL_GPUTransferBufferCreateInfo) == 12, "SDL_GPUTransferBufferCreateInfo has size % instead of 12", size_of(SDL_GPUTransferBufferCreateInfo));
     }
-    
+
     {
         instance: SDL_GPURasterizerState;
         assert(((cast(*void)(*instance.fill_mode)) - cast(*void)(*instance)) == 0, "SDL_GPURasterizerState.fill_mode has unexpected offset % instead of 0", ((cast(*void)(*instance.fill_mode)) - cast(*void)(*instance)));
@@ -34397,7 +34397,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPURasterizerState.padding2)) == 1, "SDL_GPURasterizerState.padding2 has unexpected size % instead of 1", size_of(type_of(SDL_GPURasterizerState.padding2)));
         assert(size_of(SDL_GPURasterizerState) == 28, "SDL_GPURasterizerState has size % instead of 28", size_of(SDL_GPURasterizerState));
     }
-    
+
     {
         instance: SDL_GPUMultisampleState;
         assert(((cast(*void)(*instance.sample_count)) - cast(*void)(*instance)) == 0, "SDL_GPUMultisampleState.sample_count has unexpected offset % instead of 0", ((cast(*void)(*instance.sample_count)) - cast(*void)(*instance)));
@@ -34414,7 +34414,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUMultisampleState.padding3)) == 1, "SDL_GPUMultisampleState.padding3 has unexpected size % instead of 1", size_of(type_of(SDL_GPUMultisampleState.padding3)));
         assert(size_of(SDL_GPUMultisampleState) == 12, "SDL_GPUMultisampleState has size % instead of 12", size_of(SDL_GPUMultisampleState));
     }
-    
+
     {
         instance: SDL_GPUDepthStencilState;
         assert(((cast(*void)(*instance.compare_op)) - cast(*void)(*instance)) == 0, "SDL_GPUDepthStencilState.compare_op has unexpected offset % instead of 0", ((cast(*void)(*instance.compare_op)) - cast(*void)(*instance)));
@@ -34441,7 +34441,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUDepthStencilState.padding3)) == 1, "SDL_GPUDepthStencilState.padding3 has unexpected size % instead of 1", size_of(type_of(SDL_GPUDepthStencilState.padding3)));
         assert(size_of(SDL_GPUDepthStencilState) == 44, "SDL_GPUDepthStencilState has size % instead of 44", size_of(SDL_GPUDepthStencilState));
     }
-    
+
     {
         instance: SDL_GPUColorTargetDescription;
         assert(((cast(*void)(*instance.format)) - cast(*void)(*instance)) == 0, "SDL_GPUColorTargetDescription.format has unexpected offset % instead of 0", ((cast(*void)(*instance.format)) - cast(*void)(*instance)));
@@ -34450,7 +34450,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUColorTargetDescription.blend_state)) == 32, "SDL_GPUColorTargetDescription.blend_state has unexpected size % instead of 32", size_of(type_of(SDL_GPUColorTargetDescription.blend_state)));
         assert(size_of(SDL_GPUColorTargetDescription) == 36, "SDL_GPUColorTargetDescription has size % instead of 36", size_of(SDL_GPUColorTargetDescription));
     }
-    
+
     {
         instance: SDL_GPUGraphicsPipelineTargetInfo;
         assert(((cast(*void)(*instance.color_target_descriptions)) - cast(*void)(*instance)) == 0, "SDL_GPUGraphicsPipelineTargetInfo.color_target_descriptions has unexpected offset % instead of 0", ((cast(*void)(*instance.color_target_descriptions)) - cast(*void)(*instance)));
@@ -34469,7 +34469,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUGraphicsPipelineTargetInfo.padding3)) == 1, "SDL_GPUGraphicsPipelineTargetInfo.padding3 has unexpected size % instead of 1", size_of(type_of(SDL_GPUGraphicsPipelineTargetInfo.padding3)));
         assert(size_of(SDL_GPUGraphicsPipelineTargetInfo) == 24, "SDL_GPUGraphicsPipelineTargetInfo has size % instead of 24", size_of(SDL_GPUGraphicsPipelineTargetInfo));
     }
-    
+
     {
         instance: SDL_GPUGraphicsPipelineCreateInfo;
         assert(((cast(*void)(*instance.vertex_shader)) - cast(*void)(*instance)) == 0, "SDL_GPUGraphicsPipelineCreateInfo.vertex_shader has unexpected offset % instead of 0", ((cast(*void)(*instance.vertex_shader)) - cast(*void)(*instance)));
@@ -34492,7 +34492,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUGraphicsPipelineCreateInfo.props)) == 4, "SDL_GPUGraphicsPipelineCreateInfo.props has unexpected size % instead of 4", size_of(type_of(SDL_GPUGraphicsPipelineCreateInfo.props)));
         assert(size_of(SDL_GPUGraphicsPipelineCreateInfo) == 168, "SDL_GPUGraphicsPipelineCreateInfo has size % instead of 168", size_of(SDL_GPUGraphicsPipelineCreateInfo));
     }
-    
+
     {
         instance: SDL_GPUComputePipelineCreateInfo;
         assert(((cast(*void)(*instance.code_size)) - cast(*void)(*instance)) == 0, "SDL_GPUComputePipelineCreateInfo.code_size has unexpected offset % instead of 0", ((cast(*void)(*instance.code_size)) - cast(*void)(*instance)));
@@ -34525,7 +34525,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUComputePipelineCreateInfo.props)) == 4, "SDL_GPUComputePipelineCreateInfo.props has unexpected size % instead of 4", size_of(type_of(SDL_GPUComputePipelineCreateInfo.props)));
         assert(size_of(SDL_GPUComputePipelineCreateInfo) == 72, "SDL_GPUComputePipelineCreateInfo has size % instead of 72", size_of(SDL_GPUComputePipelineCreateInfo));
     }
-    
+
     {
         instance: SDL_GPUColorTargetInfo;
         assert(((cast(*void)(*instance.texture)) - cast(*void)(*instance)) == 0, "SDL_GPUColorTargetInfo.texture has unexpected offset % instead of 0", ((cast(*void)(*instance.texture)) - cast(*void)(*instance)));
@@ -34556,7 +34556,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUColorTargetInfo.padding2)) == 1, "SDL_GPUColorTargetInfo.padding2 has unexpected size % instead of 1", size_of(type_of(SDL_GPUColorTargetInfo.padding2)));
         assert(size_of(SDL_GPUColorTargetInfo) == 64, "SDL_GPUColorTargetInfo has size % instead of 64", size_of(SDL_GPUColorTargetInfo));
     }
-    
+
     {
         instance: SDL_GPUDepthStencilTargetInfo;
         assert(((cast(*void)(*instance.texture)) - cast(*void)(*instance)) == 0, "SDL_GPUDepthStencilTargetInfo.texture has unexpected offset % instead of 0", ((cast(*void)(*instance.texture)) - cast(*void)(*instance)));
@@ -34581,7 +34581,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUDepthStencilTargetInfo.padding2)) == 1, "SDL_GPUDepthStencilTargetInfo.padding2 has unexpected size % instead of 1", size_of(type_of(SDL_GPUDepthStencilTargetInfo.padding2)));
         assert(size_of(SDL_GPUDepthStencilTargetInfo) == 32, "SDL_GPUDepthStencilTargetInfo has size % instead of 32", size_of(SDL_GPUDepthStencilTargetInfo));
     }
-    
+
     {
         instance: SDL_GPUBlitInfo;
         assert(((cast(*void)(*instance.source)) - cast(*void)(*instance)) == 0, "SDL_GPUBlitInfo.source has unexpected offset % instead of 0", ((cast(*void)(*instance.source)) - cast(*void)(*instance)));
@@ -34606,7 +34606,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUBlitInfo.padding3)) == 1, "SDL_GPUBlitInfo.padding3 has unexpected size % instead of 1", size_of(type_of(SDL_GPUBlitInfo.padding3)));
         assert(size_of(SDL_GPUBlitInfo) == 96, "SDL_GPUBlitInfo has size % instead of 96", size_of(SDL_GPUBlitInfo));
     }
-    
+
     {
         instance: SDL_GPUBufferBinding;
         assert(((cast(*void)(*instance.buffer)) - cast(*void)(*instance)) == 0, "SDL_GPUBufferBinding.buffer has unexpected offset % instead of 0", ((cast(*void)(*instance.buffer)) - cast(*void)(*instance)));
@@ -34615,7 +34615,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUBufferBinding.offset)) == 4, "SDL_GPUBufferBinding.offset has unexpected size % instead of 4", size_of(type_of(SDL_GPUBufferBinding.offset)));
         assert(size_of(SDL_GPUBufferBinding) == 16, "SDL_GPUBufferBinding has size % instead of 16", size_of(SDL_GPUBufferBinding));
     }
-    
+
     {
         instance: SDL_GPUTextureSamplerBinding;
         assert(((cast(*void)(*instance.texture)) - cast(*void)(*instance)) == 0, "SDL_GPUTextureSamplerBinding.texture has unexpected offset % instead of 0", ((cast(*void)(*instance.texture)) - cast(*void)(*instance)));
@@ -34624,7 +34624,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUTextureSamplerBinding.sampler)) == 8, "SDL_GPUTextureSamplerBinding.sampler has unexpected size % instead of 8", size_of(type_of(SDL_GPUTextureSamplerBinding.sampler)));
         assert(size_of(SDL_GPUTextureSamplerBinding) == 16, "SDL_GPUTextureSamplerBinding has size % instead of 16", size_of(SDL_GPUTextureSamplerBinding));
     }
-    
+
     {
         instance: SDL_GPUStorageBufferReadWriteBinding;
         assert(((cast(*void)(*instance.buffer)) - cast(*void)(*instance)) == 0, "SDL_GPUStorageBufferReadWriteBinding.buffer has unexpected offset % instead of 0", ((cast(*void)(*instance.buffer)) - cast(*void)(*instance)));
@@ -34639,7 +34639,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUStorageBufferReadWriteBinding.padding3)) == 1, "SDL_GPUStorageBufferReadWriteBinding.padding3 has unexpected size % instead of 1", size_of(type_of(SDL_GPUStorageBufferReadWriteBinding.padding3)));
         assert(size_of(SDL_GPUStorageBufferReadWriteBinding) == 16, "SDL_GPUStorageBufferReadWriteBinding has size % instead of 16", size_of(SDL_GPUStorageBufferReadWriteBinding));
     }
-    
+
     {
         instance: SDL_GPUStorageTextureReadWriteBinding;
         assert(((cast(*void)(*instance.texture)) - cast(*void)(*instance)) == 0, "SDL_GPUStorageTextureReadWriteBinding.texture has unexpected offset % instead of 0", ((cast(*void)(*instance.texture)) - cast(*void)(*instance)));
@@ -34658,7 +34658,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_GPUStorageTextureReadWriteBinding.padding3)) == 1, "SDL_GPUStorageTextureReadWriteBinding.padding3 has unexpected size % instead of 1", size_of(type_of(SDL_GPUStorageTextureReadWriteBinding.padding3)));
         assert(size_of(SDL_GPUStorageTextureReadWriteBinding) == 24, "SDL_GPUStorageTextureReadWriteBinding has size % instead of 24", size_of(SDL_GPUStorageTextureReadWriteBinding));
     }
-    
+
     {
         instance: SDL_HapticDirection;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_HapticDirection.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34667,7 +34667,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_HapticDirection.dir)) == 12, "SDL_HapticDirection.dir has unexpected size % instead of 12", size_of(type_of(SDL_HapticDirection.dir)));
         assert(size_of(SDL_HapticDirection) == 16, "SDL_HapticDirection has size % instead of 16", size_of(SDL_HapticDirection));
     }
-    
+
     {
         instance: SDL_HapticConstant;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_HapticConstant.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34694,7 +34694,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_HapticConstant.fade_level)) == 2, "SDL_HapticConstant.fade_level has unexpected size % instead of 2", size_of(type_of(SDL_HapticConstant.fade_level)));
         assert(size_of(SDL_HapticConstant) == 40, "SDL_HapticConstant has size % instead of 40", size_of(SDL_HapticConstant));
     }
-    
+
     {
         instance: SDL_HapticPeriodic;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_HapticPeriodic.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34727,7 +34727,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_HapticPeriodic.fade_level)) == 2, "SDL_HapticPeriodic.fade_level has unexpected size % instead of 2", size_of(type_of(SDL_HapticPeriodic.fade_level)));
         assert(size_of(SDL_HapticPeriodic) == 48, "SDL_HapticPeriodic has size % instead of 48", size_of(SDL_HapticPeriodic));
     }
-    
+
     {
         instance: SDL_HapticCondition;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_HapticCondition.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34756,7 +34756,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_HapticCondition.center)) == 6, "SDL_HapticCondition.center has unexpected size % instead of 6", size_of(type_of(SDL_HapticCondition.center)));
         assert(size_of(SDL_HapticCondition) == 68, "SDL_HapticCondition has size % instead of 68", size_of(SDL_HapticCondition));
     }
-    
+
     {
         instance: SDL_HapticRamp;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_HapticRamp.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34785,7 +34785,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_HapticRamp.fade_level)) == 2, "SDL_HapticRamp.fade_level has unexpected size % instead of 2", size_of(type_of(SDL_HapticRamp.fade_level)));
         assert(size_of(SDL_HapticRamp) == 44, "SDL_HapticRamp has size % instead of 44", size_of(SDL_HapticRamp));
     }
-    
+
     {
         instance: SDL_HapticLeftRight;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_HapticLeftRight.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34798,7 +34798,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_HapticLeftRight.small_magnitude)) == 2, "SDL_HapticLeftRight.small_magnitude has unexpected size % instead of 2", size_of(type_of(SDL_HapticLeftRight.small_magnitude)));
         assert(size_of(SDL_HapticLeftRight) == 12, "SDL_HapticLeftRight has size % instead of 12", size_of(SDL_HapticLeftRight));
     }
-    
+
     {
         instance: SDL_HapticCustom;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_HapticCustom.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34831,7 +34831,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_HapticCustom.fade_level)) == 2, "SDL_HapticCustom.fade_level has unexpected size % instead of 2", size_of(type_of(SDL_HapticCustom.fade_level)));
         assert(size_of(SDL_HapticCustom) == 56, "SDL_HapticCustom has size % instead of 56", size_of(SDL_HapticCustom));
     }
-    
+
     {
         instance: SDL_HapticEffect;
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 0, "SDL_HapticEffect.type has unexpected offset % instead of 0", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
@@ -34850,7 +34850,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_HapticEffect.custom)) == 56, "SDL_HapticEffect.custom has unexpected size % instead of 56", size_of(type_of(SDL_HapticEffect.custom)));
         assert(size_of(SDL_HapticEffect) == 72, "SDL_HapticEffect has size % instead of 72", size_of(SDL_HapticEffect));
     }
-    
+
     {
         instance: SDL_hid_device_info;
         assert(((cast(*void)(*instance.path)) - cast(*void)(*instance)) == 0, "SDL_hid_device_info.path has unexpected offset % instead of 0", ((cast(*void)(*instance.path)) - cast(*void)(*instance)));
@@ -34885,7 +34885,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_hid_device_info.next)) == 8, "SDL_hid_device_info.next has unexpected size % instead of 8", size_of(type_of(SDL_hid_device_info.next)));
         assert(size_of(SDL_hid_device_info) == 80, "SDL_hid_device_info has size % instead of 80", size_of(SDL_hid_device_info));
     }
-    
+
     {
         instance: SDL_Locale;
         assert(((cast(*void)(*instance.language)) - cast(*void)(*instance)) == 0, "SDL_Locale.language has unexpected offset % instead of 0", ((cast(*void)(*instance.language)) - cast(*void)(*instance)));
@@ -34894,7 +34894,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Locale.country)) == 8, "SDL_Locale.country has unexpected size % instead of 8", size_of(type_of(SDL_Locale.country)));
         assert(size_of(SDL_Locale) == 16, "SDL_Locale has size % instead of 16", size_of(SDL_Locale));
     }
-    
+
     {
         instance: SDL_MessageBoxButtonData;
         assert(((cast(*void)(*instance.flags)) - cast(*void)(*instance)) == 0, "SDL_MessageBoxButtonData.flags has unexpected offset % instead of 0", ((cast(*void)(*instance.flags)) - cast(*void)(*instance)));
@@ -34905,7 +34905,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_MessageBoxButtonData.text)) == 8, "SDL_MessageBoxButtonData.text has unexpected size % instead of 8", size_of(type_of(SDL_MessageBoxButtonData.text)));
         assert(size_of(SDL_MessageBoxButtonData) == 16, "SDL_MessageBoxButtonData has size % instead of 16", size_of(SDL_MessageBoxButtonData));
     }
-    
+
     {
         instance: SDL_MessageBoxColor;
         assert(((cast(*void)(*instance.r)) - cast(*void)(*instance)) == 0, "SDL_MessageBoxColor.r has unexpected offset % instead of 0", ((cast(*void)(*instance.r)) - cast(*void)(*instance)));
@@ -34916,14 +34916,14 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_MessageBoxColor.b)) == 1, "SDL_MessageBoxColor.b has unexpected size % instead of 1", size_of(type_of(SDL_MessageBoxColor.b)));
         assert(size_of(SDL_MessageBoxColor) == 3, "SDL_MessageBoxColor has size % instead of 3", size_of(SDL_MessageBoxColor));
     }
-    
+
     {
         instance: SDL_MessageBoxColorScheme;
         assert(((cast(*void)(*instance.colors)) - cast(*void)(*instance)) == 0, "SDL_MessageBoxColorScheme.colors has unexpected offset % instead of 0", ((cast(*void)(*instance.colors)) - cast(*void)(*instance)));
         assert(size_of(type_of(SDL_MessageBoxColorScheme.colors)) == 15, "SDL_MessageBoxColorScheme.colors has unexpected size % instead of 15", size_of(type_of(SDL_MessageBoxColorScheme.colors)));
         assert(size_of(SDL_MessageBoxColorScheme) == 15, "SDL_MessageBoxColorScheme has size % instead of 15", size_of(SDL_MessageBoxColorScheme));
     }
-    
+
     {
         instance: SDL_MessageBoxData;
         assert(((cast(*void)(*instance.flags)) - cast(*void)(*instance)) == 0, "SDL_MessageBoxData.flags has unexpected offset % instead of 0", ((cast(*void)(*instance.flags)) - cast(*void)(*instance)));
@@ -34942,7 +34942,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_MessageBoxData.colorScheme)) == 8, "SDL_MessageBoxData.colorScheme has unexpected size % instead of 8", size_of(type_of(SDL_MessageBoxData.colorScheme)));
         assert(size_of(SDL_MessageBoxData) == 56, "SDL_MessageBoxData has size % instead of 56", size_of(SDL_MessageBoxData));
     }
-    
+
     {
         instance: SDL_Vertex;
         assert(((cast(*void)(*instance.position)) - cast(*void)(*instance)) == 0, "SDL_Vertex.position has unexpected offset % instead of 0", ((cast(*void)(*instance.position)) - cast(*void)(*instance)));
@@ -34953,7 +34953,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Vertex.tex_coord)) == 8, "SDL_Vertex.tex_coord has unexpected size % instead of 8", size_of(type_of(SDL_Vertex.tex_coord)));
         assert(size_of(SDL_Vertex) == 32, "SDL_Vertex has size % instead of 32", size_of(SDL_Vertex));
     }
-    
+
     {
         instance: SDL_Texture;
         assert(((cast(*void)(*instance.format)) - cast(*void)(*instance)) == 0, "SDL_Texture.format has unexpected offset % instead of 0", ((cast(*void)(*instance.format)) - cast(*void)(*instance)));
@@ -34966,7 +34966,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_Texture.refcount)) == 4, "SDL_Texture.refcount has unexpected size % instead of 4", size_of(type_of(SDL_Texture.refcount)));
         assert(size_of(SDL_Texture) == 16, "SDL_Texture has size % instead of 16", size_of(SDL_Texture));
     }
-    
+
     {
         instance: SDL_StorageInterface;
         assert(((cast(*void)(*instance.version)) - cast(*void)(*instance)) == 0, "SDL_StorageInterface.version has unexpected offset % instead of 0", ((cast(*void)(*instance.version)) - cast(*void)(*instance)));
@@ -34995,7 +34995,7 @@ sdl3 :: #library "sdl3/lib/x64/sdl3";
         assert(size_of(type_of(SDL_StorageInterface.space_remaining)) == 8, "SDL_StorageInterface.space_remaining has unexpected size % instead of 8", size_of(type_of(SDL_StorageInterface.space_remaining)));
         assert(size_of(SDL_StorageInterface) == 96, "SDL_StorageInterface has size % instead of 96", size_of(SDL_StorageInterface));
     }
-    
+
     {
         instance: SDL_DateTime;
         assert(((cast(*void)(*instance.year)) - cast(*void)(*instance)) == 0, "SDL_DateTime.year has unexpected offset % instead of 0", ((cast(*void)(*instance.year)) - cast(*void)(*instance)));

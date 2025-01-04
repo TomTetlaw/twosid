@@ -4,7 +4,6 @@ GColliders: [] *collider;
 InitEditor :: () {
     PlayerStartMesh = LoadMesh("meshes/text_p.mesh");
     TextFont = LoadDistanceFont("fonts/consolas.png");
-    Root = BuildUI();
     
     Transform.ArrowMesh = LoadMesh("meshes/arrow.mesh");
     Transform.ArrowMeshSquare = LoadMesh("meshes/arrow_square.mesh");
@@ -13,7 +12,7 @@ InitEditor :: () {
     Transform.PlaneCollision = CreateCollisionMesh(*EditorArena, Transform.PlaneMesh);
 }
 
-SelectBox :: (Ray: ray) {
+SelectObject :: (Ray: ray) {
     Closest := FLOAT32_MAX;
     Index := -1;
     Position: float3;
@@ -29,6 +28,19 @@ SelectBox :: (Ray: ray) {
                     Closest = D;
                     Index = it_index;
                     Position = Origin;
+                }
+            }
+        }
+        
+        if it.Kind == .CYLINDER {
+            Collider := cast (*collider_cylinder) it;
+            
+            if RayIntersectsCylinder(Collider.Cylinder, Ray) {
+                D := Distance(Ray.Origin, Collider.Cylinder.Center);
+                if D < Closest {
+                    Closest = D;
+                    Index = it_index;
+                    Position = Collider.Cylinder.Center;
                 }
             }
         }
@@ -49,11 +61,11 @@ UpdateEditor :: () {
     
     MouseRay = GetRayForMousePosition(FlyingCamera.ViewParameters, Mouse.Position);
     Point, Hit := GetGroundPositionAlongRay(MouseRay);
-    GroundPos = Point;
+    GroundPosMouse = Point;
     
-    if KeyPressed(.SDL_SCANCODE_E) {
-        SelectBox(MouseRay);
-    }
+    CameraRay = GetRayFromCamera(*FlyingCamera);
+    Point, Hit = GetGroundPositionAlongRay(CameraRay);
+    GroundPosCamera = Point;
     
     if SelectedCollider != null {
         D := Distance(Transform.Position, FlyingCamera.Position);
@@ -86,14 +98,13 @@ UpdateEditor :: () {
             TransformMode = .SCALE;
         }
         
-        if SelectedCollider.Kind == .BOX {
-            Collider := cast (*collider_box) SelectedCollider;
-            if Mouse.LeftDown && Transform.Dragging {
-                
-                PlaneHit := RayPlaneIntersection(MouseRay, Transform.Plane);
-                Displacement := PlaneHit.Point - Transform.DragStart;
-                
-                DebugVars(Transform.Plane, Displacement);
+        
+        if Mouse.LeftDown && Transform.Dragging {
+            PlaneHit := RayPlaneIntersection(MouseRay, Transform.Plane);
+            Displacement := PlaneHit.Point - Transform.DragStart;
+            
+            if SelectedCollider.Kind == .BOX {
+                Collider := cast (*collider_box) SelectedCollider;
                 
                 if TransformMode == {
                     case .TRANSLATE;
@@ -113,33 +124,44 @@ UpdateEditor :: () {
                     Collider.Box.Min = Center - ScaledExtents;
                     Collider.Box.Max = Center + ScaledExtents;
                 }
+            } else if SelectedCollider.Kind == .CYLINDER {
+                Collider := cast (*collider_cylinder) SelectedCollider;
+                
+                if TransformMode == {
+                    case .TRANSLATE;
+                    Collider.Cylinder.Center += Displacement * Transform.Axis;
+                    Transform.Position = Collider.Cylinder.Center;
+                    
+                    case .SCALE;
+                    Proj := Dot(Displacement, Transform.Axis);
+                    ScaleFactor := 1.0 + Proj;
+                    if (ScaleFactor == 0.0) ScaleFactor = 1.0;
+                    
+                    if Transform.Axis.x > 0 Collider.Cylinder.Radius *= ScaleFactor;
+                    if Transform.Axis.y > 0 Collider.Cylinder.Radius *= ScaleFactor;
+                    if Transform.Axis.z > 0 Collider.Cylinder.Height *= ScaleFactor;
+                }
                 
                 Transform.DragStart = PlaneHit.Point;
             }
         }
     }
     
-    if GIsUIOpen return;
+    ImmBeginWindow(.{50, 200}, "ADD TO LEVEL");
     
-    if KeyPressed(.SDL_SCANCODE_SPACE) {
-        OpenUI(Root);
-    }
-    
-    Selected := GetSelectedUINodeId();
-    if Selected > 0 {
-        if Selected == BoxId {
+    if ImmBeginTree("Collider") {
+        if ImmButton("Box") {
             Collider := ArenaPush(*EditorArena, collider_box);
-            Collider.Box.Min = GroundPos - xyz(5.0);
-            Collider.Box.Max = GroundPos + xyz(5.0);
+            Collider.Box.Min = GroundPosCamera - xyz(5.0);
+            Collider.Box.Max = GroundPosCamera + xyz(5.0);
             Collider.Box.Min += .{0, 0, 5};
             Collider.Box.Max += .{0, 0, 5};
             ArenaPush(*Colliders, Collider);
-            GColliders = ArenaToView(*Colliders);
         }
         
-        if Selected == CylinderId {
+        if ImmButton("Cylinder") {
             Collider := ArenaPush(*EditorArena, collider_cylinder);
-            Collider.Cylinder.Center = GroundPos;
+            Collider.Cylinder.Center = GroundPosCamera;
             Collider.Cylinder.Axis = .{0, 0, 1};
             Collider.Cylinder.Radius = 3.0;
             Collider.Cylinder.Height = 6.0;
@@ -147,17 +169,30 @@ UpdateEditor :: () {
             GColliders = ArenaToView(*Colliders);
         }
         
-        if Selected >= EntityBaseId {
-            Id := Selected - EntityBaseId;
-            Entity := CreateEntityFromInfoIndex(Id);
-            if Entity {
-                Entity.Position = GroundPos;
-            }
-        }
+        ImmEndTree();
     }
     
+    ImmSeperator();
+    
+    if ImmBeginTree("Entity") {
+        for EntityTypes.InfoList {
+            if ImmButton(it.Name) {
+                Entity := CreateEntityFromName(it.Name);
+                if Entity {
+                    Entity.Position = GroundPosCamera;
+                }
+            }
+        }
+        
+        ImmEndTree();
+    }
+    
+    ImmSeperator();
+    
+    ImmEndWindow();
+    
     if KeyPressed(.SDL_SCANCODE_P) {
-        if Hit PlayerStart = GroundPos;
+        if Hit PlayerStart = GroundPosMouse;
     }
 }
 
@@ -252,45 +287,12 @@ EditorMouseInput :: (Button: s32, Down: bool) {
                 Transform.Plane = ChoosePlaneForDragAxis(.YZ);
                 Transform.DragStart = RayPlaneIntersection(MouseRay, Transform.Plane).Point;
             }
+            
+            if !Transform.Dragging SelectObject(MouseRay);
         } else {
             Transform.Dragging = false;
         }
     }
-}
-
-BuildUI :: () -> *select_node {
-    BoxNode := UITextNode("Box", BoxId);
-    CylinderNode := UITextNode("Cylinder", CylinderId);
-    ColliderNode := UITextNode("Collider", Children=.[BoxNode, CylinderNode]);
-    
-    EntityNodes := ArenaPushN(*EditorArena, *select_node, EntityTypes.InfoList.count);
-    for EntityTypes.InfoList {
-        if equal(it.Name, "Player") continue;
-        if equal(it.Name, "Prop") continue;
-        EntityNodes[it_index] = UITextNode(it.Name, EntityBaseId + it_index);
-    }
-    
-    BaseIndex := 0;
-    SetCount := 1 + EntityNodes.count / 3;
-    PrevMoreNode: *select_node;
-    
-    for #v2 < 0..SetCount-1 {
-        BaseIndex := it*3;
-        
-        Children: [4] *select_node;
-        if BaseIndex+2 < EntityNodes.count Children[0] = EntityNodes[it*3 + 2];
-        if BaseIndex+1 < EntityNodes.count Children[1] = EntityNodes[it*3 + 1];
-        if BaseIndex+0 < EntityNodes.count Children[2] = EntityNodes[it*3 + 0];
-        if PrevMoreNode Children[3] = PrevMoreNode;
-        
-        PrevMoreNode = UITextNode("More...", Children=Children);
-    }
-    
-    PrevMoreNode.Text = "Entity";
-    
-    AddNode := UITextNode("Add to level", Children=.[ColliderNode, PrevMoreNode]);
-    
-    return AddNode;
 }
 
 DrawTransform :: (Position: float3) {
@@ -341,8 +343,6 @@ DrawEditor :: () {
     }
     
     DrawDebugMesh(PlayerStart, PlayerStartMesh);
-    
-    DrawDebugSphere(GroundPos);
     
     for Colliders {
         Colour := float4.{1, 1, 1, 1};
@@ -415,8 +415,6 @@ transform_widget :: struct {
 
 Transform: transform_widget;
 
-Root: *select_node;
-
 FlyingCamera: camera_flying;
 
 BoxId :: 1;
@@ -426,8 +424,10 @@ PropId :: 3;
 
 TextFont: *sdf_font;
 
-GroundPos: float3;
+GroundPosMouse: float3;
 MouseRay: ray;
+GroundPosCamera: float3;
+CameraRay: ray;
 
 EditorArena: arena;
 

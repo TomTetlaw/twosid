@@ -133,14 +133,18 @@ GetStringSize :: (Font: *font, S: string) -> float2 {
 GetStringSize :: (Font: *sdf_font, Size: float, S: string) -> float2 {
     Bottom := FLOAT32_MAX;
     Top := -FLOAT32_MAX;
+    Left := FLOAT32_MAX;
+    Right := -FLOAT32_MAX;
     
     Width := 0.0;
     
     for S {
         Char := GetCharFromDistanceFont(Font, it);
-        Width += Char.Advance*Size;
+        
         Bottom = Min(Bottom, Char.Bottom*Size);
         Top = Max(Top, Char.Top*Size);
+        
+        Width += Char.Advance*Size;
     }
     
     return .{Width, Top - Bottom};

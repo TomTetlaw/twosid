@@ -4,9 +4,18 @@ GFrameNum := 0;
 InitRenderer :: () {
     // screen space Pipeline
     {
-        ScreenSpaceCreateInfo: SDL_GPUGraphicsPipelineCreateInfo;
         ColourTargetDesc: SDL_GPUColorTargetDescription;
         ColourTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(GDevice, GWindow);
+        ColourTargetDesc.blend_state.src_color_blendfactor = .SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+        ColourTargetDesc.blend_state.dst_color_blendfactor = .SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+        ColourTargetDesc.blend_state.color_blend_op = .SDL_GPU_BLENDOP_ADD;
+        ColourTargetDesc.blend_state.src_alpha_blendfactor = .SDL_GPU_BLENDFACTOR_ONE;
+        ColourTargetDesc.blend_state.dst_alpha_blendfactor = .SDL_GPU_BLENDFACTOR_ZERO;
+        ColourTargetDesc.blend_state.alpha_blend_op = .SDL_GPU_BLENDOP_ADD;
+        ColourTargetDesc.blend_state.enable_blend = true;
+        
+        ScreenSpaceCreateInfo: SDL_GPUGraphicsPipelineCreateInfo;
+        
         ScreenSpaceCreateInfo.target_info.color_target_descriptions = *ColourTargetDesc;
         ScreenSpaceCreateInfo.target_info.num_color_targets = 1;
         
@@ -27,6 +36,7 @@ InitRenderer :: () {
         ScreenSpaceCreateInfo.vertex_input_state.num_vertex_attributes = 2;
         
         ScreenSpaceCreateInfo.primitive_type = .SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+        
         ScreenSpaceCreateInfo.vertex_shader = ShaderScreenSpace.Vert;
         ScreenSpaceCreateInfo.fragment_shader = ShaderScreenSpace.Frag;
         
@@ -34,16 +44,6 @@ InitRenderer :: () {
         
         ScreenSpaceCreateInfo.vertex_shader = ShaderText.Vert;
         ScreenSpaceCreateInfo.fragment_shader = ShaderText.Frag;
-        
-        ColourTargetDesc.blend_state.src_color_blendfactor = .SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-        ColourTargetDesc.blend_state.dst_color_blendfactor = .SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-        ColourTargetDesc.blend_state.color_blend_op = .SDL_GPU_BLENDOP_ADD;
-        
-        ColourTargetDesc.blend_state.src_alpha_blendfactor = .SDL_GPU_BLENDFACTOR_ONE;
-        ColourTargetDesc.blend_state.dst_alpha_blendfactor = .SDL_GPU_BLENDFACTOR_ZERO;
-        ColourTargetDesc.blend_state.alpha_blend_op = .SDL_GPU_BLENDOP_ADD;
-        
-        ColourTargetDesc.blend_state.enable_blend = true;
         
         TextPipeline = SDL_CreateGPUGraphicsPipeline(GDevice, *ScreenSpaceCreateInfo);
     }
@@ -239,10 +239,10 @@ InitRenderer :: () {
         
         {
             Memory := cast(*float3) TransferMemory;
-            Memory[0] = .{-.5, -.5, 0};
-            Memory[1] = .{.5, -.5, 0};
-            Memory[2] = .{.5, .5, 0};
-            Memory[3] = .{-.5, .5, 0};
+            Memory[0] = .{0, 0, 0};
+            Memory[1] = .{1, 0, 0};
+            Memory[2] = .{1, 1, 0};
+            Memory[3] = .{0, 1, 0};
         }
         {
             Memory := cast(*float2) (TransferMemory + size_of(float3) * 4);
@@ -636,6 +636,7 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     SDL_UnmapGPUTransferBuffer(GDevice, UnlitPass.SkinningBuffer.TransferBuffer);
     
     CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
+    
     CommitStructuredBuffer(DepthPass.SkinningBuffer, CopyPass);
     CommitStructuredBuffer(OpaquePass.SkinningBuffer, CopyPass);
     CommitStructuredBuffer(TranslucentPass.SkinningBuffer, CopyPass);
@@ -655,9 +656,9 @@ DrawFrame :: (Camera: *$T/interface view_parameters) {
     DrawPass(OpaquePass, CommandBuffer);
     DrawPass(TranslucentPass, CommandBuffer);
     DrawPass(DebugPass, CommandBuffer);
+    DrawPass(UnlitPass, CommandBuffer);
     DrawPass(ScreenSpacePass, CommandBuffer);
     DrawPass(TextPass, CommandBuffer);
-    DrawPass(UnlitPass, CommandBuffer);
     
     SDL_SubmitGPUCommandBuffer(CommandBuffer);
     

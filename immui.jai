@@ -1,166 +1,338 @@
 
-HandleUIInput :: () {
-    if !GIsUIOpen return;
+ImmBeginWindow :: (Position: float2, Title: string, Id := -1, L := #caller_location) {
+    WidgetId := MakeWidgetId(Id, L);
+    Window := GetOrCreateWidget(WidgetId, widget_window);
     
-    RootChanged := false;
+    Window.Position = Position;
+    Window.LayoutPosition = Position + Window.GlobalMargin;
+    Window.Size = Window.GlobalMargin;
+    Window.LayoutMarkX = 0.0;
     
-    if RootNode.Left && KeyPressed(.SDL_SCANCODE_A) {
-        AddToStack();
-        RootNode = RootNode.Left;
-        RootChanged = true;
-    }
+    Assert(CurrentWindow == null);
+    CurrentWindow = Window;
     
-    if RootNode.Right && KeyPressed(.SDL_SCANCODE_D) {
-        AddToStack();
-        RootNode = RootNode.Right;
-        RootChanged = true;
-    }
-    
-    if RootNode.Up && KeyPressed(.SDL_SCANCODE_W) {
-        AddToStack();
-        RootNode = RootNode.Up;
-        RootChanged = true;
-    }
-    
-    if RootNode.Down && KeyPressed(.SDL_SCANCODE_S) {
-        AddToStack();
-        RootNode = RootNode.Down;
-        RootChanged = true;
-    }
-    
-    if RootChanged && RootNode.Leaf {
-        Selected = RootNode;
-        CloseUI();
-    }
-    
-    if KeyPressed(.SDL_SCANCODE_Q) {
-        PopFromStack();
-    }
+    ImmLabel(Title, IMMUI_TITLE_FONT_SIZE, TitleFont, Id + 1, L);
+    ImmSeperator(Id + 2, L);
 }
 
-UITextNode :: (Text: string, Id := -1, Children: [] *select_node = .[]) -> *select_node {
-    Node := ArenaPush(*Elements);
-    Node.Id = Id;
-    Node.Leaf = Children.count <= 0;
-    if Children.count > 0 Node.Left = Children[0];
-    if Children.count > 1 Node.Right = Children[1];
-    if Children.count > 2 Node.Up = Children[2];
-    if Children.count > 3 Node.Down = Children[3];
-    Node.Text = Text;
-    return Node;
+ImmEndWindow :: (Id := -1, L := #caller_location) {
+    Assert(CurrentWindow != null);
+    CurrentWindow = null;
 }
 
-UIImageNode :: (Image: *texture, Id := -1, Children: [] *select_node = .[]) -> *select_node {
-    Node := ArenaPush(*Elements);
-    Node.Id = Id;
-    Node.Leaf = Children.count <= 0;
-    if Children.count > 0 Node.Left = Children[0];
-    if Children.count > 1 Node.Right = Children[1];
-    if Children.count > 2 Node.Up = Children[2];
-    if Children.count > 3 Node.Down = Children[3];
-    Node.Image = Image;
-    return Node;
+ImmSeperator :: (Id := -1, L := #caller_location) {
+    ImmRect(.{-1, 2}, IMMUI_SEPERATOR_COLOUR, Id, L);
 }
 
-GetSelectedUINodeId :: () -> int {
-    if !Selected return -1;
+ImmRect :: (Size: float2, Colour := IMMUI_BOX_COLOUR, Id := -1, L := #caller_location) {
+    Assert(CurrentWindow != null);
     
-    Id := Selected.Id;
-    Selected = null;
-    return Id;
+    WidgetId := MakeWidgetId(Id, L);
+    Rect := GetOrCreateWidget(WidgetId, widget_base);
+    
+    Rect.ParentId = CurrentWindow.Id;
+    Rect.Position = GetLayoutPosition(CurrentWindow);
+    Rect.Size = Size;
+    Rect.Colour = Colour;
+    
+    AdvanceWindowLayoutPosition(CurrentWindow, Rect.Size);
+}
+
+ImmLabel :: (Text: string, FontSize := IMMUI_FONT_SIZE, Font: *sdf_font = null, Id := -1, L := #caller_location) {
+    Assert(CurrentWindow != null);
+    
+    WidgetId := MakeWidgetId(Id, L);
+    Label := GetOrCreateWidget(WidgetId, widget_label);
+    
+    Label.Position = GetLayoutPosition(CurrentWindow);
+    Label.Size = GetStringSize(TextFont, FontSize, Text);
+    Label.Text = Text;
+    Label.FontSize = FontSize;
+    Label.Font = ifx Font then Font else TextFont;
+    
+    AdvanceWindowLayoutPosition(CurrentWindow, Label.Size);
+}
+
+ImmButton :: (Text: string, FontSize := IMMUI_FONT_SIZE, Font: *sdf_font = null, Id := -1, L := #caller_location) -> bool {
+    Assert(CurrentWindow != null);
+    
+    WidgetId := MakeWidgetId(Id, L);
+    Button := GetOrCreateWidget(WidgetId, widget_button);
+    
+    Button.Position = GetLayoutPosition(CurrentWindow);
+    Button.Size = GetStringSize(TextFont, FontSize, Text) + Button.TextMargin*2;
+    Button.Text = Text;
+    Button.Font = ifx Font then Font else TextFont;
+    Button.FontSize = FontSize;
+    
+    AdvanceWindowLayoutPosition(CurrentWindow, Button.Size);
+    
+    return WidgetClicked(Button.Position, Button.Size);
+}
+
+ImmBeginTree :: (Title: string, Id := -1, L := #caller_location) -> bool {
+    Assert(CurrentWindow != null);
+    
+    WidgetId := MakeWidgetId(Id, L);
+    Tree := GetOrCreateWidget(WidgetId, widget_tree);
+    
+    Text := tprint("% [%]", Title, ifx Tree.Open "-" else "+");
+    
+    Tree.Position = GetLayoutPosition(CurrentWindow);
+    Tree.Size = GetStringSize(TitleFont, IMMUI_TITLE_FONT_SIZE, Text) + Tree.TextMargin*2;
+    Tree.Title = Text;
+    Tree.Font = TitleFont;
+    Tree.FontSize = IMMUI_TITLE_FONT_SIZE;
+    
+    Clicked := WidgetClicked(Tree.Position, Tree.Size);
+    
+    if Clicked Tree.Open = !Tree.Open;
+    
+    if Tree.Open AddLayoutMark(CurrentWindow, 8.0);
+    
+    AdvanceWindowLayoutPosition(CurrentWindow, Tree.Size);
+    
+    return Tree.Open;
+}
+
+ImmEndTree :: () {
+    Assert(CurrentWindow != null);
+    AddLayoutMark(CurrentWindow, -8.0);
+}
+
+GetDrawSize :: (Widget: *widget_base) -> float2 {
+    Parent := GetWidget(Widget.ParentId);
+    
+    if Parent {
+        Size := Widget.Size;
+        if Size.x == -1 Size.x = Parent.Size.x;
+        if Size.y == -1 Size.y = Parent.Size.y;
+        return Size;
+    }
+    
+    return Widget.Size;
 }
 
 DrawUI :: () {
-    if !GIsUIOpen return;
+    Windows := FilterWidgets(.WINDOW);
+    Rects := FilterWidgets(.BASE);
+    Labels := FilterWidgets(.LABEL);
+    Buttons := FilterWidgets(.BUTTON);
+    Trees := FilterWidgets(.TREE);
     
-    WindowCenter := float2.{1366, 768} * .5;
-    
-    Size := GetStringSize(TextFont, IMMUI_FONT_SIZE, RootNode.Text);
-    DrawTextSDF(WindowCenter - Size*.5, TextFont, IMMUI_FONT_SIZE, RootNode.Text);
-    
-    if RootNode.Left {
-        LeftPos := WindowCenter + .{-128, 0};
-        LeftSize := GetStringSize(TextFont, IMMUI_FONT_SIZE, RootNode.Left.Text);
-        DrawScreenSpaceQuad(LeftPos, .{64, 64}, .{.5, .5, .5, 1.0});
-        DrawTextSDF(LeftPos - Size*.5, TextFont, IMMUI_FONT_SIZE, RootNode.Left.Text);
+    for Windows {
+        Window := cast (*widget_window) it;
+        
+        Size := Window.Size;
+        Size += Window.GlobalMargin * 2;
+        DrawScreenSpaceQuad(Window.Position, Size, IMMUI_BOX_COLOUR);
     }
     
-    if RootNode.Right {
-        RightPos := WindowCenter + .{128, 0};
-        RightSize := GetStringSize(TextFont, IMMUI_FONT_SIZE, RootNode.Right.Text);
-        DrawScreenSpaceQuad(RightPos, .{64, 64}, .{.5, .5, .5, 1.0});
-        DrawTextSDF(RightPos - Size*.5, TextFont, IMMUI_FONT_SIZE, RootNode.Right.Text);
+    for Rects {
+        Size := GetDrawSize(it);
+        DrawScreenSpaceQuad(it.Position, Size, it.Colour);
     }
     
-    if RootNode.Up {
-        UpPos := WindowCenter + .{0, -128};
-        UpSize := GetStringSize(TextFont, IMMUI_FONT_SIZE, RootNode.Up.Text);
-        DrawScreenSpaceQuad(UpPos, .{64, 64}, .{.5, .5, .5, 1.0});
-        DrawTextSDF(UpPos - Size*.5, TextFont, IMMUI_FONT_SIZE, RootNode.Up.Text);
+    for Labels {
+        Label := cast (*widget_label) it;
+        
+        DrawTextSDF(Label.Position, Label.Font, Label.FontSize, Label.Text);
     }
     
-    if RootNode.Down {
-        DownPos := WindowCenter + .{0, 128};
-        DownSize := GetStringSize(TextFont, IMMUI_FONT_SIZE, RootNode.Down.Text);
-        DrawScreenSpaceQuad(DownPos, .{64, 64}, .{.5, .5, .5, 1.0});
-        DrawTextSDF(DownPos - Size*.5, TextFont, IMMUI_FONT_SIZE, RootNode.Down.Text);
+    for Buttons {
+        Button := cast (*widget_button) it;
+        
+        Size := GetDrawSize(it);
+        
+        Colour := IMMUI_BOX_COLOUR;
+        Hovered := WidgetHovered(Button.Position, Size);
+        
+        if Hovered {
+            Colour = IMMUI_BOX_COLOUR_HOVERED;
+        }
+        
+        DrawScreenSpaceQuad(Button.Position, Size, Colour);
+        DrawTextSDF(Button.Position + Button.TextMargin, Button.Font, Button.FontSize, Button.Text);
     }
     
-    Selected = null;
+    for Trees {
+        Tree := cast (*widget_tree) it;
+        
+        Size := GetDrawSize(it);
+        
+        Colour := IMMUI_BOX_COLOUR;
+        Hovered := WidgetHovered(Tree.Position, Size);
+        
+        if Hovered {
+            Colour = IMMUI_BOX_COLOUR_HOVERED;
+        }
+        
+        DrawScreenSpaceQuad(Tree.Position, Size, Colour);
+        DrawTextSDF(Tree.Position + Tree.TextMargin, Tree.Font, Tree.FontSize, Tree.Title);
+    }
+    
+    for Widgets {
+        it.UsedThisFrame = false;
+    }
 }
 
-InitUISystem :: () {
-    TextFont = LoadDistanceFont("fonts/roboto.png");
-    PrevNodes = ArenaPushN(*UIArena, *select_node, 1024);
-}
-
-OpenUI :: (Root: *select_node) {
-    GIsUIOpen = true;
-    RootNode = Root;
-    PrevNodes.count = 0;
-}
-
-CloseUI :: () {
-    GIsUIOpen = false;
-    RootNode = null;
-}
-
-GIsUIOpen := false;
-
-select_node :: struct {
-    Id: int;
-    Left, Right, Up, Down: *select_node;
-    Text: string;
-    Image: *texture;
-    Leaf: bool;
+InitImmUI :: () {
+    TextFont = LoadDistanceFont("fonts/consolas.png");
+    TitleFont = LoadDistanceFont("fonts/liberation_mono.png");
 }
 
 #scope_file
 
-UIArena: arena;
-Elements: arena(select_node);
+widget_id :: int;
 
-TextFont: *sdf_font;
-
-IMMUI_FONT_SIZE :: 16.0;
-
-AddToStack :: () {
-    if PrevNodes.count == 1024 return;
-    
-    PrevNodes.count += 1;
-    PrevNodes[PrevNodes.count - 1] = RootNode;
+widget_kind :: enum {
+    BASE;
+    WINDOW;
+    BUTTON;
+    LABEL;
+    TREE;
 }
 
-PopFromStack :: () {
-    if PrevNodes.count == 0 {
-        CloseUI();
-        return;
+widget_base :: struct {
+    Kind := widget_kind.BASE;
+    Id, ParentId: widget_id;
+    Position, Size: float2;
+    Colour: float4;
+    UsedThisFrame: bool;
+}
+
+widget_window :: struct {
+#as using Base: widget_base;
+    Base.Kind = .WINDOW;
+    
+    LayoutPosition: float2;
+    GlobalMargin := float2.{4, 4};
+    LocalMarginY := 4;
+    
+    LayoutMarkX: float;
+}
+
+widget_label :: struct {
+#as using Base: widget_base;
+    Base.Kind = .LABEL;
+    
+    Text: string;
+    Font: *sdf_font;
+    FontSize: float;
+}
+
+widget_button :: struct {
+#as using Base: widget_base;
+    Base.Kind = .BUTTON;
+    
+    TextMargin := float2.{2, 2};
+    Text: string;
+    Font: *sdf_font;
+    FontSize: float;
+}
+
+widget_tree :: struct {
+#as using Base: widget_base;
+    Base.Kind = .TREE;
+    
+    TextMargin := float2.{2, 2};
+    Title: string;
+    Font: *sdf_font;
+    FontSize: float;
+    
+    Open: bool;
+}
+
+GetLayoutPosition :: (Window: *widget_window) -> float2 {
+    return Window.LayoutPosition + .{Window.LayoutMarkX, 0};
+}
+
+AdvanceWindowLayoutPosition :: (Window: *widget_window, Size: float2) {
+    TotalSize := float2.{Size.x + Window.GlobalMargin.x*2, Size.y + Window.LocalMarginY};
+    
+    Window.LayoutPosition.y += TotalSize.y;
+    
+    Window.Size.x = Max(Window.Size.x, TotalSize.x);
+    Window.Size.y += TotalSize.y;
+}
+
+AddLayoutMark :: (Window: *widget_window, Mark: float) {
+    Window.LayoutMarkX = Max(Window.LayoutMarkX + Mark, 0.0);
+}
+
+CurrentWindow: *widget_window;
+
+MakeWidgetId :: (Id: int, L: Source_Code_Location) -> widget_id {
+    Hash := GetHash(L.fully_pathed_filename);
+    Hash = GetHash(L.line_number, Hash);
+    Hash = GetHash(Id, Hash);
+    return cast(int) Hash;
+}
+
+GetOrCreateWidget :: (Id: widget_id, $T: Type) -> *T {
+    for Widgets {
+        if it.Id == Id {
+            it.UsedThisFrame = true;
+            return cast (*T) it;
+        }
     }
     
-    RootNode = PrevNodes[PrevNodes.count - 1];
-    PrevNodes.count -= 1;
+    Widget := ArenaPush(*UIArena, T);
+    Widget.Id = Id;
+    
+    ArenaPush(*Widgets, Widget);
+    
+    return Widget;
 }
 
-Selected: *select_node;
-RootNode: *select_node;
-PrevNodes: [] *select_node;
+GetWidget :: (Id: widget_id) -> *widget_base {
+    for Widgets {
+        if it.Id == Id {
+            it.UsedThisFrame = true;
+            return it;
+        }
+    }
+    
+    return null;
+}
+
+FilterWidgets :: (Kind: widget_kind) -> [] *widget_base {
+    Mark := ArenaPushMark(*FrameArena);
+    
+    for Widgets {
+        if !it.UsedThisFrame continue;
+        if it.Kind == Kind ArenaPush(*FrameArena, *widget_base, it);
+    }
+    
+    return ArenaToView(*FrameArena, *widget_base, Mark, FrameArena.Used - Mark);
+}
+
+WidgetClicked :: (Position: float2, Size: float2) -> bool {
+    Box := bounding_box_2d.{Position, Position + Size};
+    
+    for FrameClicks {
+        if PointIntersectsBox(Mouse.Position, Box) return true;
+    }
+    
+    return false;
+}
+
+WidgetHovered :: (Position: float2, Size: float2) -> bool {
+    Box := bounding_box_2d.{Position, Position + Size};
+    
+    if PointIntersectsBox(Mouse.Position, Box) return true;
+    return false;
+}
+
+UIArena: arena;
+Widgets: arena(*widget_base);
+
+TextFont: *sdf_font;
+TitleFont: *sdf_font;
+
+IMMUI_BOX_COLOUR :: #run rgba(194, 123, 2, 102);
+IMMUI_BOX_COLOUR_HOVERED :: #run rgba(194, 123, 2, 204);
+IMMUI_SEPERATOR_COLOUR :: #run rgba(194+50, 123+50, 2+50, 200);
+
+IMMUI_FONT_SIZE :: 16.0;
+IMMUI_TITLE_FONT_SIZE :: 16.0;

@@ -66,6 +66,20 @@ RayIntersectsBox :: (Box: bounding_box, Ray: ray) -> bool {
     return TMax > Max(TMin, 0.0);
 }
 
+RayIntersectsCylinder :: (Cylinder: cylinder, Ray: ray) -> bool {
+    Box: bounding_box;
+    
+    Box.Min.x = Cylinder.Center.x - Cylinder.Radius;
+    Box.Min.y = Cylinder.Center.y - Cylinder.Radius;
+    Box.Min.z = Cylinder.Center.z - Cylinder.Height*.5;
+    
+    Box.Max.x = Cylinder.Center.x + Cylinder.Radius;
+    Box.Max.y = Cylinder.Center.y + Cylinder.Radius;
+    Box.Max.z = Cylinder.Center.z + Cylinder.Height*.5;
+    
+    return RayIntersectsBox(Box, Ray);
+}
+
 ray_hit :: struct {
     Intersected: bool;
     T := FLOAT32_MAX;
@@ -523,6 +537,10 @@ CreateSurfaceCollisionMesh :: (Arena: *arena, Triangles: [] triangle) -> surface
     return Result;
 }
 
-bounding_box :: struct {
-    Min, Max: float3;
+PointIntersectsBox :: (Point: float2, Box: bounding_box_2d) -> bool {
+    if Point.x < Box.Min.x return false;
+    if Point.y < Box.Min.y return false;
+    if Point.x > Box.Max.x return false;
+    if Point.y > Box.Max.y return false;
+    return true;
 }
