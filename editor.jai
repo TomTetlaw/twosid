@@ -1,6 +1,4 @@
 
-GColliders: [] *collider;
-
 InitEditor :: () {
     PlayerStartMesh = LoadMesh("meshes/text_p.mesh");
     TextFont = LoadDistanceFont("fonts/consolas.png");
@@ -106,6 +104,8 @@ UpdateEditor :: () {
 }
 
 EditorUI :: () {
+    if !GEditorOpen return;
+    
     ImmBeginWindow(.{50, 200}, "Add to level", .{MaxHeight=500});
     
     if ImmBeginTree("Collider") {

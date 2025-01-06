@@ -8,8 +8,8 @@ font :: struct {
     Size: float;
     CharWidth: float;
     
-    Info: Stb_Font_Info;
-    Chars: [] Stb_Packed_Char;
+    Info: stbtt_fontinfo;
+    Chars: [] stbtt_packedchar;
     
     IsDistanceFont: bool;
     DistanceTexture: *texture;
@@ -23,28 +23,28 @@ LoadFont :: (Path: string, Size: float) -> *font {
     File, Success := read_entire_file(Path);
     if !Success return ArenaPushNull(font);
     
-    FontInfo: Stb_Font_Info;
-    stb_init_font(*FontInfo, File.data, stb_get_font_offset_for_index(File.data, 0));
-    Scale := stb_scale_for_pixel_height(*FontInfo, Size);
+    FontInfo: stbtt_fontinfo;
+    stbtt_InitFont(*FontInfo, File.data, stbtt_GetFontOffsetForIndex(File.data, 0));
+    Scale := stbtt_ScaleForPixelHeight(*FontInfo, Size);
     
     Width, Height: s32 = 512;
     
     Pixels := ArenaAlloc(*FontArena, xx (Width * Height));
-    CharData := ArenaPushN(*FontArena, Stb_Packed_Char, 96);
+    CharData := ArenaPushN(*FontArena, stbtt_packedchar, 96);
     
-    PackContext: Stb_Pack_Context;
-    stb_pack_begin(*PackContext, Pixels, Width, Height, Width, 1, null);
-    stb_pack_font_range(*PackContext, File.data, 0, Size, 32, 96, CharData.data);
-    stb_pack_end(*PackContext);
+    PackContext: stbtt_pack_context;
+    stbtt_PackBegin(*PackContext, Pixels, Width, Height, Width, 1, null);
+    stbtt_PackFontRange(*PackContext, File.data, 0, Size, 32, 96, CharData.data);
+    stbtt_PackEnd(*PackContext);
     
     Texture := CreateFontTexture(Format("%_texture", Path), Pixels, Width, Height);
     
     Ascent, Descent, LineGap: s32;
-    stb_get_font_v_metrics(*FontInfo, *Ascent, *Descent, *LineGap);
+    stbtt_GetFontVMetrics(*FontInfo, *Ascent, *Descent, *LineGap);
     LineSkip := (Ascent - Descent + LineGap) * Scale;
     
     Advance: s32;
-    stb_get_codepoint_h_metrics(*FontInfo, #char "A", *Advance, null);
+    stbtt_GetCodepointHMetrics(*FontInfo, #char "A", *Advance, null);
     
     Font := ArenaPush(*Fonts);
     Font.Path = Path;
@@ -123,7 +123,7 @@ GetStringSize :: (Font: *font, S: string) -> float2 {
     Width := 0;
     for S {
         Advance: s32;
-        stb_get_codepoint_h_metrics(*Font.Info, it, *Advance, null);
+        stbtt_GetCodepointHMetrics(*Font.Info, it, *Advance, null);
         Width += Advance;
     }
     
@@ -163,3 +163,4 @@ FontArena: arena;
 Fonts: arena(font);
 
 #import "Text_File_Handler";
+#import "stb_truetype";

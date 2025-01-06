@@ -3,12 +3,12 @@ generate_sdl3_bindings :: () -> bool {
     options: Generate_Bindings_Options;
     options.strip_enum_prefixes = false;
     
-    output_filename := "windows.jai";
-    
 #if OS == .WINDOWS {
+        output_filename := "windows.jai";
         array_add(*options.libnames, "sdl3.lib");
     } else {
-        report_error("Platform not supported.");
+        output_filename := "linux.jai";
+        array_add(*options.libnames, "libSDL3.so");
     }
     
     array_add(*options.include_paths, "sdl3/include/");

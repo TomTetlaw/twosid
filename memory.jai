@@ -239,13 +239,14 @@ GB :: ($n: u64) -> u64 #expand { return n * MB(1024); }
 
 AlignPageSize :: n => (n + (PageSize - 1)) & ~(PageSize - 1);
 
+MaxCommittedSize: u64;
+CommitExpandAmount: u64;
+
 #if OS == .WINDOWS {
     
     windows :: #import "Windows";
     
     PageSize: u64;
-    MaxCommittedSize: u64;
-    CommitExpandAmount: u64;
     
     PlatformMemoryInit :: () {
         Info: windows.SYSTEM_INFO;
@@ -271,12 +272,13 @@ AlignPageSize :: n => (n + (PageSize - 1)) & ~(PageSize - 1);
     
 #import "POSIX";
     
-    PageSize: s32;
+    PageSize: u64;
     
     PlatformMemoryInit :: () {
-        PageSize = getpagesize();
-        MaxCommittedSize = Align(GB(64));
+        PageSize = xx getpagesize();
+        MaxCommittedSize = AlignPageSize(GB(64));
         CommitExpandAmount = PageSize * 16;
+        GTotalCommittedBytes = 0;
     }
     
     PlatformReserve :: (Capacity: u64) -> *u8 {

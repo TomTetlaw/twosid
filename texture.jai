@@ -100,7 +100,7 @@ InitTextureSystem :: () {
     SDL_ReleaseGPUTransferBuffer(GDevice, TransferBuffer);
     
     for * Textures {
-        stb_image_free(it.Pixels);
+        stbi_image_free(it.Pixels);
         it.Pixels = null;
     }
 }
@@ -109,7 +109,7 @@ LoadTexture :: (Path: string) -> *texture {
     for * Textures if equal(it.Path, Path) return it;
     
     Width, Height, Channels: s32;
-    Pixels := stb_load_image(Path.data, *Width, *Height, *Channels, 4);
+    Pixels := stbi_load(Path.data, *Width, *Height, *Channels, 4);
     if !Pixels return ArenaPushNull(texture);
     
     Texture := ArenaPush(*Textures);
@@ -182,5 +182,6 @@ Textures: arena(texture);
 
 #import "Basic";
 #import "String";
+#import "stb_image";
 
 using,only(log) Math :: #import "Math";

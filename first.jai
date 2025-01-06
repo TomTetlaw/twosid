@@ -67,7 +67,6 @@ build_game :: (profiling: bool) {
         report_error("Platform not supported.");
     }
     
-    array_add(*lib_files, "Shell32.lib");
     options.additional_linker_arguments = lib_files;
     
     machine_options := get_machine_options_x86(*options);
@@ -116,7 +115,10 @@ build_game :: (profiling: bool) {
             for tc.structs {
                 exp := it.expression;
                 t := exp.defined_type;
-                if is_subclass_of(t, "entity") array_add(*entity_types, t);
+                
+                if is_subclass_of(t, "entity") {
+                    array_add(*entity_types, t);
+                }
             }
         }
         

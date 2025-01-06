@@ -158,8 +158,8 @@ DrawText :: (Position: float2, Font: *font, S: string, Colour := float4.{1, 1, 1
     CurrentPos := Position;
     for S {
         
-        Quad: Stb_Aligned_Quad;
-        stb_get_packed_quad(Font.Chars.data, xx Font.Texture.Width, xx Font.Texture.Height, it - 32, *CurrentPos.x, *CurrentPos.y, *Quad, 1);
+        Quad: stbtt_aligned_quad;
+        stbtt_GetPackedQuad(Font.Chars.data, xx Font.Texture.Width, xx Font.Texture.Height, it - 32, *CurrentPos.x, *CurrentPos.y, *Quad, 1);
         
         W := Quad.x1 - Quad.x0;
         H := Quad.y1 - Quad.y0;

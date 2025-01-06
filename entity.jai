@@ -5,6 +5,7 @@ entity_handle :: struct {
 }
 
 entity_flags :: enum_flags {
+    BLOCKING;
 }
 
 entity :: struct {
@@ -69,29 +70,6 @@ entity_collision :: struct {
     CylinderRadius, CylinderHeight: float;
 }
 
-collider_kind :: enum {
-    BOX;
-    CYLINDER;
-}
-
-collider :: struct {
-    Kind: collider_kind;
-}
-
-collider_box :: struct {
-    using #as Base: collider;
-    Base.Kind = .BOX;
-    
-    Box: bounding_box;
-}
-
-collider_cylinder :: struct {
-    using #as Base: collider;
-    Base.Kind = .CYLINDER;
-    
-    Cylinder: cylinder;
-}
-
 HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision) {
     
     ClosestPointOnSegment :: (P: float3, A: float3, B: float3) -> float3 {
@@ -101,31 +79,32 @@ HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision) {
         return A + AB * T;
     }
     
-    for GColliders {
-        if it.Kind == .BOX {
-            Collider := cast (*collider_box) it;
-            Box := Collider.Box;
+    for GAllEntities {
+        if it.Id == Entity.Id continue;
+        if !(it.Flags & .BLOCKING) continue;
+        
+        Box := it.Bounds;
+        Position := xyz(Entity.Position.xy, 0);
+        
+        Base := Position - (C.CylinderAxis * C.CylinderHeight * .5);
+        Top := Position + (C.CylinderAxis * C.CylinderHeight * .5);
+        
+        ClampedBase := Clamp(Base, Box.Min, Box.Max);
+        ClampedTop := Clamp(Top, Box.Min, Box.Max);
+        
+        ClosestPoint := ClosestPointOnSegment(ClampedBase, Base, Top);
+        Delta := ClosestPoint - ClampedBase;
+        D := Dot(Delta, Delta);
+        
+        R := C.CylinderRadius;
+        if D <= R*R {
+            CollisionNormal := Normalize(Delta);
+            Depth := R - SquareRoot(D);
             
-            Position := xyz(Entity.Position.xy, 0);
-            
-            Base := Position - (C.CylinderAxis * C.CylinderHeight * .5);
-            Top := Position + (C.CylinderAxis * C.CylinderHeight * .5);
-            
-            ClampedBase := Clamp(Base, Box.Min, Box.Max);
-            ClampedTop := Clamp(Top, Box.Min, Box.Max);
-            
-            ClosestPoint := ClosestPointOnSegment(ClampedBase, Base, Top);
-            Delta := ClosestPoint - ClampedBase;
-            D := Dot(Delta, Delta);
-            
-            R := C.CylinderRadius;
-            if D <= R*R {
-                CollisionNormal := Normalize(Delta);
-                Depth := R - SquareRoot(D);
-                
-                Entity.Position = Entity.Position + (CollisionNormal * Depth);
-            }
-        } else if it.Kind == .CYLINDER {
+            Entity.Position = Entity.Position + (CollisionNormal * Depth);
+        }
+        
+        /*
             Collider := cast (*collider_cylinder) it;
             Cylinder := Collider.Cylinder;
             
@@ -149,8 +128,7 @@ HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision) {
                 Depth := Combined - SquareRoot(D);
                 
                 Entity.Position = Entity.Position + (CollisionNormal * Depth);
-            }
-        }
+            }*/
     }
 }
 

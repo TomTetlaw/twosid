@@ -24,6 +24,7 @@ entity_player :: struct {
 
 entity_prop :: struct {
     using #as Base: entity;
+    Base.Flags = .BLOCKING;
 }
 
 CreateProp :: (Path: string, Position: float3) -> *entity_prop {
@@ -47,7 +48,7 @@ CreateProp :: (Mesh: *mesh, Position: float3) -> *entity_prop {
 
 entity_collider :: struct {
     using #as Base: entity;
-    Collider: *collider;
+    Base.Flags = .BLOCKING;
 }
 
 CreateCollider :: (Position: float3) -> *entity_collider {
@@ -99,6 +100,8 @@ UpdateGame :: () {
         
         Prop.DrawPosition = Prop.Position;
         UpdateEntityDrawTransform(Prop);
+        
+        DrawBoundingBox(Prop.Bounds);
     }
     
     for * :OnlyActiveEntities EntityTypes.Collider {
