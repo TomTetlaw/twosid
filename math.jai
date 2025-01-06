@@ -67,6 +67,10 @@ Saturate :: (f: float) -> float {
     return Max(Min(f, 1.0), 0.0);
 }
 
+Sin :: sin;
+Cos :: cos;
+Tan :: tan;
+
 CosTurns :: (t: float) -> float {
     t -= 0.25 + RoundDown(t + 0.25);
     t *= 16.0 * (Abs(t) - 0.5);
@@ -315,6 +319,15 @@ Lerp :: (a: float3, b: float3, t: float) -> float3 {
     };
 }
 
+Lerp :: (a: float4, b: float4, t: float) -> float4 {
+    return .{
+        Lerp(a.x, b.x, t), 
+        Lerp(a.y, b.y, t), 
+        Lerp(a.z, b.z, t),
+        Lerp(a.w, b.w, t)
+    };
+}
+
 Abs :: (v: float2) -> float2 {
     return float2.{
         Abs(v.x),
@@ -531,4 +544,4 @@ RotateVectorAxes :: (v: float3, q: quat, a: float4) -> float3 {
 #import "Basic";
 #import "Random";
 
-using,only(ceil,floor,abs,sqrt,fmod_cycling,exp) Math :: #import "Math";
+using,only(ceil,floor,abs,sqrt,fmod_cycling,exp,sin,cos,tan) Math :: #import "Math";

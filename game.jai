@@ -22,7 +22,44 @@ entity_player :: struct {
     Camera: camera_player;
 }
 
+entity_prop :: struct {
+    using #as Base: entity;
+}
+
+CreateProp :: (Path: string, Position: float3) -> *entity_prop {
+    return CreateProp(LoadMesh(Path), Position);
+}
+
+CreateProp :: (Mesh: *mesh, Position: float3) -> *entity_prop {
+    Prop := CreateEntity(entity_prop);
+    Prop.Mesh = Mesh;
+    
+    Grey := LoadTexture("textures/grey.png");
+    Prop.Textures = ArenaPushN(*GameArena, *texture, .[Grey, Grey, Grey]);
+    
+    Prop.Position = Position;
+    Prop.Position.z = GetGroundHeight(Position);
+    
+    Prop.Bounds = Mesh.Bounds;
+    
+    return Prop;
+}
+
+entity_collider :: struct {
+    using #as Base: entity;
+    Collider: *collider;
+}
+
+CreateCollider :: (Position: float3) -> *entity_collider {
+    Entity := CreateEntity(entity_collider);
+    Entity.Position = Position;
+    Entity.Scale = xyz(3);
+    return Entity;
+}
+
 UpdateGame :: () {
+    GAllEntities = BuildEntityArray();
+    
     for * :OnlyActiveEntities EntityTypes.Player {
         Player := it;
         
@@ -54,9 +91,27 @@ UpdateGame :: () {
         Player.Camera.Position = Player.DrawPosition;
         UpdateCameraPlayer(*Player.Camera);
     }
+    
+    for * :OnlyActiveEntities EntityTypes.Prop {
+        Prop := it;
+        
+        UpdateEntityBounds(Prop);
+        
+        Prop.DrawPosition = Prop.Position;
+        UpdateEntityDrawTransform(Prop);
+    }
+    
+    for * :OnlyActiveEntities EntityTypes.Collider {
+        UpdateEntityBounds(it);
+    }
 }
 
 DrawGame :: () {
+    for * :OnlyActiveEntities EntityTypes.Prop {
+        Prop := it;
+        
+        DrawEntity(Prop);
+    }
 }
 
 GetGameViewParams :: () -> view_parameters {
@@ -72,6 +127,10 @@ InitGame :: () {
     TextFont = LoadDistanceFont("fonts/consolas.png");
 }
 
+GAllEntities: [] *entity;
+
 #scope_file
 
 TextFont: *sdf_font;
+
+GameArena: arena;

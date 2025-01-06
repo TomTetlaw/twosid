@@ -28,7 +28,7 @@ InitArena :: (Arena: *$A/arena, InitialCapacity: u64 = 0, $L := #caller_location
     Base := cast (*u8) PlatformReserve(MaxCommittedSize);
     if !Base {
         Value, text := get_error_value_and_string();
-        FatalError(tprint("Failed to create arena: error_code=%, error_string=%", Value, text));
+        FatalError(TFormat("Failed to create arena: error_code=%, error_string=%", Value, text));
     }
     
     if !InitialCapacity InitialCapacity = CommitExpandAmount;

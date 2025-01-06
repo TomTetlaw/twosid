@@ -794,6 +794,8 @@ render_command :: struct {
     InstanceCount: int;
     
     Flags: render_command_flags;
+    
+    Scissor := float4.{-1, -1, -1, -1};
 }
 
 structured_buffer :: struct ($T: Type) {
@@ -919,6 +921,15 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
     
     BaseInstance := 0;
     for Pass.Commands {
+        if it.Scissor.x != -1 {
+            Scissor: SDL_Rect;
+            Scissor.x = xx it.Scissor.x;
+            Scissor.y = xx it.Scissor.y;
+            Scissor.w = xx it.Scissor.z;
+            Scissor.h = xx it.Scissor.w;
+            SDL_SetGPUScissor(RenderPass, *Scissor);
+        }
+        
         SDL_BindGPUFragmentSamplers(RenderPass, xx Pass.Textures.count, it.Textures.data, xx it.Textures.count);
         
         SDL_BindGPUVertexBuffers(RenderPass, 0, it.VertexBuffers.data, xx it.VertexBuffers.count);
@@ -930,6 +941,15 @@ DrawPass :: (Pass: *draw_pass, CommandBuffer: *SDL_GPUCommandBuffer) {
         
         SDL_DrawGPUIndexedPrimitives(RenderPass, xx it.IndexCount, xx it.InstanceCount, 0, 0, xx BaseInstance);
         BaseInstance += it.InstanceCount;
+        
+        if it.Scissor.x != -1 {
+            Scissor: SDL_Rect;
+            Scissor.x = 0;
+            Scissor.y = 0;
+            Scissor.w = xx Pass.Viewport.x;
+            Scissor.h = xx Pass.Viewport.y;
+            SDL_SetGPUScissor(RenderPass, *Scissor);
+        }
     }
     
     SDL_EndGPURenderPass(RenderPass);

@@ -37,8 +37,7 @@ mesh :: struct {
     
     Skeleton: *skeleton;
     
-    MinBounds: float3;
-    MaxBounds: float3;
+    Bounds: bounding_box;
 }
 
 animation :: struct {
@@ -58,7 +57,7 @@ InitMeshSystem :: () {
         if contains(it, ".mesh_text") continue;
         if contains(it, ".mesh") {
             path, base_name, ext := path_decomp(it);
-            LoadMesh(tprint("meshes/%.%", base_name, ext));
+            LoadMesh(Format("meshes/%.%", base_name, ext));
         }
     }
     
@@ -67,14 +66,14 @@ InitMeshSystem :: () {
     VertexCreateInfo: SDL_GPUBufferCreateInfo;
     VertexCreateInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
     for * Meshes {
-        it.PositionBuffer = CreateVertexBuffer(tprint("%_position", it.Path), size_of(float3), it.Positions.count);
-        it.TexCoordBuffer = CreateVertexBuffer(tprint("%_tex_coord", it.Path), size_of(float2), it.Positions.count);
-        it.NormalBuffer = CreateVertexBuffer(tprint("%_normal", it.Path), size_of(float3), it.Positions.count);
-        it.TangentBuffer = CreateVertexBuffer(tprint("%_tangent", it.Path), size_of(float3), it.Positions.count);
-        it.WeightBuffer = CreateVertexBuffer(tprint("%_weight", it.Path), size_of(float3), it.Positions.count);
-        it.BoneIdsBuffer = CreateVertexBuffer(tprint("%_bone_ids", it.Path), size_of(bone_ids), it.Positions.count);
+        it.PositionBuffer = CreateVertexBuffer(Format("%_position", it.Path), size_of(float3), it.Positions.count);
+        it.TexCoordBuffer = CreateVertexBuffer(Format("%_tex_coord", it.Path), size_of(float2), it.Positions.count);
+        it.NormalBuffer = CreateVertexBuffer(Format("%_normal", it.Path), size_of(float3), it.Positions.count);
+        it.TangentBuffer = CreateVertexBuffer(Format("%_tangent", it.Path), size_of(float3), it.Positions.count);
+        it.WeightBuffer = CreateVertexBuffer(Format("%_weight", it.Path), size_of(float3), it.Positions.count);
+        it.BoneIdsBuffer = CreateVertexBuffer(Format("%_bone_ids", it.Path), size_of(bone_ids), it.Positions.count);
         
-        it.IndexBuffer = CreateIndexBuffer(tprint("%_index", it.Path), it.Indices.count);
+        it.IndexBuffer = CreateIndexBuffer(Format("%_index", it.Path), it.Indices.count);
         
         VERTEX_SIZE :: 14 * size_of(float) + size_of(bone_ids);
         TotalMeshesSize += VERTEX_SIZE * it.Positions.count;
@@ -291,8 +290,7 @@ LoadMesh :: (Path: string) -> *mesh {
     Mesh.Path = Path;
     Mesh.Skeleton = Skeleton;
     Mesh.NumIndices = Indices.count;
-    Mesh.MinBounds = MinBounds;
-    Mesh.MaxBounds = MaxBounds;
+    Mesh.Bounds = .{MinBounds, MaxBounds};
     
     return Mesh;
 }
@@ -345,8 +343,8 @@ CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle, Extra: [] $T) 
     Mesh.MinBounds = MinBounds;
     Mesh.MaxBounds = MaxBounds;
     
-    Mesh.PositionBuffer = CreateVertexBuffer(tprint("%_position", Name), OptimizedPositions);
-    Mesh.IndexBuffer = CreateVertexBuffer(tprint("%_index", Name), Indices, true);
+    Mesh.PositionBuffer = CreateVertexBuffer(Format("%_position", Name), OptimizedPositions);
+    Mesh.IndexBuffer = CreateVertexBuffer(Format("%_index", Name), Indices, true);
     
     ArenaPopMark(*WorkingArena, Mark);
     

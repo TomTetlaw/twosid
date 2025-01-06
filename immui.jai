@@ -1,5 +1,9 @@
 
-ImmBeginWindow :: (Position: float2, Title: string, Id := -1, L := #caller_location) {
+imm_window_props :: struct {
+    MaxHeight := -1.0;
+}
+
+ImmBeginWindow :: (Position: float2, Title: string, Props := imm_window_props.{}, Id := -1, L := #caller_location) {
     WidgetId := MakeWidgetId(Id, L);
     Window := GetOrCreateWidget(WidgetId, widget_window);
     
@@ -7,6 +11,7 @@ ImmBeginWindow :: (Position: float2, Title: string, Id := -1, L := #caller_locat
     Window.LayoutPosition = Position + Window.GlobalMargin;
     Window.Size = Window.GlobalMargin;
     Window.LayoutMarkX = 0.0;
+    Window.Props = Props;
     
     Assert(CurrentWindow == null);
     CurrentWindow = Window;
@@ -16,6 +21,20 @@ ImmBeginWindow :: (Position: float2, Title: string, Id := -1, L := #caller_locat
 }
 
 ImmEndWindow :: (Id := -1, L := #caller_location) {
+    if CurrentWindow.Size.y > CurrentWindow.Props.MaxHeight {
+        Diff := CurrentWindow.Size.y - CurrentWindow.Props.MaxHeight;
+        
+        if WidgetHovered(null, CurrentWindow.Position, CurrentWindow.Size) {
+            CurrentWindow.GoalScrollOffsetY += Mouse.ScrollAxis * 16.0;
+            CurrentWindow.GoalScrollOffsetY = Clamp(CurrentWindow.GoalScrollOffsetY, -Diff, 0);
+            CurrentWindow.ScrollOffsetY = Approach(CurrentWindow.ScrollOffsetY, CurrentWindow.GoalScrollOffsetY, 0.25);
+        }
+        
+        CurrentWindow.Size.y = CurrentWindow.Props.MaxHeight;
+        
+        DebugVars(CurrentWindow.GoalScrollOffsetY, CurrentWindow.ScrollOffsetY, Mouse.ScrollAxis, CurrentWindow.Props);
+    }
+    
     Assert(CurrentWindow != null);
     CurrentWindow = null;
 }
@@ -67,7 +86,7 @@ ImmButton :: (Text: string, FontSize := IMMUI_FONT_SIZE, Font: *sdf_font = null,
     
     AdvanceWindowLayoutPosition(CurrentWindow, Button.Size);
     
-    return WidgetClicked(Button.Position, Button.Size);
+    return WidgetClicked(Button, Button.Position, Button.Size);
 }
 
 ImmBeginTree :: (Title: string, Id := -1, L := #caller_location) -> bool {
@@ -76,7 +95,7 @@ ImmBeginTree :: (Title: string, Id := -1, L := #caller_location) -> bool {
     WidgetId := MakeWidgetId(Id, L);
     Tree := GetOrCreateWidget(WidgetId, widget_tree);
     
-    Text := tprint("% [%]", Title, ifx Tree.Open "-" else "+");
+    Text := TFormat("% [%]", Title, ifx Tree.Open "-" else "+");
     
     Tree.Position = GetLayoutPosition(CurrentWindow);
     Tree.Size = GetStringSize(TitleFont, IMMUI_TITLE_FONT_SIZE, Text) + Tree.TextMargin*2;
@@ -84,7 +103,7 @@ ImmBeginTree :: (Title: string, Id := -1, L := #caller_location) -> bool {
     Tree.Font = TitleFont;
     Tree.FontSize = IMMUI_TITLE_FONT_SIZE;
     
-    Clicked := WidgetClicked(Tree.Position, Tree.Size);
+    Clicked := WidgetClicked(Tree, Tree.Position, Tree.Size);
     
     if Clicked Tree.Open = !Tree.Open;
     
@@ -100,17 +119,13 @@ ImmEndTree :: () {
     AddLayoutMark(CurrentWindow, -8.0);
 }
 
-GetDrawSize :: (Widget: *widget_base) -> float2 {
-    Parent := GetWidget(Widget.ParentId);
+UpdateUI :: () {
+    GUIWantsInput = false;
     
-    if Parent {
-        Size := Widget.Size;
-        if Size.x == -1 Size.x = Parent.Size.x;
-        if Size.y == -1 Size.y = Parent.Size.y;
-        return Size;
+    Windows := FilterWidgets(.WINDOW);
+    for Widgets {
+        if WidgetHovered(null, it.Position, it.Size) GUIWantsInput = true;
     }
-    
-    return Widget.Size;
 }
 
 DrawUI :: () {
@@ -121,58 +136,85 @@ DrawUI :: () {
     Trees := FilterWidgets(.TREE);
     
     for Windows {
+        Assert(!it.DrawnThisFrame);
+        it.DrawnThisFrame = true;
+        
         Window := cast (*widget_window) it;
         
         Size := Window.Size;
         Size += Window.GlobalMargin * 2;
+        SetCurrentScissor(xyzw(Window.Position, Size));
         DrawScreenSpaceQuad(Window.Position, Size, IMMUI_BOX_COLOUR);
     }
     
     for Rects {
+        Assert(!it.DrawnThisFrame);
+        it.DrawnThisFrame = true;
+        
+        Position := GetDrawPosition(it);
         Size := GetDrawSize(it);
-        DrawScreenSpaceQuad(it.Position, Size, it.Colour);
+        SetCurrentScissor(xyzw(it.Window.Position, it.Window.Size));
+        DrawScreenSpaceQuad(Position, Size, it.Colour);
     }
     
     for Labels {
+        Assert(!it.DrawnThisFrame);
+        it.DrawnThisFrame = true;
+        
         Label := cast (*widget_label) it;
         
-        DrawTextSDF(Label.Position, Label.Font, Label.FontSize, Label.Text);
+        Position := GetDrawPosition(Label);
+        SetCurrentScissor(xyzw(it.Window.Position, it.Window.Size));
+        DrawTextSDF(Position, Label.Font, Label.FontSize, Label.Text);
     }
     
     for Buttons {
+        Assert(!it.DrawnThisFrame);
+        it.DrawnThisFrame = true;
+        
         Button := cast (*widget_button) it;
         
         Size := GetDrawSize(it);
         
         Colour := IMMUI_BOX_COLOUR;
-        Hovered := WidgetHovered(Button.Position, Size);
+        Hovered := WidgetHovered(Button, Button.Position, Size);
         
         if Hovered {
             Colour = IMMUI_BOX_COLOUR_HOVERED;
         }
         
-        DrawScreenSpaceQuad(Button.Position, Size, Colour);
-        DrawTextSDF(Button.Position + Button.TextMargin, Button.Font, Button.FontSize, Button.Text);
+        Position := GetDrawPosition(Button);
+        SetCurrentScissor(xyzw(it.Window.Position, it.Window.Size));
+        DrawScreenSpaceQuad(Position, Size, Colour);
+        DrawTextSDF(Position + Button.TextMargin, Button.Font, Button.FontSize, Button.Text);
     }
     
     for Trees {
+        Assert(!it.DrawnThisFrame);
+        it.DrawnThisFrame = true;
+        
         Tree := cast (*widget_tree) it;
         
         Size := GetDrawSize(it);
         
         Colour := IMMUI_BOX_COLOUR;
-        Hovered := WidgetHovered(Tree.Position, Size);
+        Hovered := WidgetHovered(Tree, Tree.Position, Size);
         
         if Hovered {
             Colour = IMMUI_BOX_COLOUR_HOVERED;
         }
         
-        DrawScreenSpaceQuad(Tree.Position, Size, Colour);
-        DrawTextSDF(Tree.Position + Tree.TextMargin, Tree.Font, Tree.FontSize, Tree.Title);
+        Position := GetDrawPosition(Tree);
+        SetCurrentScissor(xyzw(it.Window.Position, it.Window.Size));
+        DrawScreenSpaceQuad(Position, Size, Colour);
+        DrawTextSDF(Position + Tree.TextMargin, Tree.Font, Tree.FontSize, Tree.Title);
     }
+    
+    SetCurrentScissor(xyzw(-1));
     
     for Widgets {
         it.UsedThisFrame = false;
+        it.DrawnThisFrame = false;
     }
 }
 
@@ -180,6 +222,8 @@ InitImmUI :: () {
     TextFont = LoadDistanceFont("fonts/consolas.png");
     TitleFont = LoadDistanceFont("fonts/liberation_mono.png");
 }
+
+GUIWantsInput := false;
 
 #scope_file
 
@@ -199,6 +243,8 @@ widget_base :: struct {
     Position, Size: float2;
     Colour: float4;
     UsedThisFrame: bool;
+    DrawnThisFrame: bool;
+    Window: *widget_window;
 }
 
 widget_window :: struct {
@@ -208,6 +254,10 @@ widget_window :: struct {
     LayoutPosition: float2;
     GlobalMargin := float2.{4, 4};
     LocalMarginY := 4;
+    Props: imm_window_props;
+    
+    GoalScrollOffsetY := 0.0;
+    ScrollOffsetY := 0.0;
     
     LayoutMarkX: float;
 }
@@ -243,6 +293,23 @@ widget_tree :: struct {
     Open: bool;
 }
 
+GetDrawPosition :: (Widget: *widget_base) -> float2 {
+    return Widget.Position + float2.{0, Widget.Window.ScrollOffsetY};
+}
+
+GetDrawSize :: (Widget: *widget_base) -> float2 {
+    Parent := GetWidget(Widget.ParentId);
+    
+    if Parent {
+        Size := Widget.Size;
+        if Size.x == -1 Size.x = Parent.Size.x;
+        if Size.y == -1 Size.y = Parent.Size.y;
+        return Size;
+    }
+    
+    return Widget.Size;
+}
+
 GetLayoutPosition :: (Window: *widget_window) -> float2 {
     return Window.LayoutPosition + .{Window.LayoutMarkX, 0};
 }
@@ -272,6 +339,7 @@ MakeWidgetId :: (Id: int, L: Source_Code_Location) -> widget_id {
 GetOrCreateWidget :: (Id: widget_id, $T: Type) -> *T {
     for Widgets {
         if it.Id == Id {
+            Assert(!it.UsedThisFrame);
             it.UsedThisFrame = true;
             return cast (*T) it;
         }
@@ -279,6 +347,7 @@ GetOrCreateWidget :: (Id: widget_id, $T: Type) -> *T {
     
     Widget := ArenaPush(*UIArena, T);
     Widget.Id = Id;
+    Widget.Window = CurrentWindow;
     
     ArenaPush(*Widgets, Widget);
     
@@ -307,8 +376,11 @@ FilterWidgets :: (Kind: widget_kind) -> [] *widget_base {
     return ArenaToView(*FrameArena, *widget_base, Mark, FrameArena.Used - Mark);
 }
 
-WidgetClicked :: (Position: float2, Size: float2) -> bool {
-    Box := bounding_box_2d.{Position, Position + Size};
+WidgetClicked :: (Widget: *widget_base, Position: float2, Size: float2) -> bool {
+    P := Position;
+    if Widget P += float2.{0, Widget.Window.ScrollOffsetY};
+    
+    Box := bounding_box_2d.{P, P + Size};
     
     for FrameClicks {
         if PointIntersectsBox(Mouse.Position, Box) return true;
@@ -317,8 +389,11 @@ WidgetClicked :: (Position: float2, Size: float2) -> bool {
     return false;
 }
 
-WidgetHovered :: (Position: float2, Size: float2) -> bool {
-    Box := bounding_box_2d.{Position, Position + Size};
+WidgetHovered :: (Widget: *widget_base, Position: float2, Size: float2) -> bool {
+    P := Position;
+    if Widget P += float2.{0, Widget.Window.ScrollOffsetY};
+    
+    Box := bounding_box_2d.{P, P + Size};
     
     if PointIntersectsBox(Mouse.Position, Box) return true;
     return false;
@@ -335,4 +410,4 @@ IMMUI_BOX_COLOUR_HOVERED :: #run rgba(194, 123, 2, 204);
 IMMUI_SEPERATOR_COLOUR :: #run rgba(194+50, 123+50, 2+50, 200);
 
 IMMUI_FONT_SIZE :: 16.0;
-IMMUI_TITLE_FONT_SIZE :: 16.0;
+IMMUI_TITLE_FONT_SIZE :: 20.0;

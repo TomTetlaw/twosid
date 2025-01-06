@@ -37,7 +37,7 @@ LoadFont :: (Path: string, Size: float) -> *font {
     stb_pack_font_range(*PackContext, File.data, 0, Size, 32, 96, CharData.data);
     stb_pack_end(*PackContext);
     
-    Texture := CreateFontTexture(tprint("%_texture", Path), Pixels, Width, Height);
+    Texture := CreateFontTexture(Format("%_texture", Path), Pixels, Width, Height);
     
     Ascent, Descent, LineGap: s32;
     stb_get_font_v_metrics(*FontInfo, *Ascent, *Descent, *LineGap);
@@ -80,7 +80,7 @@ LoadDistanceFont :: (TexturePath: string) -> *sdf_font {
     
     DistanceTexture := LoadTexture(TexturePath);
     
-    Success, Lines := file_to_array(tprint("%", replace(TexturePath, ".png", ".csv")));
+    Success, Lines := file_to_array(TFormat("%", replace(TexturePath, ".png", ".csv")));
     
     Mark := FontArena.Used;
     for Lines {
@@ -131,23 +131,28 @@ GetStringSize :: (Font: *font, S: string) -> float2 {
 }
 
 GetStringSize :: (Font: *sdf_font, Size: float, S: string) -> float2 {
+    if S.count == 0 return .{};
+    
     Bottom := FLOAT32_MAX;
     Top := -FLOAT32_MAX;
-    Left := FLOAT32_MAX;
-    Right := -FLOAT32_MAX;
     
-    Width := 0.0;
+    Advance := 0.0;
+    FirstChar := GetCharFromDistanceFont(Font, S[0]);
+    LastChar := GetCharFromDistanceFont(Font, S[S.count - 1]);
     
     for S {
         Char := GetCharFromDistanceFont(Font, it);
         
-        Bottom = Min(Bottom, Char.Bottom*Size);
-        Top = Max(Top, Char.Top*Size);
+        Bottom = Min(Bottom, Char.Bottom);
+        Top = Max(Top, Char.Top);
         
-        Width += Char.Advance*Size;
+        Advance += Char.Advance;
     }
     
-    return .{Width, Top - Bottom};
+    TotalHeight := Top - Bottom;
+    TotalWidth := Advance + (LastChar.Right - LastChar.Left);
+    
+    return .{TotalWidth, TotalHeight} * xy(Size);
 }
 
 #scope_file

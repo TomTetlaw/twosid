@@ -1,0 +1,16 @@
+
+magic:
+
+either sorcerer-style (evil):
+	- use items and books to focus and power magic spells
+	- high power floor but limited ceiling
+	- more explicitly told to the player
+
+or hunter-style (good):
+	- magic power scales with asceticism
+	- player actions and items in inventory get an "asceticism score"
+	- scale magic power based on total score
+	- low power floor but very high ceiling
+	- eg. drinking and prostitution = WEAK MAGIC 
+	- eg. no items, minimal clothes, spends time in prayer = GOD MODE
+	- not told to the player explicitly 

@@ -12,6 +12,8 @@ mouse :: struct {
     
     DragStart: float2;
     DragLength: float;
+    
+    ScrollAxis: float;
 }
 
 FrameKeys: [..] SDL_Scancode;
@@ -122,6 +124,7 @@ main :: () {
         // reset to Zero so the event can fill these for just one frame
         Mouse.Delta.x = 0;
         Mouse.Delta.y = 0;
+        Mouse.ScrollAxis = 0;
         
         Quit = ProcessWindowEvents();
         if Quit break;
@@ -140,6 +143,9 @@ main :: () {
                 SDL_SetWindowRelativeMouseMode(GWindow, false);
             }
         }
+        
+        EditorUI();
+        UpdateUI();
         
         UpdateEditor();
         UpdateGame();
@@ -168,6 +174,8 @@ main :: () {
         }
         
         GFrameNum += 1;
+        
+        reset_temporary_storage();
     }
 }
 
@@ -193,6 +201,8 @@ ProcessWindowEvents :: () -> bool {
             }
         } else if IsEventType(*Event, .SDL_EVENT_MOUSE_BUTTON_UP) {
             EditorMouseInput(Event.button.button, false);
+        } else if IsEventType(*Event, .SDL_EVENT_MOUSE_WHEEL) {
+            Mouse.ScrollAxis = Event.wheel.y;
         }
     }
     

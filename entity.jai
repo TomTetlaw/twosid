@@ -4,6 +4,9 @@ entity_handle :: struct {
     Gen: s32;
 }
 
+entity_flags :: enum_flags {
+}
+
 entity :: struct {
     using Handle: entity_handle;
     Active: bool;
@@ -11,6 +14,10 @@ entity :: struct {
     Flags: entity_flags;
     
     Position: float3;
+    Rotation: quat;
+    Scale := float3.{1, 1, 1};
+    
+    Bounds: bounding_box;
     
     Mesh: *mesh;
     AnimPlayer: anim_player;
@@ -18,6 +25,31 @@ entity :: struct {
     
     Colour := float4.{1, 1, 1, 1};
     DrawPosition: float3;
+    DrawTransform: float4x4;
+}
+
+UpdateEntityDrawTransform :: (Entity: *entity) {
+    UpdateEntityDrawTransform(Entity, Entity.DrawPosition, Entity.Rotation, Entity.Scale);
+}
+
+UpdateEntityDrawTransform :: (Entity: *entity, Position: float3, Rotation: quat, Scale: float3) {
+    Entity.DrawTransform = TranslationMatrix(Position) * RotationMatrix(Rotation) * ScaleMatrix(Scale);
+}
+
+UpdateEntityBounds :: (Entity: *entity) {
+    Bounds: bounding_box;
+    
+    if Entity.Mesh {
+        Bounds = Entity.Mesh.Bounds;
+    } else {
+        Bounds = .{xyz(-1), xyz(1)};
+    }
+    
+    Origin := (Bounds.Min + Bounds.Max) * .5;
+    Extents := (Bounds.Max - Bounds.Min) * .5;
+    
+    Entity.Bounds.Min = Entity.Position + Origin - (Extents * Entity.Scale);
+    Entity.Bounds.Max = Entity.Position + Origin + (Extents * Entity.Scale);
 }
 
 entity_physics :: struct {
@@ -132,9 +164,6 @@ UpdateEntityAnimation :: (Entity: *entity) {
     AnimUpdate(*Entity.AnimPlayer);
 }
 
-entity_flags :: enum_flags {
-}
-
 CreateEntity :: ($T: Type) -> *T {
     Entities := FindEntityTypeArena(T);
     if !Entities return null;
@@ -173,7 +202,7 @@ DrawEntity :: (Entity: *entity) {
     Command.Mesh = Entity.Mesh;
     Command.SkinningTransforms = Entity.AnimPlayer.Pose.SkinningTransforms;
     Command.Textures = Entity.Textures;
-    Command.Instance.Transform = TranslationMatrix(Entity.DrawPosition);
+    Command.Instance.Transform = Entity.DrawTransform;
     Command.Instance.DiffuseColour = Entity.Colour;
     Command.Instance.MaterialParams = .{1, 1, 1, 1};
     AddDrawCommand(*Command);

@@ -61,11 +61,11 @@ ShaderFormat: string;
 
 CreateShader :: (Stage: string, Name: string, NumSamplers: u32, NumStorageTextures: u32, NumStorageBuffers: u32, NumUniformBuffers: u32) -> *SDL_GPUShader {
     
-    FileName := tprint("shaders/%.%.%", Name, Stage, ShaderFormat);
+    FileName := TFormat("shaders/%.%.%", Name, Stage, ShaderFormat);
     Data, Ok := read_entire_file(FileName);
     if !Ok return null;
     
-    EntryPoint := tprint("%_main", Stage);
+    EntryPoint := TFormat("%_main", Stage);
     
     CreateInfo: SDL_GPUShaderCreateInfo;
     CreateInfo.code_size = xx Data.count;

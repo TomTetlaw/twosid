@@ -39,6 +39,14 @@ MemCompare :: (a: *void, b: *void, Size: int) -> s16 {
     return memcmp(a, b, xx Size);
 }
 
+Format :: (Format: string, Args: ..Any) -> string {
+    Builder: String_Builder;
+    print_to_builder(*Builder, Format, ..Args);
+    return builder_to_string(*Builder);
+}
+
+TFormat :: tprint;
+
 FatalError :: (Format: string, Args: ..Any) {
     Builder: String_Builder;
     print_to_builder(*Builder, Format, ..Args);

@@ -42,11 +42,12 @@ build_game :: (profiling: bool) {
     options.intermediate_path = ".build/";
     options.backend = .LLVM;
     options.output_executable_name = "twosid";
-    //options.debug_for_expansions = true;
+    
+    options.debug_for_expansions = true;
     set_optimization(*options, .VERY_DEBUG);
     
-    //set_optimization(*options, .VERY_OPTIMIZED);
     //options.llvm_options.preserve_debug_info = true;
+    //set_optimization(*options, .VERY_OPTIMIZED);
     
     options.text_output_flags = 0;
     
@@ -177,6 +178,15 @@ build_game :: (profiling: bool) {
         append(*builder, "\treturn null;\n");
         append(*builder, "}\n");
         
+        append(*builder, "BuildEntityArray :: () -> [] *entity {\n");
+        append(*builder, "Entities: [..] *entity;\n");
+        append(*builder, "Entities.allocator = temp;\n");
+        for entity_types {
+            print_to_builder(*builder, "for * :OnlyActiveEntities EntityTypes.% array_add(*Entities, it);\n", convert_case(it.name));
+        }
+        append(*builder, "return Entities;\n");
+        append(*builder, "}\n");
+        
         add_build_string(builder_to_string(*builder), workspace);
     }
     
@@ -213,7 +223,7 @@ build :: () {
     
     compile_shaders := false;
     generate_sdl_bindings := false;
-    profiling := true;
+    profiling := false;
     
     for args {
         if contains(it, "compile_shaders") compile_shaders = true;

@@ -42,6 +42,7 @@ draw_command_ss_quad :: struct {
     Flags: ss_quad_command_flags;
     Texture: *texture;
     Instance: ibuffer_ss_quad;
+    Scissor: float4;
 }
 
 // Batch for drawing an instanced mesh.
@@ -60,6 +61,7 @@ draw_batch_mesh :: struct {
 draw_batch_quad :: struct {
     Flags: ss_quad_command_flags;
     Texture: *texture;
+    Scissor: float4;
     InstanceData: arena(ibuffer_ss_quad);
     Initialized: bool;
 }
@@ -213,6 +215,7 @@ AddDrawCommand :: (Command: *$T/draw_command) {
         ArenaPush(*Batch.InstanceData, MeshCommand.Instance);
     } else if Command.Kind == .SCREEN_SPACE_QUAD {
         QuadCommand := cast (*draw_command_ss_quad) Command;
+        QuadCommand.Scissor = CurrentScissor;
         Batch := GetQuadBatch(QuadCommand);
         ArenaPush(*Batch.InstanceData, QuadCommand.Instance);
     }
@@ -221,7 +224,7 @@ AddDrawCommand :: (Command: *$T/draw_command) {
 Temp: arena(ibuffer_debug);
 
 ProcessDrawCommands :: () {
-    DebugStart := float2.{15, 300};
+    DebugStart := float2.{1000, 50};
     for DebugStrings {
         DrawTextSDF(DebugStart, DebugFont, 16.0, it);
         DebugStart.y += 15;
@@ -271,12 +274,14 @@ ProcessDrawCommands :: () {
         VertexBuffers[1] = .{ScreenSpaceTexCoordBuffer, 0};
         Command.VertexBuffers = VertexBuffers;
         Command.IndexBuffer = ScreenSpaceIndexBuffer;
-        
+        Command.Scissor = it.Scissor;
         Command.IndexCount = 6;
         
         Command.InstanceCount = it.InstanceData.Count;
         WriteStructuredBuffer(Pass.InstanceBuffer, ArenaToView(*it.InstanceData));
     }
+    
+    CurrentScissor = xyzw(-1);
 }
 
 InitRendererFrontend :: () {
@@ -297,6 +302,10 @@ ResetRendererFrontend :: () {
     }
 }
 
+SetCurrentScissor :: (Rect: float4) {
+    CurrentScissor = Rect;
+}
+
 #scope_file
 
 MAX_BATCHES :: 2048;
@@ -306,6 +315,8 @@ FrontendQuadBatches: [] draw_batch_quad;
 
 DebugStrings: arena(string);
 DebugFont: *sdf_font;
+
+CurrentScissor := #run xyzw(-1);
 
 GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
     Hash := GetHash(MeshCommand.Mesh.Path, cast (u32) MeshCommand.Flags);
@@ -332,10 +343,15 @@ GetQuadBatch :: (QuadCommand: *draw_command_ss_quad) -> *draw_batch_quad {
     if QuadCommand.Texture Hash = GetHash(QuadCommand.Texture.Path);
     else Hash = GetHash("no_texture");
     Hash = GetHash(cast (u32) QuadCommand.Flags, Hash);
+    Hash = GetHash(QuadCommand.Scissor.x, Hash);
+    Hash = GetHash(QuadCommand.Scissor.y, Hash);
+    Hash = GetHash(QuadCommand.Scissor.z, Hash);
+    Hash = GetHash(QuadCommand.Scissor.w, Hash);
     
     Batch := *FrontendQuadBatches[Hash % MAX_BATCHES];
     
     if !Batch.Initialized {
+        Batch.Scissor = QuadCommand.Scissor;
         Batch.Flags = QuadCommand.Flags;
         Batch.Texture = QuadCommand.Texture;
         Batch.Initialized = true;

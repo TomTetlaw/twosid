@@ -1,0 +1,4 @@
+
+
+refactor renderer so that sdl pass = shader with pipeline options and render pass = our render "stages"
+- also allow easy setting of states eg. scissor rect
