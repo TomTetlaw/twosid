@@ -184,6 +184,24 @@ PushFixedArena :: (Arena: *$A/arena, $T: Type, N: int) -> *arena(T) {
     return Fixed;
 }
 
+PushFixedArena :: (Arena: *$A/arena, Cap: int) -> *arena {
+    Mark := ArenaPushMark(Arena);
+    
+    Fixed := ArenaPush(Arena, arena);
+    
+    Fixed.Base = ArenaAlloc(Arena, xx Cap);
+	Fixed.TypedBase = Fixed.Base;
+	Fixed.Used = 0;
+    Fixed.Count = 0;
+    Fixed.Capacity = xx Cap;
+    Fixed.IsFixed = true;
+    Fixed.ParentMark = Mark;
+    Fixed.Parent = Arena;
+    Fixed.Initialized = true;
+    
+    return Fixed;
+}
+
 PopFixedArena :: (Fixed: *$A/arena) {
     Arena := cast(*arena(u8)) Fixed.Parent;
     ArenaPopMark(Arena, Fixed.ParentMark);

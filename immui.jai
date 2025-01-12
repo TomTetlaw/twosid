@@ -143,8 +143,7 @@ DrawUI :: () {
         
         Size := Window.Size;
         Size += Window.GlobalMargin * 2;
-        SetCurrentScissor(xyzw(Window.Position, Size));
-        DrawScreenSpaceQuad(Window.Position, Size, IMMUI_BOX_COLOUR);
+        DrawScreenSpaceQuad(Window.Position, Size, IMMUI_BOX_COLOUR, Options=.{Scissor=xyzw(Window.Position, Size)});
     }
     
     for Rects {
@@ -153,8 +152,7 @@ DrawUI :: () {
         
         Position := GetDrawPosition(it);
         Size := GetDrawSize(it);
-        SetCurrentScissor(xyzw(it.Window.Position, it.Window.Size));
-        DrawScreenSpaceQuad(Position, Size, it.Colour);
+        DrawScreenSpaceQuad(Position, Size, it.Colour, Options=.{Scissor=xyzw(it.Window.Position, it.Window.Size)});
     }
     
     for Labels {
@@ -164,8 +162,7 @@ DrawUI :: () {
         Label := cast (*widget_label) it;
         
         Position := GetDrawPosition(Label);
-        SetCurrentScissor(xyzw(it.Window.Position, it.Window.Size));
-        DrawTextSDF(Position, Label.Font, Label.FontSize, Label.Text);
+        DrawTextSDF(Position, Label.Font, Label.FontSize, Label.Text, Options=.{Scissor=xyzw(it.Window.Position, it.Window.Size)});
     }
     
     for Buttons {
@@ -184,9 +181,8 @@ DrawUI :: () {
         }
         
         Position := GetDrawPosition(Button);
-        SetCurrentScissor(xyzw(it.Window.Position, it.Window.Size));
-        DrawScreenSpaceQuad(Position, Size, Colour);
-        DrawTextSDF(Position + Button.TextMargin, Button.Font, Button.FontSize, Button.Text);
+        DrawScreenSpaceQuad(Position, Size, Colour, Options=.{Scissor=xyzw(it.Window.Position, it.Window.Size)});
+        DrawTextSDF(Position + Button.TextMargin, Button.Font, Button.FontSize, Button.Text, Options=.{Scissor=xyzw(it.Window.Position, it.Window.Size)});
     }
     
     for Trees {
@@ -205,12 +201,9 @@ DrawUI :: () {
         }
         
         Position := GetDrawPosition(Tree);
-        SetCurrentScissor(xyzw(it.Window.Position, it.Window.Size));
-        DrawScreenSpaceQuad(Position, Size, Colour);
-        DrawTextSDF(Position + Tree.TextMargin, Tree.Font, Tree.FontSize, Tree.Title);
+        DrawScreenSpaceQuad(Position, Size, Colour, Options=.{Scissor=xyzw(it.Window.Position, it.Window.Size)});
+        DrawTextSDF(Position + Tree.TextMargin, Tree.Font, Tree.FontSize, Tree.Title, Options=.{Scissor=xyzw(it.Window.Position, it.Window.Size)});
     }
-    
-    SetCurrentScissor(xyzw(-1));
     
     for Widgets {
         it.UsedThisFrame = false;

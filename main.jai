@@ -47,7 +47,7 @@ main :: () {
     }
     
     WindowName := "twosid";
-    GWindow = SDL_CreateWindow(WindowName.data, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+    GWindow = SDL_CreateWindow(TCS(WindowName), WINDOW_WIDTH, WINDOW_HEIGHT, 0);
     if !GWindow FatalError("Failed to create window: %", SdlGetError());
     
     ShaderFormats := cast(u32) SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_SPIRV;
@@ -72,9 +72,6 @@ main :: () {
     
     GameStartTime := current_time_monotonic();
     OldTime: Apollo_Time;
-    
-    Font := LoadFont("fonts/consolas.ttf", 32.0);
-    DistanceFont := LoadDistanceFont("fonts/inconsolata.png");
     
     Quit := false;
     while !Quit {
@@ -163,7 +160,7 @@ main :: () {
             ViewParameters = GetGameViewParams();
         }
         
-        DrawFrame(*ViewParameters);
+        RenderFrame(*ViewParameters);
         
         FrameKeys.count = 0;
         FrameClicks.count = 0;

@@ -39,25 +39,14 @@ InitTerrain :: () {
 }
 
 DrawTerrain :: () {
-    Command: draw_command_mesh;
-    Command.Mesh = TerrainMesh;
-    Command.Textures = TerrainTextures;
-    Command.Instance.Transform = TerrainTransform;
-    Command.Instance.DiffuseColour = .{1, 1, 1, 1};
-    Command.Instance.MaterialParams = .{1, 1, 1, 1};
-    if !TerrainDebug AddDrawCommand(*Command);
+    if !TerrainDebug DrawOpaqueMesh(TerrainTransform, TerrainMesh, TerrainTextures);
     
     if KeyPressed(.SDL_SCANCODE_F3) {
         TerrainDebug = !TerrainDebug;
     }
     
     if TerrainDebug {
-        Command.Mesh = TerrainMesh;
-        Command.Instance.Transform = TranslationMatrix(.{0, 0, .05}) * TerrainTransform;
-        Command.Instance.DiffuseColour = .{1, 1, 1, 1};
-        Command.Flags = .DEBUG;
-        AddDrawCommand(*Command);
-        
+        DebugDrawMesh(TerrainMesh, TerrainTransform);
         DrawBVH(*TerrainBVH);
     }
 }
@@ -205,7 +194,7 @@ QueryBVH :: (Arena: *arena, BVH: *bvh, Ray: ray) {
 
 DrawBVH :: (BVH: *bvh) {
     for BVH.Nodes {
-        DrawBoundingBox(it.Bounds);
+        DebugDrawBoundingBox(it.Bounds);
     }
 }
 
@@ -217,14 +206,4 @@ GetRelevantTrianglesForRay :: (BVH: *bvh, Ray: ray) -> [] triangle {
     Triangles := ArenaToView(*FrameArena, triangle, Mark, Used);
     
     return Triangles;
-}
-
-DrawBoundingBox :: (Box: bounding_box, Origin: float3, Colour := float4.{1, 1, 1, 1}) {
-    Scale := Box.Max - Box.Min;
-    Command: draw_command_mesh;
-    Command.Flags = .DEBUG;
-    Command.Mesh = LoadMesh("meshes/cube.mesh");
-    Command.Instance.Transform = TranslationMatrix(Origin) * ScaleMatrix(Scale);
-    Command.Instance.DiffuseColour = Colour;
-    AddDrawCommand(*Command);
 }

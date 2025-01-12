@@ -2,3 +2,7 @@
 
 refactor renderer so that sdl pass = shader with pipeline options and render pass = our render "stages"
 - also allow easy setting of states eg. scissor rect
+
+create screen space quad with CreateMeshFromTriangles
+
+draw multiple types in a single pass

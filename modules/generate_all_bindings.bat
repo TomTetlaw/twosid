@@ -6,3 +6,5 @@ jai generate.jai
 
 cd ../stb_truetype
 jai generate.jai
+
+cd ../

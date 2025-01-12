@@ -1,51 +1,30 @@
 
 shader :: struct {
     Vert: *SDL_GPUShader;
+    VertMeta: SDL_ShaderCross_GraphicsShaderMetadata;
+    
     Frag: *SDL_GPUShader;
+    FragMeta: SDL_ShaderCross_GraphicsShaderMetadata;
 }
 
-ShaderMesh: shader;
-ShaderScreenSpace: shader;
-ShaderDepthPass: shader;
-ShaderDebug: shader;
-ShaderText: shader;
+ShaderMesh: *shader;
+ShaderUnlit: *shader;
+ShaderQuad: *shader;
+ShaderShadowPass: *shader;
+ShaderDebug: *shader;
+ShaderText: *shader;
+ShaderTextSDF: *shader;
 
 InitShaderSystem :: () {
-    Formats := SDL_GetGPUShaderFormats(GDevice);
-    if Formats & SDL_GPU_SHADERFORMAT_DXIL {
-        FormatToLoad = SDL_GPU_SHADERFORMAT_DXIL;
-    } else if Formats & SDL_GPU_SHADERFORMAT_DXBC {
-        FormatToLoad = SDL_GPU_SHADERFORMAT_DXBC;
-    } else if Formats & SDL_GPU_SHADERFORMAT_SPIRV {
-        FormatToLoad = SDL_GPU_SHADERFORMAT_SPIRV;
-    } else {
-        FatalError("Failed to find suitable shader Format");
-    }
+    SDL_ShaderCross_Init();
     
-    if FormatToLoad == SDL_GPU_SHADERFORMAT_DXIL ShaderFormat = "dxil";
-    else if FormatToLoad == SDL_GPU_SHADERFORMAT_DXBC ShaderFormat = "dxbc";
-    else if FormatToLoad == SDL_GPU_SHADERFORMAT_SPIRV ShaderFormat = "spirv";
-    else FatalError("Unsupported shader Format %", FormatToLoad);
-    
-    MeshVert := CreateShader("vertex", "mesh", 0, 0, 2, 1);
-    MeshFrag := CreateShader("fragment", "mesh", 4, 0, 0, 1);
-    ShaderMesh = .{MeshVert, MeshFrag};
-    
-    ScreenSpaceVert := CreateShader("vertex", "screen_space", 0, 0, 1, 1);
-    ScreenSpaceFrag := CreateShader("fragment", "screen_space", 1, 0, 0, 0);
-    ShaderScreenSpace = .{ScreenSpaceVert, ScreenSpaceFrag};
-    
-    TextVert := CreateShader("vertex", "text", 0, 0, 1, 1);
-    TextFrag := CreateShader("fragment", "text", 1, 0, 0, 0);
-    ShaderText = .{TextVert, TextFrag};
-    
-    DepthPassVert := CreateShader("vertex", "depth_pass", 0, 0, 2, 1);
-    DepthPassFrag := CreateShader("fragment", "depth_pass", 0, 0, 0, 0);
-    ShaderDepthPass = .{DepthPassVert, DepthPassFrag};
-    
-    DebugVert := CreateShader("vertex", "debug", 0, 0, 1, 1);
-    DebugFrag := CreateShader("fragment", "debug", 0, 0, 0, 0);
-    ShaderDebug = .{DebugVert, DebugFrag};
+    ShaderMesh = CreateShader("shaders/mesh.hlsl");
+    ShaderUnlit = CreateShader("shaders/unlit.hlsl");
+    ShaderQuad = CreateShader("shaders/quad.hlsl");
+    ShaderShadowPass = CreateShader("shaders/shadow_pass.hlsl");
+    ShaderDebug = CreateShader("shaders/debug.hlsl");
+    ShaderText = CreateShader("shaders/text.hlsl");
+    ShaderTextSDF = CreateShader("shaders/text_sdf.hlsl");
 }
 
 #scope_file
@@ -59,26 +38,38 @@ Shaders: arena(shader);
 FormatToLoad: SDL_GPUShaderFormat;
 ShaderFormat: string;
 
-CreateShader :: (Stage: string, Name: string, NumSamplers: u32, NumStorageTextures: u32, NumStorageBuffers: u32, NumUniformBuffers: u32) -> *SDL_GPUShader {
-    
-    FileName := TFormat("shaders/%.%.%", Name, Stage, ShaderFormat);
-    Data, Ok := read_entire_file(FileName);
+CreateShader :: (Path: string) -> *shader {
+    Data, Ok := read_entire_file(Path, true);
     if !Ok return null;
     
-    EntryPoint := TFormat("%_main", Stage);
+    Formats := SDL_ShaderCross_GetSPIRVShaderFormats();
     
-    CreateInfo: SDL_GPUShaderCreateInfo;
-    CreateInfo.code_size = xx Data.count;
-    CreateInfo.code = Data.data;
-    CreateInfo.entrypoint = EntryPoint.data;
-    CreateInfo.format = FormatToLoad;
-    CreateInfo.num_samplers = NumSamplers;
-    CreateInfo.num_storage_textures = NumStorageTextures;
-    CreateInfo.num_storage_buffers = NumStorageBuffers;
-    CreateInfo.num_uniform_buffers = NumUniformBuffers;
+    Dir, Name, Ext := path_decomp(Path);
     
-    GpuShader := SDL_CreateGPUShader(GDevice, *CreateInfo);
-    if !GpuShader FatalError("Failed to load shader %: %", FileName, SdlGetError());
+    Info: SDL_ShaderCross_HLSL_Info;
+    Info.source = Data.data;
+    Info.include_dir = "shaders/";
+    Info.entrypoint = "vertex_main";
+    Info.shader_stage = .VERTEX;
+    //Info.enable_debug = true;
+    //Info.defines = Defines.data;
+    Info.name = TCS(tprint("%_vert", Name));
     
-    return GpuShader;
+    VertMeta: SDL_ShaderCross_GraphicsShaderMetadata;
+    VertShader := SDL_ShaderCross_CompileGraphicsShaderFromHLSL(GDevice, *Info, *VertMeta);
+    
+    Info.entrypoint = "fragment_main";
+    Info.shader_stage = .FRAGMENT;
+    Info.name = TCS(tprint("%_frag", Name));
+    
+    FragMeta: SDL_ShaderCross_GraphicsShaderMetadata;
+    FragShader := SDL_ShaderCross_CompileGraphicsShaderFromHLSL(GDevice, *Info, *FragMeta);
+    
+    Shader := ArenaPush(*Shaders);
+    Shader.Vert = VertShader;
+    Shader.VertMeta = VertMeta;
+    Shader.Frag = FragShader;
+    Shader.FragMeta = FragMeta;
+    
+    return Shader;
 }

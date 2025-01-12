@@ -38,6 +38,8 @@ mesh :: struct {
     Skeleton: *skeleton;
     
     Bounds: bounding_box;
+    
+    Generated: bool;
 }
 
 animation :: struct {
@@ -61,107 +63,17 @@ InitMeshSystem :: () {
         }
     }
     
-    TotalMeshesSize := 0;
-    
-    VertexCreateInfo: SDL_GPUBufferCreateInfo;
-    VertexCreateInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
     for * Meshes {
-        it.PositionBuffer = CreateVertexBuffer(Format("%_position", it.Path), size_of(float3), it.Positions.count);
-        it.TexCoordBuffer = CreateVertexBuffer(Format("%_tex_coord", it.Path), size_of(float2), it.Positions.count);
-        it.NormalBuffer = CreateVertexBuffer(Format("%_normal", it.Path), size_of(float3), it.Positions.count);
-        it.TangentBuffer = CreateVertexBuffer(Format("%_tangent", it.Path), size_of(float3), it.Positions.count);
-        it.WeightBuffer = CreateVertexBuffer(Format("%_weight", it.Path), size_of(float3), it.Positions.count);
-        it.BoneIdsBuffer = CreateVertexBuffer(Format("%_bone_ids", it.Path), size_of(bone_ids), it.Positions.count);
+        if it.Generated continue;
         
-        it.IndexBuffer = CreateIndexBuffer(Format("%_index", it.Path), it.Indices.count);
-        
-        VERTEX_SIZE :: 14 * size_of(float) + size_of(bone_ids);
-        TotalMeshesSize += VERTEX_SIZE * it.Positions.count;
-        TotalMeshesSize += size_of(u32) * it.Indices.count;
+        it.PositionBuffer = CreateVertexBuffer(Format("%_positions", it.Path), it.Positions);
+        it.TexCoordBuffer = CreateVertexBuffer(Format("%_tex_coords", it.Path), it.TexCoords);
+        it.NormalBuffer = CreateVertexBuffer(Format("%_normals", it.Path), it.Normals);
+        it.TangentBuffer = CreateVertexBuffer(Format("%_tangents", it.Path), it.Tangents);
+        it.WeightBuffer = CreateVertexBuffer(Format("%_weights", it.Path), it.Weights);
+        it.BoneIdsBuffer = CreateVertexBuffer(Format("%_bone_ids", it.Path), it.BoneIds);
+        it.IndexBuffer = CreateIndexBuffer(Format("%_indices", it.Path), it.Indices);
     }
-    
-    CreateInfo: SDL_GPUTransferBufferCreateInfo;
-    CreateInfo.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    CreateInfo.size = xx TotalMeshesSize;
-    TransferBuffer := SDL_CreateGPUTransferBuffer(GDevice, *CreateInfo);
-    
-    TransferMemory := cast (*u8) SDL_MapGPUTransferBuffer(GDevice, TransferBuffer, false);
-    
-    Cursor := 0;
-    for * Meshes {
-        memcpy(TransferMemory + Cursor, it.Positions.data, it.Positions.count * size_of(float3));
-        Cursor += it.Positions.count * size_of(float3);
-        
-        memcpy(TransferMemory + Cursor, it.TexCoords.data, it.Positions.count * size_of(float2));
-        Cursor += it.Positions.count * size_of(float2);
-        
-        memcpy(TransferMemory + Cursor, it.Normals.data, it.Positions.count * size_of(float3));
-        Cursor += it.Positions.count * size_of(float3);
-        
-        memcpy(TransferMemory + Cursor, it.Tangents.data, it.Positions.count * size_of(float4));
-        Cursor += it.Positions.count * size_of(float3);
-        
-        memcpy(TransferMemory + Cursor, it.Weights.data, it.Positions.count * size_of(float3));
-        Cursor += it.Positions.count * size_of(float3);
-        
-        memcpy(TransferMemory + Cursor, it.BoneIds.data, it.Positions.count * size_of(bone_ids));
-        Cursor += it.Positions.count * size_of(bone_ids);
-        
-        memcpy(TransferMemory + Cursor, it.Indices.data, it.Indices.count * size_of(u32));
-        Cursor += it.Indices.count * size_of(u32);
-    }
-    
-    SDL_UnmapGPUTransferBuffer(GDevice, TransferBuffer);
-    
-    CommandBuffer := SDL_AcquireGPUCommandBuffer(GDevice);
-    CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
-    
-    Location: SDL_GPUTransferBufferLocation;
-    Location.transfer_buffer = TransferBuffer;
-    
-    Region: SDL_GPUBufferRegion;
-    Region.offset = 0;
-    
-    for * Meshes {
-        Region.buffer = it.PositionBuffer;
-        Region.size = xx (it.Positions.count * size_of(float3));
-        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
-        Location.offset += xx (it.Positions.count * size_of(float3));
-        
-        Region.buffer = it.TexCoordBuffer;
-        Region.size = xx (it.Positions.count * size_of(float2));
-        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
-        Location.offset += xx (it.Positions.count * size_of(float2));
-        
-        Region.buffer = it.NormalBuffer;
-        Region.size = xx (it.Positions.count * size_of(float3));
-        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
-        Location.offset += xx (it.Positions.count * size_of(float3));
-        
-        Region.buffer = it.TangentBuffer;
-        Region.size = xx (it.Positions.count * size_of(float3));
-        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
-        Location.offset += xx (it.Positions.count * size_of(float3));
-        
-        Region.buffer = it.WeightBuffer;
-        Region.size = xx (it.Positions.count * size_of(float3));
-        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
-        Location.offset += xx (it.Positions.count * size_of(float3));
-        
-        Region.buffer = it.BoneIdsBuffer;
-        Region.size = xx (it.Positions.count * size_of(bone_ids));
-        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
-        Location.offset += xx (it.Positions.count * size_of(bone_ids));
-        
-        Region.buffer = it.IndexBuffer;
-        Region.size = xx (it.Indices.count * size_of(u32));
-        SDL_UploadToGPUBuffer(CopyPass, *Location, *Region, false);
-        Location.offset += xx (it.Indices.count * size_of(u32));
-    }
-    
-    SDL_EndGPUCopyPass(CopyPass);
-    SDL_SubmitGPUCommandBuffer(CommandBuffer);
-    SDL_ReleaseGPUTransferBuffer(GDevice, TransferBuffer);
 }
 
 // @todo: don't load bone ids and Weights if not needed;
@@ -226,8 +138,8 @@ LoadMesh :: (Path: string) -> *mesh {
     BoneIds = OptimizedBoneIds;
     Indices = OptimizedIndices;
     
-    MinBounds := float3.{FLOAT32_MAX, FLOAT32_MAX, FLOAT32_MAX};
-    MaxBounds := float3.{-FLOAT32_MAX, -FLOAT32_MAX, -FLOAT32_MAX};
+    MinBounds := xyz(FLOAT32_MAX);
+    MaxBounds := xyz(-FLOAT32_MAX);
     
     for Positions {
         MinBounds.x = min(MinBounds.x, it.x);
@@ -292,10 +204,12 @@ LoadMesh :: (Path: string) -> *mesh {
     Mesh.NumIndices = Indices.count;
     Mesh.Bounds = .{MinBounds, MaxBounds};
     
+    Mesh.Generated = false;
+    
     return Mesh;
 }
 
-CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle, Extra: [] $T) -> *mesh, [] T {
+CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
     Mark := ArenaPushMark(*WorkingArena);
     
     Positions := ArenaPushN(*WorkingArena, float3, Triangles.count * 3);
@@ -307,23 +221,22 @@ CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle, Extra: [] $T) 
     
     IndexCount: u64 = xx (Triangles.count * 3);
     
-    Streams := ArenaPushN(*WorkingArena, meshopt_Stream, 2);
+    Streams := ArenaPushN(*WorkingArena, meshopt_Stream, 1);
     Streams[0] = .{Positions.data, size_of(float3), size_of(float3)};
-    Streams[1] = .{Extra.data, size_of(T), size_of(T)};
     
     Remap := ArenaPushN(*WorkingArena, u32, Positions.count);
     VertexCount := meshopt_generateVertexRemapMulti(Remap.data, null, IndexCount, xx Positions.count, Streams.data, xx Streams.count);
     
     OptimizedPositions := ArenaPushN(*MeshArena, float3, xx VertexCount);
     meshopt_remapVertexBuffer(OptimizedPositions.data, Positions.data, xx Positions.count, size_of(float3), Remap.data);
-    OptimizedExtra := ArenaPushN(*MeshArena, T, xx VertexCount);
-    meshopt_remapVertexBuffer(OptimizedExtra.data, Extra.data, xx Extra.count, size_of(T), Remap.data);
     
     Indices := ArenaPushN(*MeshArena, u32, cast(int) IndexCount);
     meshopt_remapIndexBuffer(Indices.data, null, IndexCount, Remap.data);
     
-    MinBounds := float3.{FLOAT32_MAX, FLOAT32_MAX, FLOAT32_MAX};
-    MaxBounds := float3.{FLOAT32_MIN, FLOAT32_MIN, FLOAT32_MIN};
+    MinBounds := xyz(FLOAT32_MAX);
+    MaxBounds := xyz(-FLOAT32_MAX);
+    
+    Positions = OptimizedPositions;
     
     for Positions {
         MinBounds.x = min(MinBounds.x, it.x);
@@ -340,15 +253,51 @@ CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle, Extra: [] $T) 
     Mesh.Positions = OptimizedPositions;
     Mesh.Indices = Indices;
     Mesh.NumIndices = Indices.count;
-    Mesh.MinBounds = MinBounds;
-    Mesh.MaxBounds = MaxBounds;
+    Mesh.Bounds = .{MinBounds, MaxBounds};
     
     Mesh.PositionBuffer = CreateVertexBuffer(Format("%_position", Name), OptimizedPositions);
-    Mesh.IndexBuffer = CreateVertexBuffer(Format("%_index", Name), Indices, true);
+    Mesh.IndexBuffer = CreateIndexBuffer(Format("%_index", Name), Indices);
+    
+    Mesh.Generated = true;
     
     ArenaPopMark(*WorkingArena, Mark);
     
-    return Mesh, OptimizedExtra;
+    return Mesh;
+}
+
+CreateMesh :: (Name: string, Positions: [] float3, TexCoords: [] float2, Indices: [] u32) -> *mesh {
+    Mark := ArenaPushMark(*WorkingArena);
+    
+    MinBounds := xyz(FLOAT32_MAX);
+    MaxBounds := xyz(-FLOAT32_MAX);
+    
+    for Positions {
+        MinBounds.x = min(MinBounds.x, it.x);
+        MinBounds.y = min(MinBounds.y, it.y);
+        MinBounds.z = min(MinBounds.z, it.z);
+        
+        MaxBounds.x = max(MaxBounds.x, it.x);
+        MaxBounds.y = max(MaxBounds.y, it.y);
+        MaxBounds.z = max(MaxBounds.z, it.z);
+    }
+    
+    Mesh := ArenaPush(*Meshes);
+    Mesh.Path = Name;
+    Mesh.Positions = Positions;
+    Mesh.TexCoords = TexCoords;
+    Mesh.Indices = Indices;
+    Mesh.NumIndices = Indices.count;
+    Mesh.Bounds = .{MinBounds, MaxBounds};
+    
+    Mesh.PositionBuffer = CreateVertexBuffer(Format("%_position", Name), Positions);
+    Mesh.TexCoordBuffer = CreateVertexBuffer(Format("%_tex_coord", Name), TexCoords);
+    Mesh.IndexBuffer = CreateIndexBuffer(Format("%_index", Name), Indices);
+    
+    Mesh.Generated = true;
+    
+    ArenaPopMark(*WorkingArena, Mark);
+    
+    return Mesh;
 }
 
 FindBone :: (Skeleton: *skeleton, Name: string) -> *bone {

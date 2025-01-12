@@ -1,71 +1,4 @@
 
-// The renderer frontend's job is to take arbitrary and random
-//    draw commands from the game, batch them, and turn them
-//    into renderer commands.
-
-// Mesh draw commands are opaque by default
-mesh_draw_command_flags :: enum_flags u32 {
-    DEBUG;
-    TRANSLUCENT;
-    NO_CAST_SHADOWS;
-    UNLIT;
-}
-
-draw_command_kind :: enum {
-    MESH;
-    SCREEN_SPACE_QUAD;
-}
-
-draw_command :: struct {
-    Kind: draw_command_kind;
-}
-
-draw_command_mesh :: struct {
-#as using Base: draw_command;
-    Base.Kind = .MESH;
-    
-    Flags: mesh_draw_command_flags;
-    Mesh: *mesh;
-    SkinningTransforms: [] float4x4;
-    Textures: [] *texture;
-    Instance: ibuffer_mesh;
-}
-
-ss_quad_command_flags :: enum_flags u32 {
-    TEXT;
-}
-
-draw_command_ss_quad :: struct {
-#as using Base: draw_command;
-    Base.Kind = .SCREEN_SPACE_QUAD;
-    
-    Flags: ss_quad_command_flags;
-    Texture: *texture;
-    Instance: ibuffer_ss_quad;
-    Scissor: float4;
-}
-
-// Batch for drawing an instanced mesh.
-//    Hashing is based on the mesh name,
-//    the draw_command flags, and the 
-//    required textures.
-draw_batch_mesh :: struct {
-    Flags: mesh_draw_command_flags;
-    Mesh: *mesh;
-    SkinningTransforms: [] float4x4;
-    Textures: [] *texture;
-    InstanceData: arena(ibuffer_mesh);
-    Initialized: bool;
-}
-
-draw_batch_quad :: struct {
-    Flags: ss_quad_command_flags;
-    Texture: *texture;
-    Scissor: float4;
-    InstanceData: arena(ibuffer_ss_quad);
-    Initialized: bool;
-}
-
 DebugString :: (Format: string, Args: ..Any) {
     Builder: String_Builder;
     print_to_builder(*Builder, Format, ..Args);
@@ -89,72 +22,72 @@ DebugVars :: ($Args: ..Code) #expand {
     for Strings DebugString(it);
 }
 
-DrawDebugMesh :: (Position: float3, Mesh: *mesh, Colour := float4.{1, 1, 1, 1}) {
-    Command: draw_command_mesh;
+DrawUnlitMesh :: (Transform: float4x4, Mesh: *mesh, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
+    Command: draw_command;
+    Command.Kind = .UNLIT;
     Command.Mesh = Mesh;
-    Command.Flags = .DEBUG;
-    Command.Instance.Transform = TranslationMatrix(Position);
-    Command.Instance.DiffuseColour = Colour;
-    AddDrawCommand(*Command);
+    Command.Textures = ArenaPushN(*RendererFrameArena, *texture, .[WhiteTexture]);
+    Command.Instance.Transform = Transform;
+    Command.Instance.Colour = Colour;
+    DrawMesh(*Command, Options);
 }
 
-DrawMesh :: (Transform: float4x4, Mesh: *mesh, Colour := float4.{1, 1, 1, 1}) {
-    Command: draw_command_mesh;
-    Command.Flags = .UNLIT;
+DrawOpaqueMesh :: (Transform: float4x4, Mesh: *mesh, Textures: [] *texture, SkinningTransforms: [] float4x4 = .[], MaterialParams := float4.{1, 1, 1, 1}, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
+    Command: draw_command;
+    Command.Kind = .OPAQUE;
+    Command.Mesh = Mesh;
+    Command.Textures = Textures;
+    Command.SkinningTransforms = SkinningTransforms;
+    Command.Instance.Transform = Transform;
+    Command.Instance.Colour = Colour;
+    Command.Instance.Params = MaterialParams;
+    DrawMesh(*Command, Options);
+}
+
+DebugDrawMesh :: (Mesh: *mesh, Transform: float4x4, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+    Command: draw_command;
+    Command.Kind = .DEBUG;
     Command.Mesh = Mesh;
     Command.Instance.Transform = Transform;
-    Grey := LoadTexture("textures/grey.png");
-    Command.Textures = ArenaPushN(*RendererFrameArena, *texture, .[Grey, Grey, Grey]);
-    Command.Instance.DiffuseColour = Colour;
-    AddDrawCommand(*Command);
+    Command.Instance.Colour = xyzw(Colour, 1.0);
+    DrawMesh(*Command, Options);
 }
 
-DrawDebugSphere :: (Position: float3, Size := 1.0, Colour := float4.{1, 1, 1, 1}) {
-    Command: draw_command_mesh;
-    Command.Flags = .DEBUG;
-    Command.Mesh = LoadMesh("meshes/sphere.mesh");;
-    Command.Instance.Transform = TranslationMatrix(Position) * ScaleMatrix(xyz(Size));
-    Command.Instance.DiffuseColour = Colour;
-    AddDrawCommand(*Command);
+DebugDrawMesh :: (Mesh: *mesh, Position: float3, Scale := float3.{1, 1, 1}, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+    Command: draw_command;
+    Command.Kind = .DEBUG;
+    Command.Mesh = Mesh;
+    Command.Instance.Transform = TranslationMatrix(Position) * ScaleMatrix(Scale);
+    Command.Instance.Colour = xyzw(Colour, 1.0);
+    DrawMesh(*Command, Options);
 }
 
-DrawBoundingBox :: (Box: bounding_box, Colour := float4.{1, 1, 1, 1}) {
+DebugDrawSphere :: (Position: float3, Size := 1.0, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+    DebugDrawMesh(SphereMesh, Position, xyz(Size), Colour, Options);
+}
+
+DebugDrawBoundingBox :: (Box: bounding_box, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
     Origin := (Box.Min + Box.Max) * .5;
     Scale := Box.Max - Box.Min;
-    
-    Command: draw_command_mesh;
-    Command.Flags = .DEBUG;
-    Command.Mesh = LoadMesh("meshes/cube.mesh");
-    Command.Instance.Transform = TranslationMatrix(Origin) * ScaleMatrix(Scale);
-    Command.Instance.DiffuseColour = Colour;
-    AddDrawCommand(*Command);
+    DebugDrawMesh(BoxMesh, Origin, Scale, Colour, Options);
 }
 
-DrawCylinder :: (Cylinder: cylinder, Colour := float4.{1, 1, 1, 1}) {
-    Command: draw_command_mesh;
-    Command.Flags = .DEBUG;
-    Command.Mesh = LoadMesh("meshes/cylinder.mesh");
-    Command.Instance.Transform = TranslationMatrix(Cylinder.Center) * ScaleMatrix(.{Cylinder.Radius, Cylinder.Radius, Cylinder.Height});
-    Command.Instance.DiffuseColour = Colour;
-    AddDrawCommand(*Command);
+DrawCylinder :: (Cylinder: cylinder, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+    DebugDrawMesh(CylinderMesh, Cylinder.Center, float3.{Cylinder.Radius, Cylinder.Radius, Cylinder.Height}, Colour, Options);
 }
 
-DrawScreenSpaceQuad :: (Position: float2, Size: float2, Colour := float4.{1, 1, 1, 1}, Texture: *texture = null, TexCoord := float4.{0, 0, 1, 1}, IsText := false, TextParams := float4.{0, 0, 0, 0}) {
-    Command: draw_command_ss_quad;
-    
-    if Texture Command.Texture = Texture;
-    else Command.Texture = LoadTexture("textures/white.png");
-    
-    Command.Instance.Position = Position;
-    Command.Instance.Size = Size;
+DrawScreenSpaceQuad :: (Position: float2, Size: float2, Colour := float4.{1, 1, 1, 1}, Texture: *texture = null, TexCoords := float4.{0, 0, 1, 1}, Options := batch_state_options.{}) {
+    Command: draw_command;
+    Command.Kind = .QUAD_2D;
+    Command.Mesh = QuadMesh;
+    Command.Textures = ArenaPushN(*RendererFrameArena, *texture, .[Texture]);
+    Command.Instance.PositionSize = xyzw(Position, Size);
     Command.Instance.Colour = Colour;
-    Command.Instance.TexCoord = TexCoord;
-    if IsText Command.Flags = .TEXT;
-    Command.Instance.TextParams = TextParams;
-    AddDrawCommand(*Command);
+    Command.Instance.TexCoords = TexCoords;
+    DrawMesh(*Command, Options);
 }
 
-DrawText :: (Position: float2, Font: *font, S: string, Colour := float4.{1, 1, 1, 1}) {
+DrawText :: (Position: float2, Font: *font, S: string, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
     CurrentPos := Position;
     for S {
         
@@ -170,11 +103,11 @@ DrawText :: (Position: float2, Font: *font, S: string, Colour := float4.{1, 1, 1
         RangeY := Quad.t1 - Quad.t0;
         T := float4.{Quad.s0, Quad.t0, RangeX, RangeY};
         
-        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true);
+        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, Options);
     }
 }
 
-DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colour := float4.{1, 1, 1, 1}) {
+DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
     StringSize := GetStringSize(Font, Size, S);
     
     CurrentPos := Position;
@@ -198,32 +131,21 @@ DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colou
             Char.U1 - Char.U0, Char.V1 - Char.V0
         };
         
-        DrawScreenSpaceQuad(P, S, Colour, Font.Texture, T, true, .{1, Size/32*4, Width, Height});
+        Command: draw_command;
+        Command.Kind = .SDF_TEXT;
+        Command.Mesh = QuadMesh;
+        Command.Textures = ArenaPushN(*RendererFrameArena, *texture, .[Font.Texture]);
+        Command.Instance.PositionSize = xyzw(P, S);
+        Command.Instance.Colour = Colour;
+        Command.Instance.TexCoords = T;
+        Command.Instance.Params = .{1, Size/32*4, Width, Height};
+        DrawMesh(*Command, Options);
         
         CurrentPos.x += Char.Advance*Size;
     }
 }
 
-AddDrawCommand :: (Command: *$T/draw_command) {
-    if Command.Kind == .MESH {
-        MeshCommand := cast (*draw_command_mesh) Command;
-        if MeshCommand.Flags & .UNLIT {
-            MeshCommand.Instance.FeatureFlags.x = 1.0;
-        }
-        
-        Batch := GetMeshBatch(MeshCommand);
-        ArenaPush(*Batch.InstanceData, MeshCommand.Instance);
-    } else if Command.Kind == .SCREEN_SPACE_QUAD {
-        QuadCommand := cast (*draw_command_ss_quad) Command;
-        QuadCommand.Scissor = CurrentScissor;
-        Batch := GetQuadBatch(QuadCommand);
-        ArenaPush(*Batch.InstanceData, QuadCommand.Instance);
-    }
-}
-
-Temp: arena(ibuffer_debug);
-
-ProcessDrawCommands :: () {
+CreateRendererBatches :: () {
     DebugStart := float2.{1000, 50};
     for DebugStrings {
         DrawTextSDF(DebugStart, DebugFont, 16.0, it);
@@ -231,181 +153,224 @@ ProcessDrawCommands :: () {
     }
     ArenaReset(*DebugStrings);
     
-    for * FrontendMeshBatches {
-        if it.InstanceData.Count > 0 {
-            DrawInDepthPass := !(it.Flags & .NO_CAST_SHADOWS) && !(it.Flags & .DEBUG) && !(it.Flags & .UNLIT);
+    for * BatchList {
+        if it.Kind == {
+            case .QUAD_2D;
+            Quad := CreatePipelineBatchForMesh(QuadPipeline, it.Textures, .[], QuadMesh, ArenaToView(it.InstanceDataQuad));
+            Quad.Viewport = it.Viewport;
+            Quad.Scissor = it.Scissor;
             
-            if DrawInDepthPass {
-                DrawMeshInstanced(DepthPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
-            }
+            case .TEXT;
+            Text := CreatePipelineBatchForMesh(TextPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataQuad));
+            Text.Viewport = it.Viewport;
+            Text.Scissor = it.Scissor;
             
-            if it.Flags & .TRANSLUCENT {
-                DrawMeshInstanced(TranslucentPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
-            } else if it.Flags & .DEBUG {
-                for it.InstanceData {
-                    DebugInstance: ibuffer_debug;
-                    DebugInstance.Transform = it.Transform;
-                    DebugInstance.DiffuseColour = it.DiffuseColour.xyz;
-                    ArenaPush(*Temp, DebugInstance);
-                }
-                
-                DrawMeshInstanced(DebugPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*Temp));
-                
-                ArenaReset(*Temp);
-            } else if it.Flags & .UNLIT {
-                DrawMeshInstanced(UnlitPass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
-            } else {
-                DrawMeshInstanced(OpaquePass, it.Mesh, it.SkinningTransforms, it.Textures, ArenaToView(*it.InstanceData));
-            }
+            case .SDF_TEXT;
+            Text := CreatePipelineBatchForMesh(TextSDFPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataTextSDF));
+            Text.Viewport = it.Viewport;
+            Text.Scissor = it.Scissor;
+            
+            case .OPAQUE;
+            Shadow := CreatePipelineBatchForMesh(ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow));
+            Shadow.Viewport = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
+            Shadow.Scissor = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
+            
+            Mesh := CreatePipelineBatchForMesh(OpaquePipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh));
+            Mesh.Viewport = it.Viewport;
+            Mesh.Scissor = it.Scissor;
+            
+            case .UNLIT;
+            Mesh := CreatePipelineBatchForMesh(UnlitPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataUnlit));
+            Mesh.Viewport = it.Viewport;
+            Mesh.Scissor = it.Scissor;
+            
+            case .DEBUG;
+            Mesh := CreatePipelineBatchForMesh(DebugPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataDebug));
+            Mesh.Viewport = it.Viewport;
+            Mesh.Scissor = it.Scissor;
+            
+            case .TRANSLUCENT;
+            Shadow := CreatePipelineBatchForMesh(ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow));
+            Shadow.Viewport = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
+            Shadow.Scissor = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
+            
+            Mesh := CreatePipelineBatchForMesh(TranslucentPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh));
+            Mesh.Viewport = it.Viewport;
+            Mesh.Scissor = it.Scissor;
         }
     }
-    
-    for * FrontendQuadBatches {
-        if it.InstanceData.Count == 0 continue;
-        
-        Pass := ScreenSpacePass;
-        if it.Flags & .TEXT Pass = TextPass;
-        
-        Command := ArenaPush(*Pass.Commands);
-        Command.Textures = ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, .[.{it.Texture.GpuTexture, DefaultSampler}]);
-        
-        VertexBuffers := ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, 2);
-        VertexBuffers[0] = .{ScreenSpacePositionBuffer, 0};
-        VertexBuffers[1] = .{ScreenSpaceTexCoordBuffer, 0};
-        Command.VertexBuffers = VertexBuffers;
-        Command.IndexBuffer = ScreenSpaceIndexBuffer;
-        Command.Scissor = it.Scissor;
-        Command.IndexCount = 6;
-        
-        Command.InstanceCount = it.InstanceData.Count;
-        WriteStructuredBuffer(Pass.InstanceBuffer, ArenaToView(*it.InstanceData));
-    }
-    
-    CurrentScissor = xyzw(-1);
-}
-
-InitRendererFrontend :: () {
-    FrontendMeshBatches = ArenaPushN(*RendererArena, draw_batch_mesh, MAX_BATCHES);
-    FrontendQuadBatches = ArenaPushN(*RendererArena, draw_batch_quad, MAX_BATCHES);
-    DebugFont = LoadDistanceFont("fonts/roboto.png");
 }
 
 ResetRendererFrontend :: () {
-    for * FrontendMeshBatches {
-        ArenaReset(*it.InstanceData);
-        it.Initialized = false;
+    for 0..MAX_BATCHES-1 {
+        IndexHash[it] = -1;
     }
     
-    for * FrontendQuadBatches {
-        ArenaReset(*it.InstanceData);
-        it.Initialized = false;
+    ResetLinkedList(*BatchList);
+    ArenaReset(*Batches);
+}
+
+InitRendererFrontend :: () {
+    DebugFont = LoadDistanceFont("fonts/roboto.png");
+    
+    Positions: [4] float3;
+    Positions[0] = .{0, 0, 0};
+    Positions[1] = .{1, 0, 0};
+    Positions[2] = .{1, 1, 0};
+    Positions[3] = .{0, 1, 0};
+    
+    TexCoords: [4] float2;
+    TexCoords[0] = .{0, 0};
+    TexCoords[1] = .{1, 0};
+    TexCoords[2] = .{1, 1};
+    TexCoords[3] = .{0, 1};
+    
+    QuadMesh = CreateMesh("quad", Positions, TexCoords, .[0, 1, 2, 0, 3, 2]);
+    
+    WhiteTexture = LoadTexture("textures/white.png");
+    SphereMesh = LoadMesh("meshes/sphere.mesh");
+    BoxMesh = LoadMesh("meshes/cube.mesh");
+    CylinderMesh = LoadMesh("meshes/cylinder.mesh");
+    
+    IndexHash = ArenaPushN(*RendererArena, int, MAX_BATCHES * 2);
+    for 0..MAX_BATCHES-1 {
+        IndexHash[it] = -1;
     }
 }
 
-SetCurrentScissor :: (Rect: float4) {
-    CurrentScissor = Rect;
+batch_state_options :: struct {
+    Viewport := #run xyzw(-1);
+    Scissor := #run xyzw(-1);
 }
 
 #scope_file
 
 MAX_BATCHES :: 2048;
 
-FrontendMeshBatches: [] draw_batch_mesh;
-FrontendQuadBatches: [] draw_batch_quad;
+IndexHash: [] int;
+BatchList: linked_list(draw_batch);
+Batches: arena(draw_batch);
+
+WhiteTexture: *texture;
+QuadMesh, SphereMesh, BoxMesh, CylinderMesh: *mesh;
 
 DebugStrings: arena(string);
 DebugFont: *sdf_font;
 
-CurrentScissor := #run xyzw(-1);
+draw_command_kind :: enum {
+    QUAD_2D;
+    TEXT;
+    SDF_TEXT;
+    OPAQUE;
+    UNLIT;
+    TRANSLUCENT;
+    DEBUG;
+}
 
-GetMeshBatch :: (MeshCommand: *draw_command_mesh) -> *draw_batch_mesh {
-    Hash := GetHash(MeshCommand.Mesh.Path, cast (u32) MeshCommand.Flags);
-    Hash = GetHash(cast (u32) MeshCommand.Flags, Hash);
-    for MeshCommand.Textures {
+combined_instance_data :: struct {
+    // shared
+    Colour: float4;
+    Params: float4;
+    
+    // for meshes
+    Transform: float4x4;
+    
+    // for quads
+    PositionSize: float4;
+    TexCoords: float4;
+}
+
+draw_command :: struct {
+    Kind: draw_command_kind;
+    Mesh: *mesh;
+    SkinningTransforms: [] float4x4;
+    Textures: [] *texture;
+    Instance: combined_instance_data;
+}
+
+batch_state_options :: struct {
+    Viewport := #run xyzw(-1);
+    Scissor := #run xyzw(-1);
+}
+
+draw_batch :: struct {
+    Next, Prev: *draw_batch;
+    
+    Kind: draw_command_kind;
+    Mesh: *mesh;
+    SkinningTransforms: [] float4x4;
+    Textures: [] *texture;
+    InstanceDataShadow: *arena(ibuffer_shadow);
+    InstanceDataMesh: *arena(ibuffer_mesh);
+    InstanceDataUnlit: *arena(ibuffer_unlit);
+    InstanceDataDebug: *arena(ibuffer_debug);
+    InstanceDataQuad: *arena(ibuffer_quad);
+    InstanceDataTextSDF: *arena(ibuffer_text_sdf);
+    using Options: batch_state_options;
+    Initialized: bool;
+}
+
+DrawMesh :: (Command: *draw_command, Options: batch_state_options = .{}) {
+    Hash := GetHash(Command.Kind);
+    Hash = GetHash(Command.Mesh.Path, Hash);
+    for Command.Textures {
+        if !it continue;
         Hash = GetHash(it.Path, Hash);
     }
     
-    Batch := *FrontendMeshBatches[Hash % MAX_BATCHES];
+    Hash = GetHash(Options.Viewport, Hash);
+    Hash = GetHash(Options.Scissor, Hash);
+    
+    Batch: *draw_batch;
+    HashIndex := Hash % MAX_BATCHES;
+    if IndexHash[HashIndex] == -1 {
+        IndexHash[HashIndex] = BatchList.Count;
+        Batch = ArenaPush(*Batches);
+        AddToLinkedList(*BatchList, Batch);
+    } else {
+        Batch = *Batches[IndexHash[HashIndex]];
+    }
     
     if !Batch.Initialized {
-        Batch.Flags = MeshCommand.Flags;
-        Batch.SkinningTransforms = MeshCommand.SkinningTransforms;
-        Batch.Mesh = MeshCommand.Mesh;
-        Batch.Textures = MeshCommand.Textures;
-        Batch.Initialized = true;
-    }
-    
-    return Batch;
-}
-
-GetQuadBatch :: (QuadCommand: *draw_command_ss_quad) -> *draw_batch_quad {
-    Hash: u32 = 0;
-    if QuadCommand.Texture Hash = GetHash(QuadCommand.Texture.Path);
-    else Hash = GetHash("no_texture");
-    Hash = GetHash(cast (u32) QuadCommand.Flags, Hash);
-    Hash = GetHash(QuadCommand.Scissor.x, Hash);
-    Hash = GetHash(QuadCommand.Scissor.y, Hash);
-    Hash = GetHash(QuadCommand.Scissor.z, Hash);
-    Hash = GetHash(QuadCommand.Scissor.w, Hash);
-    
-    Batch := *FrontendQuadBatches[Hash % MAX_BATCHES];
-    
-    if !Batch.Initialized {
-        Batch.Scissor = QuadCommand.Scissor;
-        Batch.Flags = QuadCommand.Flags;
-        Batch.Texture = QuadCommand.Texture;
-        Batch.Initialized = true;
-    }
-    
-    return Batch;
-}
-
-DrawMeshInstanced :: (Pass: *draw_pass($T), Mesh: *mesh, SkinningTransforms: [] float4x4, Textures: [] *texture, InstanceData: [] T) {
-    Command := ArenaPush(*Pass.Commands);
-    
-    VertexBuffers: [] SDL_GPUBufferBinding;
-    if Pass.BuffersNeeded == .POSITION_ONLY {
-        VertexBuffers = ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, 1);
-        VertexBuffers[0] = .{Mesh.PositionBuffer, 0};
-    } else if Pass.BuffersNeeded == .DEPTH_ONLY {
-        VertexBuffers = ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, 3);
-        VertexBuffers[0] = .{Mesh.PositionBuffer, 0};
-        VertexBuffers[1] = .{Mesh.WeightBuffer, 0};
-        VertexBuffers[2] = .{Mesh.BoneIdsBuffer, 0};
-    } else if Pass.BuffersNeeded == .MESH {
-        VertexBuffers = ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, 6);
-        VertexBuffers[0] = .{Mesh.PositionBuffer, 0};
-        VertexBuffers[1] = .{Mesh.TexCoordBuffer, 0};
-        VertexBuffers[2] = .{Mesh.NormalBuffer, 0};
-        VertexBuffers[3] = .{Mesh.TangentBuffer, 0};
-        VertexBuffers[4] = .{Mesh.WeightBuffer, 0};
-        VertexBuffers[5] = .{Mesh.BoneIdsBuffer, 0};
-    }
-    
-    Command.VertexBuffers = VertexBuffers;
-    Command.IndexBuffer = Mesh.IndexBuffer;
-    Command.IndexCount = Mesh.NumIndices;
-    
-    if Pass.TexturesNeeded == .DIFFUSE_NORMAL_RMAOH {
-        Command.Textures = ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, Textures.count);
-        for Textures {
-            Command.Textures[it_index] = .{it.GpuTexture, DefaultSampler};
+        Batch.Kind = Command.Kind;
+        Batch.Mesh = Command.Mesh;
+        Batch.SkinningTransforms = Command.SkinningTransforms;
+        Batch.Textures = Command.Textures;
+        Batch.Options = Options;
+        
+        if Options.Viewport.x == -1.0 {
+            Batch.Viewport = float4.{0, 0, 1366, 768};
+        } else {
+            Batch.Viewport = Options.Viewport;
         }
+        
+        if Options.Scissor.x == -1.0 {
+            Batch.Scissor = float4.{0, 0, 1366, 768};
+        } else {
+            Batch.Scissor = Options.Scissor;
+        }
+        
+        Batch.InstanceDataShadow = PushFixedArena(*RendererFrameArena, ibuffer_shadow, MAX_INSTANCES);
+        Batch.InstanceDataMesh = PushFixedArena(*RendererFrameArena, ibuffer_mesh, MAX_INSTANCES);
+        Batch.InstanceDataUnlit = PushFixedArena(*RendererFrameArena, ibuffer_unlit, MAX_INSTANCES);
+        Batch.InstanceDataDebug = PushFixedArena(*RendererFrameArena, ibuffer_debug, MAX_INSTANCES);
+        Batch.InstanceDataQuad = PushFixedArena(*RendererFrameArena, ibuffer_quad, MAX_INSTANCES);
+        Batch.InstanceDataTextSDF = PushFixedArena(*RendererFrameArena, ibuffer_text_sdf, MAX_INSTANCES);
+        Batch.Initialized = true;
     }
     
-    Command.InstanceCount = InstanceData.count;
-    WriteStructuredBuffer(Pass.InstanceBuffer, InstanceData);
+    Instance := Command.Instance;
+    Shadow := ibuffer_shadow.{Instance.Transform};
+    Mesh := ibuffer_mesh.{Instance.Transform, Instance.Colour, Instance.Params};
+    Unlit := ibuffer_unlit.{Instance.Transform, Instance.Colour};
+    Debug := ibuffer_debug.{Instance.Transform, Instance.Colour};
+    Quad := ibuffer_quad.{Instance.PositionSize, Instance.Colour, Instance.TexCoords};
+    TextSDF := ibuffer_text_sdf.{Instance.PositionSize, Instance.Colour, Instance.TexCoords, Instance.Params};
     
-    if SkinningTransforms.count > 0 {
-        WriteStructuredBuffer(Pass.SkinningBuffer, SkinningTransforms);
-    }
-}
-
-WriteStructuredBuffer :: (StructuredBuffer: *$I/structured_buffer, Data: [] I.T) {
-    if !StructuredBuffer return;
-    
-    Count := Min(Data.count, StructuredBuffer.Capacity - StructuredBuffer.Used);
-    
-    Copy(StructuredBuffer.Mapping + StructuredBuffer.Used, Data.data, Data.count * size_of(I.T));
-    StructuredBuffer.Used += Count;
+    ArenaPush(Batch.InstanceDataShadow, Shadow);
+    ArenaPush(Batch.InstanceDataMesh, Mesh);
+    ArenaPush(Batch.InstanceDataUnlit, Unlit);
+    ArenaPush(Batch.InstanceDataDebug, Debug);
+    ArenaPush(Batch.InstanceDataQuad, Quad);
+    ArenaPush(Batch.InstanceDataTextSDF, TextSDF);
 }

@@ -100,8 +100,6 @@ UpdateGame :: () {
         
         Prop.DrawPosition = Prop.Position;
         UpdateEntityDrawTransform(Prop);
-        
-        DrawBoundingBox(Prop.Bounds);
     }
     
     for * :OnlyActiveEntities EntityTypes.Collider {
@@ -111,9 +109,7 @@ UpdateGame :: () {
 
 DrawGame :: () {
     for * :OnlyActiveEntities EntityTypes.Prop {
-        Prop := it;
-        
-        DrawEntity(Prop);
+        DrawEntity(it);
     }
 }
 

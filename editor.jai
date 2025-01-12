@@ -84,14 +84,15 @@ UpdateEditor :: () {
             
             if TransformMode == {
                 case .TRANSLATE;
-                SelectedEntity.Position += Displacement;
+                SelectedEntity.Position += Displacement * Transform.Axis;
                 Transform.Position = SelectedEntity.Position;
                 
                 case .SCALE;
                 Proj := Dot(Displacement, Transform.Axis);
                 ScaleFactor := 1.0 + Proj;
                 if (ScaleFactor == 0.0) ScaleFactor = 1.0;
-                SelectedEntity.Scale *= ScaleFactor;
+                Scale := Max(ScaleFactor * Transform.Axis, .{1, 1, 1});
+                SelectedEntity.Scale *= Scale;
             }
             
             Transform.DragStart = PlaneHit.Point;
@@ -124,8 +125,6 @@ EditorUI :: () {
             if contains(it, ".mesh_text") continue;
             
             if contains(it, ".mesh") && ImmButton(it, Id=it_index) {
-                print("Creating prop % at %\n", it, GroundPosCamera);
-                
                 CreateProp(it, GroundPosCamera);
             }
         }
@@ -269,9 +268,9 @@ DrawTransform :: () {
         Mesh = Transform.ArrowMeshSquare;
     }
     
-    DrawMesh(Transform.TransformX, Mesh, ColourX);
-    DrawMesh(Transform.TransformY, Mesh, ColourY);
-    DrawMesh(Transform.TransformZ, Mesh, ColourZ);
+    DrawUnlitMesh(Transform.TransformX, Mesh, ColourX);
+    DrawUnlitMesh(Transform.TransformY, Mesh, ColourY);
+    DrawUnlitMesh(Transform.TransformZ, Mesh, ColourZ);
     
     ColourXY := float4.{1, 0, 0, 1};
     ColourXZ := float4.{0, 1, 0, 1};
@@ -281,9 +280,9 @@ DrawTransform :: () {
     if Transform.HitXZ.Intersected ColourXZ = float4.{1, 1, 1, 1};
     if Transform.HitYZ.Intersected ColourYZ = float4.{1, 1, 1, 1};
     
-    DrawMesh(Transform.TransformXY, Transform.PlaneMesh, ColourXY);
-    DrawMesh(Transform.TransformXZ, Transform.PlaneMesh, ColourXZ);
-    DrawMesh(Transform.TransformYZ, Transform.PlaneMesh, ColourYZ);
+    DrawUnlitMesh(Transform.TransformXY, Transform.PlaneMesh, ColourXY);
+    DrawUnlitMesh(Transform.TransformXZ, Transform.PlaneMesh, ColourXZ);
+    DrawUnlitMesh(Transform.TransformYZ, Transform.PlaneMesh, ColourYZ);
 }
 
 DrawEditor :: () {
@@ -300,22 +299,22 @@ DrawEditor :: () {
         DrawTransform();
     }
     
-    for * :OnlyActiveEntities EntityTypes.Collider {
-        if SelectedEntity && it.Id == SelectedEntity.Id continue;
-        
-        DrawBoundingBox(it.Bounds);
-    }
-    
     if SelectedEntity {
-        Colour := Lerp(xyzw(1), float4.{1, 0, 0, 1}, SinTurns(Mod(RealTime, 1.0)) * .5 + .5);
-        DrawBoundingBox(SelectedEntity.Bounds, Colour);
+        Colour := Lerp(xyz(1), float3.{1, 0, 0}, SinTurns(Mod(RealTime, 1.0)) * .5 + .5);
+        DebugDrawBoundingBox(SelectedEntity.Bounds, Colour);
+        
+        DrawTextSDF(.{50, 50 + 3*15}, TextFont, 16.0, TFormat("Transform Axis - %", Transform.Axis));
+        DrawTextSDF(.{50, 50 + 4*15}, TextFont, 16.0, TFormat("Position - %", SelectedEntity.Position));
+        DrawTextSDF(.{50, 50 + 5*15}, TextFont, 16.0, TFormat("Rotation - %", SelectedEntity.Rotation));
+        DrawTextSDF(.{50, 50 + 6*15}, TextFont, 16.0, TFormat("Scale - %", SelectedEntity.Scale));
     }
     
-    DrawDebugMesh(PlayerStart, PlayerStartMesh);
+    DebugDrawMesh(PlayerStartMesh, PlayerStart);
 }
 
 ToggleEditor :: () {
     if GEditorOpen {
+        SelectedEntity = null;
         GEditorOpen = false;
         CreatePlayerAtStart();
         GamePaused = false;

@@ -1,40 +1,4 @@
 
-COMMAND_FORMAT :: "%1/SDL_shadercross/shadercross.exe %1/%2 -s HLSL -d %3 -t %5 -e %5_main -o %1/run_tree/shaders/%4.%5.%3 -D%6_SHADER";
-
-compile_shaders_for_format :: (output_format: string) {
-    print("Compiling all shaders for format: %\n", output_format);
-    
-    files := file_list("./");
-    shader_files: [..] string;
-    for files {
-        if !contains(it, ".shader") continue;
-        if contains(it, "shared.shader") continue;
-        
-        array_add(*shader_files, it);
-    }
-    
-    for shader_files {
-        path, base_name, ext := path_decomp(it);
-        
-        file_name := tprint("%.%", base_name, ext);
-        
-        working_dir := get_working_directory();
-        
-        vert_string := tprint(COMMAND_FORMAT, working_dir, file_name, output_format, base_name, "vertex", "VERTEX");
-        frag_string := tprint(COMMAND_FORMAT, working_dir, file_name, output_format, base_name, "fragment", "FRAGMENT");
-        
-        vert_args := break_command_into_strings(vert_string);
-        frag_args := break_command_into_strings(frag_string);
-        
-        vert_res, vert_out, vert_err := run_command(..vert_args, "", true, true);
-        frag_res, frag_out, frag_err := run_command(..frag_args, "", true, true);
-        
-        if !vert_err && !frag_err {
-            print("\t% -> %, %\n", file_name, tprint("%.%_vert", base_name, output_format), tprint("%.%_frag", base_name, output_format));
-        }
-    }
-}
-
 build_game :: (profiling: bool) {
     workspace := compiler_create_workspace("Game Build");
     options := get_build_options(workspace);
@@ -223,20 +187,11 @@ convert_case :: (name: string) -> string {
 build :: () {
     args := get_build_options().compile_time_command_line;
     
-    compile_shaders := false;
     generate_sdl_bindings := false;
     profiling := false;
     
     for args {
-        if contains(it, "compile_shaders") compile_shaders = true;
         if contains(it, "prof") profiling = true;
-    }
-    
-    if (compile_shaders) {
-        compile_shaders_for_format("spirv");
-        //compile_shaders_for_format("dxbc");
-        //compile_shaders_for_format("dxil");
-        compile_shaders_for_format("json");
     }
     
     build_game(profiling);

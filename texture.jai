@@ -50,7 +50,7 @@ InitTextureSystem :: () {
         TextureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
         
         it.GpuTexture = SDL_CreateGPUTexture(GDevice, *TextureInfo);
-        SDL_SetGPUTextureName(GDevice, it.GpuTexture, it.Path.data);
+        SDL_SetGPUTextureName(GDevice, it.GpuTexture, CS(it.Path));
     }
     
     CreateInfo: SDL_GPUTransferBufferCreateInfo;
@@ -109,7 +109,7 @@ LoadTexture :: (Path: string) -> *texture {
     for * Textures if equal(it.Path, Path) return it;
     
     Width, Height, Channels: s32;
-    Pixels := stbi_load(Path.data, *Width, *Height, *Channels, 4);
+    Pixels := stbi_load(TCS(Path), *Width, *Height, *Channels, 4);
     if !Pixels return ArenaPushNull(texture);
     
     Texture := ArenaPush(*Textures);
@@ -134,7 +134,7 @@ CreateFontTexture :: (Name: string, Data: *u8, Width: int, Height: int) -> *text
     TextureInfo.num_levels = 1;
     TextureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
     GpuTexture := SDL_CreateGPUTexture(GDevice, *TextureInfo);
-    SDL_SetGPUTextureName(GDevice, GpuTexture, Name.data);
+    SDL_SetGPUTextureName(GDevice, GpuTexture, TCS(Name));
     
     CreateInfo: SDL_GPUTransferBufferCreateInfo;
     CreateInfo.usage = .SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
@@ -174,6 +174,20 @@ CreateFontTexture :: (Name: string, Data: *u8, Width: int, Height: int) -> *text
     Texture.PixelSize = 4;
     Texture.GpuTexture = GpuTexture;
     return Texture;
+}
+
+CreateDepthTexture :: (Name: string, Width: int, Height: int) -> *SDL_GPUTexture {
+    TextureInfo: SDL_GPUTextureCreateInfo;
+    TextureInfo.type = .SDL_GPU_TEXTURETYPE_2D;
+    TextureInfo.format = .SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+    TextureInfo.width = xx Width;
+    TextureInfo.height = xx Height;
+    TextureInfo.layer_count_or_depth = 1;
+    TextureInfo.num_levels = 1;
+    TextureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+    GpuTexture := SDL_CreateGPUTexture(GDevice, *TextureInfo);
+    SDL_SetGPUTextureName(GDevice, GpuTexture, TCS(Name));
+    return GpuTexture;
 }
 
 #scope_file

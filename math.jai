@@ -118,42 +118,42 @@ float2 :: struct {
     x, y: float;
     
 #place x;
-    Components: [2] float;
+    Components: [2] float; @noserialize;
 }
 
 float3 :: struct {
     x, y, z: float;
     
 #place x;
-    Components: [3] float;
+    Components: [3] float; @noserialize;
     
 #place x;
-    xy: float2;
+    xy: float2; @noserialize;
     
 #place y;
-    yz: float2;
+    yz: float2; @noserialize;
 }
 
 float4 :: struct {
     x, y, z, w: float;
     
 #place x;
-    Components: [4] float;
+    Components: [4] float; @noserialize;
     
 #place x;
-    xy: float2;
+    xy: float2; @noserialize;
     
 #place y;
-    yz: float2;
+    yz: float2; @noserialize;
     
 #place z;
-    zw: float2;
+    zw: float2; @noserialize;
     
 #place x;
-    xyz: float3;
+    xyz: float3; @noserialize;
     
 #place y;
-    yzw: float3;
+    yzw: float3; @noserialize;
 }
 
 quat :: struct {
@@ -161,10 +161,10 @@ quat :: struct {
     w := 1.0;
     
 #place x;
-    Components: [4] float;
+    Components: [4] float; @noserialize; 
     
 #place x;
-    xyz: float3 = ---;
+    xyz: float3; @noserialize;
 };
 
 xy :: (xy: float) -> float2 {

@@ -12,21 +12,21 @@ entity :: struct {
     using Handle: entity_handle;
     Active: bool;
     
-    Flags: entity_flags;
+    Flags: entity_flags; @v1;
     
-    Position: float3;
-    Rotation: quat;
-    Scale := float3.{1, 1, 1};
+    Position: float3; @v1;
+    Rotation: quat; @v1;
+    Scale := float3.{1, 1, 1}; @v1;
     
-    Bounds: bounding_box;
+    Bounds: bounding_box; @v1;
     
     Mesh: *mesh;
-    AnimPlayer: anim_player;
+    AnimPlayer: anim_player; @v1;
     Textures: [] *texture;
     
-    Colour := float4.{1, 1, 1, 1};
-    DrawPosition: float3;
-    DrawTransform: float4x4;
+    Colour := float4.{1, 1, 1, 1}; @v1;
+    DrawPosition: float3; @v1;
+    DrawTransform: float4x4; @v1;
 }
 
 UpdateEntityDrawTransform :: (Entity: *entity) {
@@ -175,15 +175,7 @@ RemoveAllEntities :: () {
 DrawEntity :: (Entity: *entity) {
     if !Entity.Active return;
     
-    Command: draw_command_mesh;
-    Command.Flags = 0;
-    Command.Mesh = Entity.Mesh;
-    Command.SkinningTransforms = Entity.AnimPlayer.Pose.SkinningTransforms;
-    Command.Textures = Entity.Textures;
-    Command.Instance.Transform = Entity.DrawTransform;
-    Command.Instance.DiffuseColour = Entity.Colour;
-    Command.Instance.MaterialParams = .{1, 1, 1, 1};
-    AddDrawCommand(*Command);
+    DrawOpaqueMesh(Entity.DrawTransform, Entity.Mesh, Entity.Textures, Entity.AnimPlayer.Pose.SkinningTransforms, .{1, 1, 1, 1}, Entity.Colour);
 }
 
 OnlyActiveEntities :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
