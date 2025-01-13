@@ -47,6 +47,11 @@ UpdateEditor :: () {
     Point, Hit = GetGroundPositionAlongRay(CameraRay);
     GroundPosCamera = Point;
     
+    if SelectedEntity && KeyPressed(.SDL_SCANCODE_DELETE) {
+        RemoveEntity(SelectedEntity);
+        SelectedEntity = null;
+    }
+    
     if SelectedEntity != null {
         D := Distance(Transform.Position, FlyingCamera.Position);
         S := Max(1.0, D / 50.0) * .25;

@@ -59,10 +59,8 @@ main :: () {
     
     WindowWidth := Mode.w * 0.8;
     WindowHeight := Mode.h * 0.8;
-    CenterX := (Mode.w * .5) - (GWindowWidth * .5);
-    CenterY := (Mode.h * .5) - (GWindowHeight * .5);
-    
-    GFullscreen = true;
+    CenterX := (Mode.w * .5) - (WindowWidth * .5);
+    CenterY := (Mode.h * .5) - (WindowHeight * .5);
     
     if GFullscreen {
         SDL_SetWindowSize(GWindow, Mode.w, Mode.h);

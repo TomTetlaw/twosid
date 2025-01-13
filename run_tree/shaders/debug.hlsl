@@ -13,7 +13,6 @@ cbuffer Constant_Buffer : register(b0, space1) {
 struct Instance_Data {
 	row_major float4x4 transform;
 	float4 diffuse_colour;
-	float pad;
 };
 
 StructuredBuffer<Instance_Data> instance_data: register(t0, space0);
@@ -38,5 +37,6 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
 }
 
 float4 fragment_main(Frag_Input input): SV_Target {
+	return float4(1,1,1,1);
 	return input.colour;
 }
