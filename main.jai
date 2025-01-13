@@ -5,6 +5,7 @@ GamePaused := false;
 GWindowWidth, GWindowHeight: int;
 GWindowSize: float2;
 GWindowAspect: float;
+GFullscreen: bool;
 
 mouse :: struct {
     Delta: float2;
@@ -51,26 +52,39 @@ main :: () {
     GWindow = SDL_CreateWindow("twosid", 1, 1, SDL_WINDOW_HIDDEN);
     if !GWindow FatalError("Failed to create window: %", SdlGetError());
     
+    SDL_SetWindowResizable(GWindow, false);
+    
     DisplayId := SDL_GetDisplays(null)[0];
     Mode := SDL_GetCurrentDisplayMode(DisplayId);
+    
     WindowWidth := Mode.w * 0.8;
     WindowHeight := Mode.h * 0.8;
-    
-    GWindowWidth = xx WindowWidth;
-    GWindowHeight = xx WindowHeight;
-    GWindowSize = .{WindowWidth, WindowHeight};
-    GWindowAspect = WindowWidth / WindowHeight;
-    
     CenterX := (Mode.w * .5) - (GWindowWidth * .5);
     CenterY := (Mode.h * .5) - (GWindowHeight * .5);
     
-    SDL_SetWindowSize(GWindow, xx WindowWidth, xx WindowHeight);
-    SDL_SetWindowPosition(GWindow, xx CenterX, xx CenterY);
+    GFullscreen = true;
+    
+    if GFullscreen {
+        SDL_SetWindowSize(GWindow, Mode.w, Mode.h);
+        SDL_SetWindowPosition(GWindow, 0, 0);
+        SDL_SetWindowFullscreenMode(GWindow, null);
+        GWindowWidth = xx Mode.w;
+        GWindowHeight = xx Mode.h;
+        GWindowSize = .{xx GWindowWidth, xx GWindowHeight};
+        GWindowAspect = cast(float) GWindowWidth / GWindowHeight;
+    } else {
+        SDL_SetWindowSize(GWindow, xx WindowWidth, xx WindowHeight);
+        SDL_SetWindowPosition(GWindow, xx CenterX, xx CenterY);
+        GWindowWidth = xx WindowWidth;
+        GWindowHeight = xx WindowHeight;
+        GWindowSize = .{WindowWidth, WindowHeight};
+        GWindowAspect = WindowWidth / WindowHeight;
+    }
     
     SDL_ShowWindow(GWindow);
     
-    ShaderFormats := cast(u32) SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_SPIRV;
-    GDevice = SDL_CreateGPUDevice(ShaderFormats, true, null);
+    ShaderFormats := cast(u32) SDL_GPU_SHADERFORMAT_SPIRV;
+    GDevice = SDL_CreateGPUDevice(ShaderFormats, true, "vulkan");
     if !GDevice FatalError("Failed to create gpu Device: %", SdlGetError());
     
     if !SDL_ClaimWindowForGPUDevice(GDevice, GWindow) FatalError("Failed to claim window for GPU Device: %", SdlGetError());
