@@ -104,6 +104,15 @@ plane :: struct {
     Normal: float3;
 }
 
+PlaneFromNormalAndPoint :: (Normal: float3, Point: float3) -> plane {
+    P: plane;
+    P.A = Normal.x;
+    P.B = Normal.y;
+    P.C = Normal.z;
+    P.D = -(Normal.x * Point.x + Normal.y * Point.y + Normal.z * Point.z);
+    return P;
+}
+
 ray :: struct {
     Origin: float3;
     Direction: float3;
@@ -118,42 +127,42 @@ float2 :: struct {
     x, y: float;
     
 #place x;
-    Components: [2] float; @noserialize;
+    Components: [2] float;
 }
 
 float3 :: struct {
     x, y, z: float;
     
 #place x;
-    Components: [3] float; @noserialize;
+    Components: [3] float;
     
 #place x;
-    xy: float2; @noserialize;
+    xy: float2;
     
 #place y;
-    yz: float2; @noserialize;
+    yz: float2;
 }
 
 float4 :: struct {
     x, y, z, w: float;
     
 #place x;
-    Components: [4] float; @noserialize;
+    Components: [4] float;
     
 #place x;
-    xy: float2; @noserialize;
+    xy: float2;
     
 #place y;
-    yz: float2; @noserialize;
+    yz: float2;
     
 #place z;
-    zw: float2; @noserialize;
+    zw: float2;
     
 #place x;
-    xyz: float3; @noserialize;
+    xyz: float3;
     
 #place y;
-    yzw: float3; @noserialize;
+    yzw: float3;
 }
 
 quat :: struct {
@@ -161,10 +170,10 @@ quat :: struct {
     w := 1.0;
     
 #place x;
-    Components: [4] float; @noserialize; 
+    Components: [4] float;
     
 #place x;
-    xyz: float3; @noserialize;
+    xyz: float3;
 };
 
 xy :: (xy: float) -> float2 {

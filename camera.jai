@@ -46,7 +46,7 @@ UpdateCameraPlayer :: (Camera: *camera_player) {
     ViewTransform := TranslationMatrix(Camera.Position) * RotationMatrix(Camera.Rotation);
     Camera.View = InverseMatrix(ViewTransform);
     
-    Camera.Proj = ProjectionMatrix(45.0 * Deg2Turn, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
+    Camera.Proj = ProjectionMatrix(45.0 * Deg2Turn, GWindowAspect, NEAR_PLANE, FAR_PLANE);
 }
 
 UpdateCameraFlying :: (Camera: *camera_flying) {
@@ -79,7 +79,7 @@ UpdateCameraFlying :: (Camera: *camera_flying) {
     Camera.Transform = TranslationMatrix(Camera.Position) * RotationMatrix(Camera.Rotation);
     Camera.View = InverseMatrix(Camera.Transform);
     
-    Camera.Proj = ProjectionMatrix(45.0 * Deg2Turn, 1366.0 / 768.0, NEAR_PLANE, FAR_PLANE);
+    Camera.Proj = ProjectionMatrix(45.0 * Deg2Turn, GWindowAspect, NEAR_PLANE, FAR_PLANE);
 }
 
 #scope_file

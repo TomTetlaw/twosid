@@ -20,8 +20,8 @@ GetRayFromCamera :: (Camera: *$T/interface view_parameters) -> ray {
 }
 
 GetRayForMousePosition :: (ViewParams: view_parameters, Pos: float2) -> ray {
-    NDCx := (2.0 * Pos.x) / 1366.0 - 1.0;
-    NDCy := 1.0 - (2.0 * Pos.y) / 768.0;
+    NDCx := (2.0 * Pos.x) / GWindowSize.x - 1.0;
+    NDCy := 1.0 - (2.0 * Pos.y) / GWindowSize.y;
     NDCz := -1.0;
     
     ClipNear := float4.{NDCx, NDCy, -1.0, 1.0};

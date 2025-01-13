@@ -173,6 +173,8 @@ UpdateBounds :: (BVH: *bvh, NodeIndex: int) {
 }
 
 QueryNodes :: (Arena: *arena, BVH: *bvh, NodeIndex: int, Ray: ray)  {
+    Assert(NodeIndex >= 0 && NodeIndex < BVH.Nodes.count);
+    
     Node := *BVH.Nodes[NodeIndex];
     
     if !RayIntersectsBox(Node.Bounds, Ray) return;

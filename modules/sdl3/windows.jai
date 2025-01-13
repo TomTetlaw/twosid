@@ -35750,8 +35750,8 @@ SDL_ShaderCross_CompileComputePipelineFromHLSL :: (device: *SDL_GPUDevice, info:
 
 #import "Basic"; // For assert, push_context
 
-sdl3 :: #library "source/SDL3";
-sdl3_shadercross :: #library "source/SDL3_shadercross";
+sdl3 :: #library "build/SDL3";
+sdl3_shadercross :: #library "build/SDL3_shadercross";
 
 #run {
     {

@@ -31,8 +31,6 @@ ImmEndWindow :: (Id := -1, L := #caller_location) {
         }
         
         CurrentWindow.Size.y = CurrentWindow.Props.MaxHeight;
-        
-        DebugVars(CurrentWindow.GoalScrollOffsetY, CurrentWindow.ScrollOffsetY, Mouse.ScrollAxis, CurrentWindow.Props);
     }
     
     Assert(CurrentWindow != null);

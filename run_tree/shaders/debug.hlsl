@@ -2,7 +2,7 @@
 
 struct Frag_Input {
 	float4 cs_position: SV_Position;
-	float3 colour: TEXCOORD0;
+	float4 colour: TEXCOORD0;
 };
 
 cbuffer Constant_Buffer : register(b0, space1) {
@@ -12,7 +12,7 @@ cbuffer Constant_Buffer : register(b0, space1) {
 
 struct Instance_Data {
 	row_major float4x4 transform;
-	float3 diffuse_colour;
+	float4 diffuse_colour;
 	float pad;
 };
 
@@ -38,5 +38,5 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
 }
 
 float4 fragment_main(Frag_Input input): SV_Target {
-	return float4(input.colour, 1);
+	return input.colour;
 }

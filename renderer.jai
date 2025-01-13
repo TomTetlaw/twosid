@@ -323,7 +323,7 @@ InitRenderer :: () {
     }
     
     ShadowTexture = CreateDepthTexture("shadow", SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
-    DepthTexture = CreateDepthTexture("depth", 1366, 768);
+    DepthTexture = CreateDepthTexture("depth", GWindowWidth, GWindowHeight);
     
     SamplerInfo: SDL_GPUSamplerCreateInfo;
     SamplerInfo.min_lod = 0;
@@ -426,6 +426,7 @@ InitRenderer :: () {
     UnlitOptions := pipeline_options.{
         ColourTarget = true,
         DepthTarget = true,
+        AlphaBlending = true,
         CullMode = .SDL_GPU_CULLMODE_NONE,
         Buffers = .POSITION_TEXCOORD,
         Shader = ShaderUnlit
@@ -436,6 +437,7 @@ InitRenderer :: () {
     DebugOptions := pipeline_options.{
         ColourTarget = true,
         DepthTarget = true,
+        AlphaBlending = true,
         CullMode = .SDL_GPU_CULLMODE_NONE,
         FillMode = .SDL_GPU_FILLMODE_LINE,
         Buffers = .POSITION_ONLY,
@@ -552,7 +554,7 @@ RenderFrame :: (Camera: *$T/interface view_parameters) {
     
     {
         VertConstants: cbuffer_quad;
-        VertConstants.Projection = OrthoProjectionMatrix(0, 1366, 768, 0, -999.0, 999.0);
+        VertConstants.Projection = OrthoProjectionMatrix(0, GWindowSize.x, GWindowSize.y, 0, -999.0, 999.0);
         Copy(QuadPipeline.VertConstants, *VertConstants, QuadPipeline.VertConstantsSize);
         Copy(TextPipeline.VertConstants, *VertConstants, TextPipeline.VertConstantsSize);
         Copy(TextSDFPipeline.VertConstants, *VertConstants, TextSDFPipeline.VertConstantsSize);

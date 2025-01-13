@@ -49,7 +49,7 @@ UpdateEditor :: () {
     
     if SelectedEntity != null {
         D := Distance(Transform.Position, FlyingCamera.Position);
-        S := Max(1.0, D / 50.0);
+        S := Max(1.0, D / 50.0) * .25;
         
         Transform.TransformX = TranslationMatrix(Transform.Position) * ScaleMatrix(xyz(S));
         Transform.TransformY = TranslationMatrix(Transform.Position) *
@@ -84,7 +84,7 @@ UpdateEditor :: () {
             
             if TransformMode == {
                 case .TRANSLATE;
-                SelectedEntity.Position += Displacement * Transform.Axis;
+                SelectedEntity.Position += Displacement*Transform.Axis;
                 Transform.Position = SelectedEntity.Position;
                 
                 case .SCALE;
@@ -107,7 +107,7 @@ UpdateEditor :: () {
 EditorUI :: () {
     if !GEditorOpen return;
     
-    ImmBeginWindow(.{50, 200}, "Add to level", .{MaxHeight=500});
+    ImmBeginWindow(.{10, 200}, "Add to level", .{MaxHeight=200});
     
     if ImmBeginTree("Collider") {
         if ImmButton("Box") {
@@ -156,31 +156,26 @@ EditorUI :: () {
 }
 
 ChoosePlaneForDragAxis :: (Axis: transform_axis) -> plane {
-    Normal := MouseRay.Direction;
+    Normal: float3;
     
+    R := MouseRay.Direction;
     if Axis == {
         case .X;
-        D := Length(Transform.Position * Transform.Axis);
-        return .{0, Normal.y, Normal.z, D};
+        Normal = .{0, R.y, R.z};
         case .Y;
-        D := Length(Transform.Position * Transform.Axis);
-        return .{Normal.x, 0, Normal.z, D};
+        Normal = .{R.x, 0, R.z};
         case .Z;
-        D := Length(Transform.Position * Transform.Axis);
-        return .{Normal.x, Normal.y, 0, D};
+        Normal = .{R.x, R.y, 0};
         
         case .XY;
-        D := Length(Transform.Position * float3.{0, 0, 1});
-        return .{0, 0, 1, D};
+        Normal = .{0, 0, 1};
         case .XZ;
-        D := Length(Transform.Position * float3.{0, 1, 0});
-        return .{0, 1, 0, D};
+        Normal = .{0, 1, 0};
         case .YZ;
-        D := Length(Transform.Position * float3.{1, 0, 0});
-        return .{1, 0, 0, D};
+        Normal = .{1, 0, 0};
     }
     
-    return .{};
+    return PlaneFromNormalAndPoint(Normal, Transform.Position);
 }
 
 transform_axis :: enum {
@@ -255,13 +250,15 @@ EditorMouseInput :: (Button: s32, Down: bool) {
 }
 
 DrawTransform :: () {
-    ColourX := float4.{1, 0, 0, 1};
-    ColourY := float4.{0, 1, 0, 1};
-    ColourZ := float4.{0, 0, 1, 1};
+    TransformAlpha := 0.5;
     
-    if Transform.HitX.Intersected ColourX = float4.{1, 1, 1, 1};
-    if Transform.HitY.Intersected ColourY = float4.{1, 1, 1, 1};
-    if Transform.HitZ.Intersected ColourZ = float4.{1, 1, 1, 1};
+    ColourX := float4.{1, 0, 0, TransformAlpha};
+    ColourY := float4.{0, 1, 0, TransformAlpha};
+    ColourZ := float4.{0, 0, 1, TransformAlpha};
+    
+    if Transform.HitX.Intersected ColourX = float4.{1, 1, 1, TransformAlpha};
+    if Transform.HitY.Intersected ColourY = float4.{1, 1, 1, TransformAlpha};
+    if Transform.HitZ.Intersected ColourZ = float4.{1, 1, 1, TransformAlpha};
     
     Mesh := Transform.ArrowMesh;
     if TransformMode == .SCALE {
@@ -272,13 +269,13 @@ DrawTransform :: () {
     DrawUnlitMesh(Transform.TransformY, Mesh, ColourY);
     DrawUnlitMesh(Transform.TransformZ, Mesh, ColourZ);
     
-    ColourXY := float4.{1, 0, 0, 1};
-    ColourXZ := float4.{0, 1, 0, 1};
-    ColourYZ := float4.{0, 0, 1, 1};
+    ColourXY := float4.{1, 0, 0, TransformAlpha};
+    ColourXZ := float4.{0, 1, 0, TransformAlpha};
+    ColourYZ := float4.{0, 0, 1, TransformAlpha};
     
-    if Transform.HitXY.Intersected ColourXY = float4.{1, 1, 1, 1};
-    if Transform.HitXZ.Intersected ColourXZ = float4.{1, 1, 1, 1};
-    if Transform.HitYZ.Intersected ColourYZ = float4.{1, 1, 1, 1};
+    if Transform.HitXY.Intersected ColourXY = float4.{1, 1, 1, TransformAlpha};
+    if Transform.HitXZ.Intersected ColourXZ = float4.{1, 1, 1, TransformAlpha};
+    if Transform.HitYZ.Intersected ColourYZ = float4.{1, 1, 1, TransformAlpha};
     
     DrawUnlitMesh(Transform.TransformXY, Transform.PlaneMesh, ColourXY);
     DrawUnlitMesh(Transform.TransformXZ, Transform.PlaneMesh, ColourXZ);
@@ -300,7 +297,7 @@ DrawEditor :: () {
     }
     
     if SelectedEntity {
-        Colour := Lerp(xyz(1), float3.{1, 0, 0}, SinTurns(Mod(RealTime, 1.0)) * .5 + .5);
+        Colour := Lerp(xyzw(xyz(1), 0.5), float4.{1, 0, 0, 0.5}, SinTurns(Mod(RealTime, 1.0)) * .5 + .5);
         DebugDrawBoundingBox(SelectedEntity.Bounds, Colour);
         
         DrawTextSDF(.{50, 50 + 3*15}, TextFont, 16.0, TFormat("Transform Axis - %", Transform.Axis));

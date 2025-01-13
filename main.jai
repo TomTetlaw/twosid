@@ -2,8 +2,9 @@
 RealTime, GameTime, RealDeltaTime, DeltaTime: float;
 GamePaused := false;
 
-WINDOW_WIDTH :: 1366;
-WINDOW_HEIGHT :: 768;
+GWindowWidth, GWindowHeight: int;
+GWindowSize: float2;
+GWindowAspect: float;
 
 mouse :: struct {
     Delta: float2;
@@ -46,9 +47,27 @@ main :: () {
         FatalError("Failed to initialize SDL: %", SdlGetError());
     }
     
-    WindowName := "twosid";
-    GWindow = SDL_CreateWindow(TCS(WindowName), WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+    SDL_WINDOW_HIDDEN :: 0x0000000000000008;
+    GWindow = SDL_CreateWindow("twosid", 1, 1, SDL_WINDOW_HIDDEN);
     if !GWindow FatalError("Failed to create window: %", SdlGetError());
+    
+    DisplayId := SDL_GetDisplays(null)[0];
+    Mode := SDL_GetCurrentDisplayMode(DisplayId);
+    WindowWidth := Mode.w * 0.8;
+    WindowHeight := Mode.h * 0.8;
+    
+    GWindowWidth = xx WindowWidth;
+    GWindowHeight = xx WindowHeight;
+    GWindowSize = .{WindowWidth, WindowHeight};
+    GWindowAspect = WindowWidth / WindowHeight;
+    
+    CenterX := (Mode.w * .5) - (GWindowWidth * .5);
+    CenterY := (Mode.h * .5) - (GWindowHeight * .5);
+    
+    SDL_SetWindowSize(GWindow, xx WindowWidth, xx WindowHeight);
+    SDL_SetWindowPosition(GWindow, xx CenterX, xx CenterY);
+    
+    SDL_ShowWindow(GWindow);
     
     ShaderFormats := cast(u32) SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_SPIRV;
     GDevice = SDL_CreateGPUDevice(ShaderFormats, true, null);

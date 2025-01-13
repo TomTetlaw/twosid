@@ -22,6 +22,10 @@ DebugVars :: ($Args: ..Code) #expand {
     for Strings DebugString(it);
 }
 
+DebugScreenPoint :: (Position: float2, Size := float2.{8, 8}) {
+    DrawScreenSpaceQuad(Position, Size, .{1, 0, 0, 1});
+}
+
 DrawUnlitMesh :: (Transform: float4x4, Mesh: *mesh, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
     Command: draw_command;
     Command.Kind = .UNLIT;
@@ -44,35 +48,35 @@ DrawOpaqueMesh :: (Transform: float4x4, Mesh: *mesh, Textures: [] *texture, Skin
     DrawMesh(*Command, Options);
 }
 
-DebugDrawMesh :: (Mesh: *mesh, Transform: float4x4, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+DebugDrawMesh :: (Mesh: *mesh, Transform: float4x4, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
     Command: draw_command;
     Command.Kind = .DEBUG;
     Command.Mesh = Mesh;
     Command.Instance.Transform = Transform;
-    Command.Instance.Colour = xyzw(Colour, 1.0);
+    Command.Instance.Colour = Colour;
     DrawMesh(*Command, Options);
 }
 
-DebugDrawMesh :: (Mesh: *mesh, Position: float3, Scale := float3.{1, 1, 1}, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+DebugDrawMesh :: (Mesh: *mesh, Position: float3, Scale := float3.{1, 1, 1}, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
     Command: draw_command;
     Command.Kind = .DEBUG;
     Command.Mesh = Mesh;
     Command.Instance.Transform = TranslationMatrix(Position) * ScaleMatrix(Scale);
-    Command.Instance.Colour = xyzw(Colour, 1.0);
+    Command.Instance.Colour = Colour;
     DrawMesh(*Command, Options);
 }
 
-DebugDrawSphere :: (Position: float3, Size := 1.0, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+DebugDrawSphere :: (Position: float3, Size := 1.0, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
     DebugDrawMesh(SphereMesh, Position, xyz(Size), Colour, Options);
 }
 
-DebugDrawBoundingBox :: (Box: bounding_box, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+DebugDrawBoundingBox :: (Box: bounding_box, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
     Origin := (Box.Min + Box.Max) * .5;
     Scale := Box.Max - Box.Min;
     DebugDrawMesh(BoxMesh, Origin, Scale, Colour, Options);
 }
 
-DrawCylinder :: (Cylinder: cylinder, Colour := float3.{1, 1, 1}, Options := batch_state_options.{}) {
+DrawCylinder :: (Cylinder: cylinder, Colour := float4.{1, 1, 1, 1}, Options := batch_state_options.{}) {
     DebugDrawMesh(CylinderMesh, Cylinder.Center, float3.{Cylinder.Radius, Cylinder.Radius, Cylinder.Height}, Colour, Options);
 }
 
@@ -339,13 +343,13 @@ DrawMesh :: (Command: *draw_command, Options: batch_state_options = .{}) {
         Batch.Options = Options;
         
         if Options.Viewport.x == -1.0 {
-            Batch.Viewport = float4.{0, 0, 1366, 768};
+            Batch.Viewport = xyzw(xy(0), GWindowSize);
         } else {
             Batch.Viewport = Options.Viewport;
         }
         
         if Options.Scissor.x == -1.0 {
-            Batch.Scissor = float4.{0, 0, 1366, 768};
+            Batch.Scissor = xyzw(xy(0), GWindowSize);
         } else {
             Batch.Scissor = Options.Scissor;
         }
