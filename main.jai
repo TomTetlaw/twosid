@@ -1,6 +1,6 @@
 
 RealTime, GameTime, RealDeltaTime, DeltaTime: float;
-GamePaused := false;
+GamePaused := true;
 
 GWindowWidth, GWindowHeight: int;
 GWindowSize: float2;
@@ -68,16 +68,17 @@ main :: () {
         SDL_SetWindowFullscreenMode(GWindow, null);
         GWindowWidth = xx Mode.w;
         GWindowHeight = xx Mode.h;
-        GWindowSize = .{xx GWindowWidth, xx GWindowHeight};
-        GWindowAspect = cast(float) GWindowWidth / GWindowHeight;
+        
     } else {
         SDL_SetWindowSize(GWindow, xx WindowWidth, xx WindowHeight);
         SDL_SetWindowPosition(GWindow, xx CenterX, xx CenterY);
         GWindowWidth = xx WindowWidth;
         GWindowHeight = xx WindowHeight;
-        GWindowSize = .{WindowWidth, WindowHeight};
-        GWindowAspect = WindowWidth / WindowHeight;
+        
     }
+    
+    GWindowSize = .{xx GWindowWidth, xx GWindowHeight};
+    GWindowAspect = cast(float) GWindowWidth / GWindowHeight;
     
     SDL_ShowWindow(GWindow);
     

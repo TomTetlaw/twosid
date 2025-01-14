@@ -1,4 +1,11 @@
 
+ Initialize :: (Value: *$T) {
+    Zero(Value);
+    
+    I :: initializer_of(T);
+#if I I(Value);
+}
+
 GetHash :: (V: float4, Seed: u32) -> u32 {
     Hash := GetHash(<< (cast (*u32) *V.x), Seed);
     Hash = GetHash(<< (cast (*u32) *V.x), Hash);

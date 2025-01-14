@@ -22,6 +22,8 @@ entity_player :: struct {
     Camera: camera_player;
 }
 
+GPlayer: *entity_player;
+
 entity_prop :: struct {
     using #as Base: entity;
     Base.Flags = .BLOCKING;
@@ -58,11 +60,25 @@ CreateCollider :: (Position: float3) -> *entity_collider {
     return Entity;
 }
 
+entity_man :: struct {
+    using #as Base: entity;
+    Base.Flags = .BLOCKING;
+    Base.MeshPath = "meshes/man.mesh";
+    
+    Patrol: entity_patrol;
+    Patrol.AreaExtents = #run MakeRandomValue(50, 200);
+    Patrol.WaitTime = #run MakeRandomValue(3.0, 5.0);
+}
+
 UpdateGame :: () {
+    if GamePaused return;
+    
     GAllEntities = BuildEntityArray();
     
-    for * :OnlyActiveEntities EntityTypes.Player {
-        Player := it;
+    // These is only ever one player.
+    if EntityTypes.Player.Count > 0 {
+        if !GPlayer GPlayer = *EntityTypes.Player[0];
+        Player := GPlayer;
         
         MoveSpeed := Player.WalkSpeed;
         if KeyState(.SDL_SCANCODE_LSHIFT) MoveSpeed = Player.RunSpeed;
@@ -89,34 +105,42 @@ UpdateGame :: () {
         
         PositionEntityAboveGround(Player, Player.EyeHeight);
         
-        Player.Camera.Position = Player.DrawPosition;
+        Player.Camera.Position = Player.PositionAboveGround;
         UpdateCameraPlayer(*Player.Camera);
     }
     
     for * :OnlyActiveEntities EntityTypes.Prop {
-        Prop := it;
-        
-        UpdateEntityBounds(Prop);
-        
-        Prop.DrawPosition = Prop.Position;
-        UpdateEntityDrawTransform(Prop);
+        UpdateEntityBounds(it);
     }
     
     for * :OnlyActiveEntities EntityTypes.Collider {
         UpdateEntityBounds(it);
     }
+    
+    for * :OnlyActiveEntities EntityTypes.Man {
+        UpdateEntityBounds(it);
+        
+        PositionEntityAboveGround(it);
+        
+        EntityPatrol(it, *it.Patrol);
+    }
 }
 
 DrawGame :: () {
-    for * :OnlyActiveEntities EntityTypes.Prop {
+    for EntityTypes.Prop {
+        UpdateEntityDrawTransform(it, it.Position);
+        DrawEntity(it);
+    }
+    
+    for EntityTypes.Man {
+        UpdateEntityDrawTransform(it);
         DrawEntity(it);
     }
 }
 
 GetGameViewParams :: () -> view_parameters {
-    if EntityTypes.Player.Count > 0 {
-        Player := EntityTypes.Player[0];
-        return Player.Camera.ViewParameters;
+    if GPlayer {
+        return GPlayer.Camera.ViewParameters;
     }
     
     return .{xyz(0.0), IdentityMatrix, IdentityMatrix};

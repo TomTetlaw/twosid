@@ -19,6 +19,22 @@ Rad2Turn :: 1.0 / (2 * PI);
 Turn2Deg :: PI;
 Deg2Turn :: 1.0 / 360.0;
 
+random_value :: struct {
+    Value: float;
+    Min := 0.0;
+    Max := 1.0;
+    Set: bool;
+}
+
+MakeRandomValue :: (Min: float, Max: float) -> random_value {
+    return .{0.0, Min, Max, false};
+}
+
+UpdateRandomValue :: (R: *random_value) {
+    R.Value = RandomFloat(R.Min, R.Max);
+    R.Set = true;
+}
+
 RandomFloat :: () -> float {
     R := random_get_zero_to_one_new();
     return cast (float) R;
@@ -27,6 +43,14 @@ RandomFloat :: () -> float {
 RandomFloat :: (Min: float, Max: float) -> float {
     R := random_get_zero_to_one_new();
     return cast(float) (Min + R * (Max - Min));
+}
+
+RandomFloat3 :: (Min: float3, Max: float3) -> float3 {
+    return .{
+        RandomFloat(Min.x, Max.x),
+        RandomFloat(Min.y, Max.y),
+        RandomFloat(Min.z, Max.z)
+    };
 }
 
 RandomFloat4 :: () -> float4 {
@@ -415,8 +439,6 @@ Saturate :: (v: float3) -> float3 {
 Exp :: exp;
 Log :: log;
 
-// TimeToGoal = desired time in seconds to reach the goal
-// Decay = ??? (https://www.youtube.com/watch?v=LSNQuFEDOyQ)
 Approach :: (C: float, G: float, TimeToGoal := 1.0) -> float {
     Decay :: 4.6;
     return G + (C - G) * Exp(-Decay * DeltaTime * (1.0 / TimeToGoal));
@@ -519,12 +541,19 @@ QuatFromAxisAngle :: (v: float3, Turns: float) -> quat {
         c
     };
     
-    if Result.x < -1 || Result.x > 1 print("Result.x: %\n", Turns);
-    if Result.y < -1 || Result.y > 1 print("Result.y: %\n", Turns);
-    if Result.z < -1 || Result.z > 1 print("Result.z: %\n", Turns);
-    if Result.w < -1 || Result.w > 1 print("Result.w: %\n", Turns);
-    
     return Result;
+}
+
+QuatFromForward :: (D: float3, HACK_Offset: float) -> quat {
+    Epsilon :: 0.0000001;
+    
+    Dir := D;
+    
+    Dir.z = 0.0;
+    if Length(Dir.xy) < Epsilon return .{0, 0, 0, 1};
+    
+    Angle := atan2(Dir.y, Dir.x) * Rad2Turn;
+    return QuatFromAxisAngle(.{0, 0, 1}, Angle + HACK_Offset);
 }
 
 RotateVector :: (v: float2, Turns: float) -> float2 {
@@ -553,4 +582,4 @@ RotateVectorAxes :: (v: float3, q: quat, a: float4) -> float3 {
 #import "Basic";
 #import "Random";
 
-using,only(ceil,floor,abs,sqrt,fmod_cycling,exp,sin,cos,tan) Math :: #import "Math";
+using,only(ceil,floor,abs,sqrt,fmod_cycling,exp,sin,cos,acos,tan,atan2) Math :: #import "Math";

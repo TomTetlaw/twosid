@@ -54,7 +54,7 @@ UpdateEditor :: () {
     
     if SelectedEntity != null {
         D := Distance(Transform.Position, FlyingCamera.Position);
-        S := Max(1.0, D / 50.0) * .25;
+        S := Max(1.0, D / 50.0) * .5;
         
         Transform.TransformX = TranslationMatrix(Transform.Position) * ScaleMatrix(xyz(S));
         Transform.TransformY = TranslationMatrix(Transform.Position) *
@@ -255,7 +255,7 @@ EditorMouseInput :: (Button: s32, Down: bool) {
 }
 
 DrawTransform :: () {
-    TransformAlpha := 0.5;
+    TransformAlpha := 1.0;
     
     ColourX := float4.{1, 0, 0, TransformAlpha};
     ColourY := float4.{0, 1, 0, TransformAlpha};
@@ -302,8 +302,8 @@ DrawEditor :: () {
     }
     
     if SelectedEntity {
-        Colour := Lerp(xyzw(xyz(1), 0.5), float4.{1, 0, 0, 0.5}, SinTurns(Mod(RealTime, 1.0)) * .5 + .5);
-        DebugDrawBoundingBox(SelectedEntity.Bounds, Colour);
+        Colour := Lerp(xyzw(xyz(1), 0.125), float4.{1, 0, 0, 0.125}, Mod(RealTime, 1.0));
+        DebugDrawMesh(SelectedEntity.Mesh, SelectedEntity.DrawTransform, Colour);
         
         DrawTextSDF(.{50, 50 + 3*15}, TextFont, 16.0, TFormat("Transform Axis - %", Transform.Axis));
         DrawTextSDF(.{50, 50 + 4*15}, TextFont, 16.0, TFormat("Position - %", SelectedEntity.Position));

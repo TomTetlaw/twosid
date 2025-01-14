@@ -99,7 +99,7 @@ build_game :: (profiling: bool) {
         append(*builder, "#import \"jai-tracy\" (IMPORT_MODE=.CLIENT);\n");
         append(*builder, "EmitProfilingData :: () {\n");
         for plots {
-            print_to_builder(*builder, "___tracy_emit_plot(\"%\".data, cast (float64) %);\n", it, it);
+            print_to_builder(*builder, "___tracy_emit_plot(TCS(\"%\"), cast (float64) %);\n", it, it);
         }
         append(*builder, "__Tracy.FrameMark();\n");
         append(*builder, "}\n");
@@ -111,10 +111,31 @@ build_game :: (profiling: bool) {
         
         append(*builder, "entity_types :: struct {\n");
         append(*builder, "\tInfoList: [] entity_type_info;\n");
+        
         for entity_types {
-            print_to_builder(*builder, "\t%: arena(%);\n", convert_case(it.name), it.name);
+            print_to_builder(*builder, "\t%: entity_list;\n", convert_case(it.name));
+        }
+        
+        append(*builder, "}\n\n");
+        
+        append(*builder, "BuildEntityTypeList :: (Arena: *arena) {\n");
+        print_to_builder(*builder, "EntityTypes.InfoList = ArenaPushN(Arena, entity_type_info, %);\n", entity_types.count);
+        for entity_types {
+            print_to_builder(*builder, "\tEntityTypes.InfoList[%] = .{\"%\", %, *EntityTypes.%};\n", it_index, convert_case(it.name), it_index, convert_case(it.name));
         }
         append(*builder, "}\n\n");
+        
+        /*
+        append(*builder, "GetEntityList :: ($T: Type) -> *entity_list{\n");
+        
+        for entity_types {
+            print_to_builder(*builder, "\t#if T == type_of(%) return EntityTypes.%;\n", it.name, convert_case(it.name));
+        }
+        append(*builder, "return null;\n");
+        append(*builder, "}\n\n");
+        */
+        
+        /*
         
         append(*builder, "CreateEntityTypeInfo :: (EntityInfo: *entity_types) {\n");
         append(*builder, "\tEntityTypesList: [..] entity_type_info;\n");
@@ -152,6 +173,7 @@ build_game :: (profiling: bool) {
         }
         append(*builder, "return Entities;\n");
         append(*builder, "}\n");
+*/
         
         add_build_string(builder_to_string(*builder), workspace);
     }

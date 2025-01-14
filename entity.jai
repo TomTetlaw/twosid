@@ -1,7 +1,8 @@
 
 entity_handle :: struct {
-    Id: s32;
-    Gen: s32;
+    Index: int;
+    Gen: int;
+    TypeId: int;
 }
 
 entity_flags :: enum_flags {
@@ -10,31 +11,57 @@ entity_flags :: enum_flags {
 
 entity :: struct {
     using Handle: entity_handle;
+    
     Active: bool;
     
-    Flags: entity_flags; @v1;
+    Flags: entity_flags;
     
-    Position: float3; @v1;
-    Rotation: quat; @v1;
-    Scale := float3.{1, 1, 1}; @v1;
+    Position: float3;
+    Rotation: quat;
+    Scale := float3.{1, 1, 1};
     
-    Bounds: bounding_box; @v1;
+    Bounds: bounding_box;
     
+    MeshPath: string;
     Mesh: *mesh;
-    AnimPlayer: anim_player; @v1;
+    AnimPlayer: anim_player;
     Textures: [] *texture;
     
-    Colour := float4.{1, 1, 1, 1}; @v1;
-    DrawPosition: float3; @v1;
-    DrawTransform: float4x4; @v1;
+    PositionAboveGround: float3;
+    
+    Colour := float4.{1, 1, 1, 1};
+    DrawTransform: float4x4;
+}
+
+EntityLookAtEntity :: (Entity: *entity, Target: *entity) {
+    Dir := Normalize(Entity.Position - Target.Position);
+    Entity.Rotation = QuatFromForward(Dir, .25); // @entity mesh forward
+}
+
+MoveEntityTowards :: (Entity: *entity, Target: float3, Speed: float, StopDistance := -1.0, LookForward := false) -> bool {
+    if StopDistance == -1 {
+        StopDistance = Length(Entity.Bounds.Max - Entity.Bounds.Min);
+    }
+    
+    Dist := Distance(Entity.Position, Target);
+    if Dist <= StopDistance return true;
+    
+    Dir := Normalize(Target - Entity.Position);
+    Entity.Position += Dir * Speed * DeltaTime;
+    
+    if LookForward {
+        Entity.Rotation = QuatFromForward(-Dir, .25); // @entity mesh forward
+    }
+    
+    return false;
+}
+
+UpdateEntityDrawTransform :: (Entity: *entity, DrawPosition: float3) {
+    Entity.DrawTransform = TranslationMatrix(DrawPosition) * RotationMatrix(Entity.Rotation) * ScaleMatrix(Entity.Scale);
 }
 
 UpdateEntityDrawTransform :: (Entity: *entity) {
-    UpdateEntityDrawTransform(Entity, Entity.DrawPosition, Entity.Rotation, Entity.Scale);
-}
-
-UpdateEntityDrawTransform :: (Entity: *entity, Position: float3, Rotation: quat, Scale: float3) {
-    Entity.DrawTransform = TranslationMatrix(Position) * RotationMatrix(Rotation) * ScaleMatrix(Scale);
+    UpdateEntityDrawTransform(Entity, Entity.PositionAboveGround);
 }
 
 UpdateEntityBounds :: (Entity: *entity) {
@@ -80,7 +107,7 @@ HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision) {
     }
     
     for GAllEntities {
-        if it.Id == Entity.Id continue;
+        if it == Entity continue;
         if !(it.Flags & .BLOCKING) continue;
         
         Box := it.Bounds;
@@ -132,10 +159,86 @@ HandleEntityMovementCollision :: (Entity: *entity, C: *entity_collision) {
     }
 }
 
-PositionEntityAboveGround :: (Entity: *entity, HeightAboveGround: float) {
+patrol_state :: enum {
+    TRAVELLING;
+    WAITING;
+    FOLLOWING;
+}
+
+entity_patrol :: struct {
+    State: patrol_state;
+    AreaExtents: random_value;
+    AreaCenter: float3;
+    WaitTime: random_value;
+    WaitStartTime: float;
+    Target: float3;
+    Started: bool;
+    
+    SightRadius := 50.0;
+    FollowTarget: entity_handle;
+    
+    StopDistance := -1.0;
+    TravelSpeed := 5.0;
+    FollowSpeed := 10.0;
+}
+
+EntityPatrol :: (Entity: *entity, Patrol: *entity_patrol) {
+    if !Patrol.Started {
+        UpdateRandomValue(*Patrol.AreaExtents);
+        UpdateRandomValue(*Patrol.WaitTime);
+        Patrol.WaitStartTime = GameTime;
+        Patrol.State = .WAITING;
+        Patrol.Started = true;
+    }
+    
+    if Patrol.State == .WAITING {
+        if GameTime - Patrol.WaitStartTime >= Patrol.WaitTime.Value {
+            Patrol.State = .TRAVELLING;
+            Patrol.Target = RandomFloat3(Patrol.AreaCenter - Patrol.AreaExtents.Value, Patrol.AreaCenter + Patrol.AreaExtents.Value);
+        }
+    }
+    
+    if Patrol.State == .TRAVELLING {
+        if MoveEntityTowards(Entity, Patrol.Target, Patrol.TravelSpeed, Patrol.StopDistance, true) {
+            Patrol.State = .WAITING;
+            Patrol.WaitStartTime = GameTime;
+            UpdateRandomValue(*Patrol.WaitTime);
+        }
+    }
+    
+    if Patrol.State == .FOLLOWING {
+        F := GetEntity(Patrol.FollowTarget);
+        
+        if F {
+            Target := F.Position;
+            MoveEntityTowards(Entity, Target, Patrol.TravelSpeed, Patrol.StopDistance, true);
+            
+            if Distance(Entity.Position, Target) > Patrol.SightRadius {
+                Patrol.State = .WAITING;
+                Patrol.WaitStartTime = GameTime;
+                UpdateRandomValue(*Patrol.WaitTime);
+            }
+        } else {
+            Patrol.State = .WAITING;
+            Patrol.WaitStartTime = GameTime;
+            UpdateRandomValue(*Patrol.WaitTime);
+        }
+    }
+    
+    if Patrol.State != .FOLLOWING {
+        for * :OnlyActiveEntities GEntities {
+            if Distance(Entity, it.Position) < Patrol.SightRadius {
+                Patrol.FollowTarget = it.Handle;
+                Patrol.State = .FOLLOWING;
+            }
+        }
+    }
+}
+
+PositionEntityAboveGround :: (Entity: *entity, HeightAboveGround := 0.0) {
     GroundHeight := GetGroundHeight(Entity.Position);
     Height := GroundHeight + HeightAboveGround;
-    Entity.DrawPosition = xyz(Entity.Position.xy, Height);
+    Entity.PositionAboveGround = xyz(Entity.Position.xy, Height);
 }
 
 UpdateEntityAnimation :: (Entity: *entity) {
@@ -153,11 +256,17 @@ CreateEntity :: ($T: Type) -> *T {
         Entity = it;
     }
     
-    if !Entity Entity = ArenaPush(Entities);
+    if !Entity {
+        Entity = ArenaPush(Entities);
+        Entity.Index = Entities.Count - 1;
+    }
     
-    Entity.Id = NextId;
     Entity.Gen += 1;
     Entity.Active = true;
+    
+    if Entity.MeshPath.count > 0 {
+        Entity.Mesh = LoadMesh(Entity.MeshPath);
+    }
     
     NextId += 1;
     
@@ -173,55 +282,78 @@ RemoveAllEntities :: () {
 }
 
 DrawEntity :: (Entity: *entity) {
-    if !Entity.Active return;
-    
     DrawOpaqueMesh(Entity.DrawTransform, Entity.Mesh, Entity.Textures, Entity.AnimPlayer.Pose.SkinningTransforms, .{1, 1, 1, 1}, Entity.Colour);
 }
 
-OnlyActiveEntities :: (Arena: *$A/arena, Body: Code, Flags: For_Flags) #expand {
-    num := cast (int) (Arena.Used / size_of(A.T));
+GetEntityList :: (TypeId: int) -> *entity_list {
+    for EntityTypes.InfoList {
+        if it.TypeId == TypeId return *it.List;
+    }
     
-    for Index: 0..num-1 {
-        ActualIndex := Index;
-#if Flags & .REVERSE {
-            ActualIndex = Num - 1 - Index;
+    return null;
+}
+
+GetEntity :: (Handle: entity_handle) -> *entity {
+    Entities := GetEntityList(Handle.TypeId);
+    Entity := (<<Entities)[Handle.Index];
+    if Entity.Gen != Handle.Gen return null;
+    return Entity;
+}
+
+InitEntitySystem :: () {
+    CreateEntityTypeInfo(*EntityArena, *EntityTypes);
+}
+
+AllocateEntity :: (List: *entity_list, $T: Type) -> *entity {
+    Entity: *T;
+    
+    for * List {
+        if !it.Active {
+            Entity = it;
+            Initialize(Entity);
         }
-        
-        Entity := *Arena.TypedBase[ActualIndex];
+    }
+    
+    if !Entity Entity = ArenaPush(*List.Arena, T);
+    
+    AddToLinkedList(*List.List, Entity);
+    
+    return Entity;
+}
+
+operator [] :: (List: entity_list, Index: int) -> *entity {
+    Entity := cast(*entity) (List.Arena.Base + (Num * List.TypeSize));
+    if Entity.Active return Entity;
+    return null;
+}
+
+for_expansion :: (List: *entity_list, Body: Code, Flags: For_Flags) #expand {
+    for Entity, Index: List.List {
         if !Entity.Active continue;
         
-#if Flags & .POINTER {
-            `it := *Arena.TypedBase[ActualIndex];
-        } else {
-            `it := Arena.TypedBase[ActualIndex];
-        }
-        
-        `it_index := ActualIndex;
+        `it = Entity;
+        `it_index := Index;
         
 #insert Body;
     }
 }
 
+EntityTypes: entity_types;
+
 entity_type_info :: struct {
     Name: string;
-    T: Type;
-    Arena: *void; // *void so we can cast it to the actual type (arena(T)) later
+    TypeId: int;
+    List: entity_list;
 }
 
-InitEntitySystem :: () {
-    CreateEntityTypeInfo(*EntityTypes);
+entity_list :: struct {
+    Arena: arena;
+    TypeSize: int;
+    using List: linked_list(*entity);
 }
-
-EntityTypes: entity_types;
 
 #scope_file 
 
-NextId: s32 = 0;
+EntityArena: arena;
 
-FindEntityTypeArena :: ($T: Type) -> *arena(T) {
-    for EntityTypes.InfoList {
-        if it.T == T return cast(*arena(T)) it.Arena;
-    }
-    
-    return null;
-}
+NextId: s32 = 0;
