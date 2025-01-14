@@ -103,41 +103,6 @@ LoadMesh :: (Path: string) -> *mesh {
     Indices := FileReadArray(*File, *MeshArena, u32, Header.NumIndices);
     SerializedBones := FileReadBones(*File, *MeshArena, Header.NumBones);
     
-    // This should be done at build time!
-    IndexRemap := ArenaPushN(*MeshArena, u32, xx Positions.count);
-    Streams := ArenaPushN(*WorkingArena, meshopt_Stream, 6);
-    Streams[0] = .{Positions.data, size_of(float3), size_of(float3)};
-    Streams[1] = .{Weights.data, size_of(float3), size_of(float3)};
-    Streams[2] = .{BoneIds.data, size_of(bone_ids), size_of(bone_ids)};
-    Streams[3] = .{TexCoords.data, size_of(float2), size_of(float2)};
-    Streams[4] = .{Normals.data, size_of(float3), size_of(float3)};
-    Streams[5] = .{Tangents.data, size_of(float3), size_of(float3)};
-    VertexCount := meshopt_generateVertexRemapMulti(IndexRemap.data, Indices.data, xx Indices.count, xx Positions.count, Streams.data, xx Streams.count);
-    
-    OptimizedPositions := ArenaPushN(*MeshArena, float3, xx VertexCount);
-    OptimizedTexCoords := ArenaPushN(*MeshArena, float2, xx VertexCount);
-    OptimizedNormals := ArenaPushN(*MeshArena, float3, xx VertexCount);
-    OptimizedTangents := ArenaPushN(*MeshArena, float3, xx VertexCount);
-    OptimizedWeights := ArenaPushN(*MeshArena, float3, xx VertexCount);
-    OptimizedBoneIds := ArenaPushN(*MeshArena, bone_ids, xx VertexCount);
-    OptimizedIndices := ArenaPushN(*MeshArena, u32, Indices.count);
-    
-    meshopt_remapVertexBuffer(OptimizedPositions.data, Positions.data, xx Positions.count, size_of(float3), IndexRemap.data);
-    meshopt_remapVertexBuffer(OptimizedTexCoords.data, TexCoords.data, xx TexCoords.count, size_of(float2), IndexRemap.data);
-    meshopt_remapVertexBuffer(OptimizedNormals.data, Normals.data, xx Normals.count, size_of(float3), IndexRemap.data);
-    meshopt_remapVertexBuffer(OptimizedTangents.data, Tangents.data, xx Tangents.count, size_of(float3), IndexRemap.data);
-    meshopt_remapVertexBuffer(OptimizedWeights.data, Weights.data, xx Weights.count, size_of(float3), IndexRemap.data);
-    meshopt_remapVertexBuffer(OptimizedBoneIds.data, BoneIds.data, xx BoneIds.count, size_of(bone_ids), IndexRemap.data);
-    meshopt_remapIndexBuffer(OptimizedIndices.data, Indices.data, xx Indices.count, IndexRemap.data);
-    
-    Positions = OptimizedPositions;
-    TexCoords = OptimizedTexCoords;
-    Normals = OptimizedNormals;
-    Tangents = OptimizedTangents;
-    Weights = OptimizedWeights;
-    BoneIds = OptimizedBoneIds;
-    Indices = OptimizedIndices;
-    
     MinBounds := xyz(FLOAT32_MAX);
     MaxBounds := xyz(-FLOAT32_MAX);
     
@@ -212,31 +177,23 @@ LoadMesh :: (Path: string) -> *mesh {
 CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
     Mark := ArenaPushMark(*WorkingArena);
     
-    Positions := ArenaPushN(*WorkingArena, float3, Triangles.count * 3);
+    IndexCount := Triangles.count * 3;
+
+    Positions := ArenaPushN(*WorkingArena, float3, IndexCount);
+    Indices := ArenaPushN(*WorkingArena, u32, IndexCount);
+
     for Triangles {
         Positions[it_index*3 + 0] = it.P1;
         Positions[it_index*3 + 1] = it.P2;
         Positions[it_index*3 + 2] = it.P3;
+
+        Indices[it_index*3 + 0] = xx (it_index*3 + 0);
+        Indices[it_index*3 + 1] = xx (it_index*3 + 1);
+        Indices[it_index*3 + 2] = xx (it_index*3 + 2);
     }
-    
-    IndexCount: u64 = xx (Triangles.count * 3);
-    
-    Streams := ArenaPushN(*WorkingArena, meshopt_Stream, 1);
-    Streams[0] = .{Positions.data, size_of(float3), size_of(float3)};
-    
-    Remap := ArenaPushN(*WorkingArena, u32, Positions.count);
-    VertexCount := meshopt_generateVertexRemapMulti(Remap.data, null, IndexCount, xx Positions.count, Streams.data, xx Streams.count);
-    
-    OptimizedPositions := ArenaPushN(*MeshArena, float3, xx VertexCount);
-    meshopt_remapVertexBuffer(OptimizedPositions.data, Positions.data, xx Positions.count, size_of(float3), Remap.data);
-    
-    Indices := ArenaPushN(*MeshArena, u32, cast(int) IndexCount);
-    meshopt_remapIndexBuffer(Indices.data, null, IndexCount, Remap.data);
     
     MinBounds := xyz(FLOAT32_MAX);
     MaxBounds := xyz(-FLOAT32_MAX);
-    
-    Positions = OptimizedPositions;
     
     for Positions {
         MinBounds.x = min(MinBounds.x, it.x);
@@ -250,12 +207,12 @@ CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
     
     Mesh := ArenaPush(*Meshes);
     Mesh.Path = Name;
-    Mesh.Positions = OptimizedPositions;
+    Mesh.Positions = Positions;
     Mesh.Indices = Indices;
     Mesh.NumIndices = Indices.count;
     Mesh.Bounds = .{MinBounds, MaxBounds};
     
-    Mesh.PositionBuffer = CreateVertexBuffer(Format("%_position", Name), OptimizedPositions);
+    Mesh.PositionBuffer = CreateVertexBuffer(Format("%_position", Name), Positions);
     Mesh.IndexBuffer = CreateIndexBuffer(Format("%_index", Name), Indices);
     
     Mesh.Generated = true;
@@ -424,4 +381,3 @@ AnimationArena: arena;
 #import "Sort";
 #import "File";
 #import "Hash";
-#import "meshoptimizer";

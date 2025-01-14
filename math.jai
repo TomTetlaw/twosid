@@ -91,6 +91,8 @@ Saturate :: (f: float) -> float {
     return Max(Min(f, 1.0), 0.0);
 }
 
+Log :: log;
+
 Sin :: sin;
 Cos :: cos;
 Tan :: tan;
@@ -582,4 +584,4 @@ RotateVectorAxes :: (v: float3, q: quat, a: float4) -> float3 {
 #import "Basic";
 #import "Random";
 
-using,only(ceil,floor,abs,sqrt,fmod_cycling,exp,sin,cos,acos,tan,atan2) Math :: #import "Math";
+using,only(ceil,floor,abs,sqrt,fmod_cycling,exp,sin,cos,tan,log,acos,atan2) Math :: #import "Math";

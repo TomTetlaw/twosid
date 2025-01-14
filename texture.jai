@@ -33,7 +33,7 @@ InitTextureSystem :: () {
     
     NumMipmaps :: (W: int, H: int) -> int {
         MaxDim := Max(W, H);
-        return cast(int) log(cast(float) MaxDim) + 1;
+        return cast(int) Log(cast(float) MaxDim) + 1;
     }
     
     TotalTexturesSize := 0;
@@ -197,5 +197,3 @@ Textures: arena(texture);
 #import "Basic";
 #import "String";
 #import "stb_image";
-
-using,only(log) Math :: #import "Math";

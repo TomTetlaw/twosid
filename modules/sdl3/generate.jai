@@ -8,8 +8,12 @@ generate_bindings :: () -> bool {
         array_add(*options.libnames, "SDL3.lib");
         array_add(*options.libnames, "SDL3_shadercross.lib");
     } else {
-        return false;
+        output_filename := "linux.jai";
+        array_add(*options.libnames, "libSDL3.so");
+        array_add(*options.libnames, "libSDL3_shadercross.so");
     }
+    
+    options.system_types_to_include = .["FILE"];
     
     array_add(*options.include_paths, "source/include/");
     array_add(*options.include_paths, "source/include/SDL3");

@@ -3,9 +3,10 @@ generate :: () -> bool {
     success := true;
     
     source_files: [..] string;
-    array_add(*source_files, "source/stb_truetype.cpp");
+    array_add(*source_files, "source/stb_truetype.c");
     
     success &&= build_cpp_static_lib("build/stb_truetype", ..source_files);
+    success &&= build_cpp_dynamic_lib("build/stb_truetype", ..source_files);
     
     if !success {
         print("CPP build failed!\n");
