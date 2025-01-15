@@ -37,6 +37,8 @@ TrySelectEntity :: (Ray: ray) {
 UpdateEditor :: () {
     if !GEditorOpen return;
     
+    EditorUI();
+    
     UpdateCameraFlying(*FlyingCamera);
     
     MouseRay = GetRayForMousePosition(FlyingCamera.ViewParameters, Mouse.Position);
@@ -139,7 +141,7 @@ EditorUI :: () {
     ImmSeperator();
     
     if ImmBeginTree("Entity") {
-        for EntityTypes.InfoList {
+        for GEntityTypes.InfoList {
             if equal(it.Name, "Player") continue;
             if equal(it.Name, "Prop") continue;
             if equal(it.Name, "Collider") continue;
@@ -193,6 +195,8 @@ transform_axis :: enum {
 }
 
 EditorMouseInput :: (Button: s32, Down: bool) {
+    if GUIWantsInput return;
+    
     if Button == SDL_BUTTON_LEFT {
         if Down {
             Transform.HitX = RayMeshIntersection(MouseRay, Transform.ArrowCollision, Transform.TransformX);

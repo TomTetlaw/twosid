@@ -62,13 +62,14 @@ main :: () {
     CenterX := (Mode.w * .5) - (WindowWidth * .5);
     CenterY := (Mode.h * .5) - (WindowHeight * .5);
     
+    GFullscreen = true;
+    
     if GFullscreen {
         SDL_SetWindowSize(GWindow, Mode.w, Mode.h);
         SDL_SetWindowPosition(GWindow, 0, 0);
         SDL_SetWindowFullscreenMode(GWindow, null);
         GWindowWidth = xx Mode.w;
         GWindowHeight = xx Mode.h;
-        
     } else {
         SDL_SetWindowSize(GWindow, xx WindowWidth, xx WindowHeight);
         SDL_SetWindowPosition(GWindow, xx CenterX, xx CenterY);
@@ -155,6 +156,10 @@ main :: () {
         Mouse.Delta.y = 0;
         Mouse.ScrollAxis = 0;
         
+        // This needs to be updated early incase anything with 
+        //  input events depends on it
+        UpdateEntitySystem();
+        
         Quit = ProcessWindowEvents();
         if Quit break;
         
@@ -173,15 +178,14 @@ main :: () {
             }
         }
         
-        EditorUI();
+        UpdateEditor();
         UpdateUI();
         
-        UpdateEditor();
         UpdateGame();
+        DrawGame();
         
         DrawUI();
         DrawEditor();
-        DrawGame();
         DrawTerrain();
         
         ViewParameters: view_parameters;

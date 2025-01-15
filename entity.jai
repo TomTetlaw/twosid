@@ -10,6 +10,8 @@ entity_flags :: enum_flags {
 }
 
 entity :: struct {
+    Next, Prev: *entity;
+    
     using Handle: entity_handle;
     
     Active: bool;
@@ -61,7 +63,8 @@ UpdateEntityDrawTransform :: (Entity: *entity, DrawPosition: float3) {
 }
 
 UpdateEntityDrawTransform :: (Entity: *entity) {
-    UpdateEntityDrawTransform(Entity, Entity.PositionAboveGround);
+    if GEditorOpen UpdateEntityDrawTransform(Entity, Entity.Position);
+    else UpdateEntityDrawTransform(Entity, Entity.PositionAboveGround);
 }
 
 UpdateEntityBounds :: (Entity: *entity) {
@@ -167,9 +170,9 @@ patrol_state :: enum {
 
 entity_patrol :: struct {
     State: patrol_state;
-    AreaExtents: random_value;
+    AreaExtents: float;
     AreaCenter: float3;
-    WaitTime: random_value;
+    WaitTime: float;
     WaitStartTime: float;
     Target: float3;
     Started: bool;
@@ -184,53 +187,54 @@ entity_patrol :: struct {
 
 EntityPatrol :: (Entity: *entity, Patrol: *entity_patrol) {
     if !Patrol.Started {
-        UpdateRandomValue(*Patrol.AreaExtents);
-        UpdateRandomValue(*Patrol.WaitTime);
         Patrol.WaitStartTime = GameTime;
         Patrol.State = .WAITING;
         Patrol.Started = true;
     }
     
+    StartTravel :: (Patrol: *entity_patrol) {
+        Patrol.State = .TRAVELLING;
+        Patrol.Target = RandomFloat3(Patrol.AreaCenter - Patrol.AreaExtents, Patrol.AreaCenter + Patrol.AreaExtents);
+    }
+    
+    StartWait :: (Patrol: *entity_patrol) {
+        Patrol.State = .WAITING;
+        Patrol.WaitStartTime = GameTime;
+    }
+    
+    StartFollow :: (Patrol: *entity_patrol) {
+        Patrol.FollowTarget = GPlayer.Handle;
+        Patrol.State = .FOLLOWING;
+    }
+    
     if Patrol.State == .WAITING {
-        if GameTime - Patrol.WaitStartTime >= Patrol.WaitTime.Value {
-            Patrol.State = .TRAVELLING;
-            Patrol.Target = RandomFloat3(Patrol.AreaCenter - Patrol.AreaExtents.Value, Patrol.AreaCenter + Patrol.AreaExtents.Value);
+        if GameTime - Patrol.WaitStartTime >= Patrol.WaitTime {
+            StartTravel(Patrol);
         }
     }
     
     if Patrol.State == .TRAVELLING {
         if MoveEntityTowards(Entity, Patrol.Target, Patrol.TravelSpeed, Patrol.StopDistance, true) {
-            Patrol.State = .WAITING;
-            Patrol.WaitStartTime = GameTime;
-            UpdateRandomValue(*Patrol.WaitTime);
+            StartWait(Patrol);
         }
     }
     
     if Patrol.State == .FOLLOWING {
-        F := GetEntity(Patrol.FollowTarget);
+        Following := GetEntity(Patrol.FollowTarget);
         
-        if F {
-            Target := F.Position;
-            MoveEntityTowards(Entity, Target, Patrol.TravelSpeed, Patrol.StopDistance, true);
-            
-            if Distance(Entity.Position, Target) > Patrol.SightRadius {
-                Patrol.State = .WAITING;
-                Patrol.WaitStartTime = GameTime;
-                UpdateRandomValue(*Patrol.WaitTime);
-            }
-        } else {
-            Patrol.State = .WAITING;
-            Patrol.WaitStartTime = GameTime;
-            UpdateRandomValue(*Patrol.WaitTime);
+        if Following {
+            MoveEntityTowards(Entity, Following.Position, Patrol.FollowSpeed, Patrol.StopDistance, true);
+        }
+        
+        if Distance(Entity.Position, Following.Position) > Patrol.SightRadius {
+            StartWait(Patrol);
         }
     }
     
     if Patrol.State != .FOLLOWING {
-        for * :OnlyActiveEntities GEntities {
-            if Distance(Entity, it.Position) < Patrol.SightRadius {
-                Patrol.FollowTarget = it.Handle;
-                Patrol.State = .FOLLOWING;
-            }
+        D := Distance(Entity.Position, GPlayer.Position);
+        if D < Patrol.SightRadius {
+            StartFollow(Patrol);
         }
     }
 }
@@ -246,21 +250,13 @@ UpdateEntityAnimation :: (Entity: *entity) {
 }
 
 CreateEntity :: ($T: Type) -> *T {
-    Entities := FindEntityTypeArena(T);
+    TypeId := EntityTypeId(T);
+    
+    Entities := GetEntityTypeInfo(TypeId);
     if !Entities return null;
     
-    Entity: *T;
-    
-    for * Entities {
-        if it.Active continue;
-        Entity = it;
-    }
-    
-    if !Entity {
-        Entity = ArenaPush(Entities);
-        Entity.Index = Entities.Count - 1;
-    }
-    
+    Entity := AllocateEntity(Entities, T);
+    Entity.TypeId = TypeId;
     Entity.Gen += 1;
     Entity.Active = true;
     
@@ -268,9 +264,12 @@ CreateEntity :: ($T: Type) -> *T {
         Entity.Mesh = LoadMesh(Entity.MeshPath);
     }
     
-    NextId += 1;
-    
-    return Entity;
+    return cast (*T) Entity;
+}
+
+DownCast :: (Entity: *entity, $T: Type) -> *T {
+    if Entity.TypeId != EntityTypeId(T) return null;
+    return cast (*T) Entity;
 }
 
 RemoveEntity :: (Entity: *entity) {
@@ -278,82 +277,106 @@ RemoveEntity :: (Entity: *entity) {
 }
 
 RemoveAllEntities :: () {
-    ResetEntityArenas();
+    for GEntityTypes.InfoList {
+        ArenaReset(*it.Arena);
+    }
 }
 
 DrawEntity :: (Entity: *entity) {
     DrawOpaqueMesh(Entity.DrawTransform, Entity.Mesh, Entity.Textures, Entity.AnimPlayer.Pose.SkinningTransforms, .{1, 1, 1, 1}, Entity.Colour);
 }
 
-GetEntityList :: (TypeId: int) -> *entity_list {
-    for EntityTypes.InfoList {
-        if it.TypeId == TypeId return *it.List;
+GetEntityTypeInfo :: (TypeId: int) -> *entity_type_info {
+    for GEntityTypes.InfoList {
+        if it.TypeId == TypeId return it;
+    }
+    
+    return null;
+}
+
+GetEntityTypeInfo :: (Name: string) -> *entity_type_info {
+    for GEntityTypes.InfoList {
+        if equal(it.Name, Name) return it;
     }
     
     return null;
 }
 
 GetEntity :: (Handle: entity_handle) -> *entity {
-    Entities := GetEntityList(Handle.TypeId);
-    Entity := (<<Entities)[Handle.Index];
+    TypeInfo := GetEntityTypeInfo(Handle.TypeId);
+    Entity := GetEntityFromList(TypeInfo, Handle.Index);
+    if !Entity.Active return null;
     if Entity.Gen != Handle.Gen return null;
     return Entity;
 }
 
 InitEntitySystem :: () {
-    CreateEntityTypeInfo(*EntityArena, *EntityTypes);
+    BuildEntityTypeList(*EntityArena);
 }
 
-AllocateEntity :: (List: *entity_list, $T: Type) -> *entity {
+UpdateEntitySystem :: () {
+    Mark := FrameArena.Used;
+    
+    for Info: GEntityTypes.InfoList {
+        for Info {
+            ArenaPush(*FrameArena, *entity, it);
+        }
+    }
+    
+    GAllEntities = ArenaToView(*FrameArena, *entity, Mark, FrameArena.Used - Mark);
+}
+
+AllocateEntity :: (Info: *entity_type_info, $T: Type) -> *entity {
     Entity: *T;
     
-    for * List {
+    for Info {
         if !it.Active {
-            Entity = it;
+            Entity = cast(*T) it;
             Initialize(Entity);
         }
     }
     
-    if !Entity Entity = ArenaPush(*List.Arena, T);
+    if !Entity {
+        Index := xx Info.Arena.Used / Info.TypeSize;
+        Entity = ArenaPush(*Info.Arena, T);
+        Entity.Index = Index;
+    }
     
-    AddToLinkedList(*List.List, Entity);
+    AddToLinkedList(*Info.List, Entity);
     
     return Entity;
 }
 
-operator [] :: (List: entity_list, Index: int) -> *entity {
-    Entity := cast(*entity) (List.Arena.Base + (Num * List.TypeSize));
-    if Entity.Active return Entity;
-    return null;
+GetEntityFromList :: (Info: *entity_type_info, Index: int) -> *entity {
+    Entity := cast(*entity) (Info.Arena.Base + (Index * Info.TypeSize));
+    return Entity;
 }
 
-for_expansion :: (List: *entity_list, Body: Code, Flags: For_Flags) #expand {
-    for Entity, Index: List.List {
+for_expansion :: (List: *entity_type_info, Body: Code, Flags: For_Flags) #expand {
+    Entity := List.First;
+    while Entity {
         if !Entity.Active continue;
         
-        `it = Entity;
-        `it_index := Index;
+        `it := Entity;
+        `it_index := List.Last - Entity;
         
 #insert Body;
+        
+        Entity = Entity.Next;
     }
 }
 
-EntityTypes: entity_types;
+GAllEntities: [] *entity;
+GEntityTypes: entity_types;
 
 entity_type_info :: struct {
     Name: string;
     TypeId: int;
-    List: entity_list;
-}
-
-entity_list :: struct {
     Arena: arena;
     TypeSize: int;
-    using List: linked_list(*entity);
+    using List: linked_list(entity);
 }
 
 #scope_file 
 
 EntityArena: arena;
-
-NextId: s32 = 0;

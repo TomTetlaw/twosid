@@ -205,21 +205,17 @@ ResetPipelines :: () {
     }
 }
 
-CreatePipelineBatchForMesh :: (Pipeline: *pipeline, Textures: [] *texture, Samplers: [] *SDL_GPUSampler, Mesh: *mesh, InstanceData: [] $T) -> *pipeline_render_batch {
-    Batch := ArenaPush(*RendererFrameArena, pipeline_render_batch);
-    
-    AddToLinkedList(*Pipeline.BatchList, Batch);
-    
-    Batch.TextureBindings = ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, Pipeline.TextureCount);
+CreatePipelineBatchForMesh :: (Source: *draw_batch, Pipeline: *pipeline, Textures: [] *texture, Samplers: [] *SDL_GPUSampler, Mesh: *mesh, InstanceData: [] $T) -> *pipeline_render_batch {
+    TextureBindings := ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, Pipeline.TextureCount);
     
     Grey := LoadTexture("textures/grey.png");
-    for * Batch.TextureBindings {
+    for * TextureBindings {
         it.texture = Grey.GpuTexture;
         it.sampler = DefaultSampler;
     }
     
     for Pipeline.Textures {
-        Batch.TextureBindings[it_index] = it;
+        TextureBindings[it_index] = it;
     }
     
     for Textures {
@@ -230,40 +226,53 @@ CreatePipelineBatchForMesh :: (Pipeline: *pipeline, Textures: [] *texture, Sampl
         if it_index >= Samplers.count || !Samplers[it_index] Sampler = DefaultSampler;
         else Sampler = Samplers[it_index];
         
-        Batch.TextureBindings[Pipeline.Textures.count + it_index] = .{it.GpuTexture, Sampler};
+        TextureBindings[Pipeline.Textures.count + it_index] = .{it.GpuTexture, Sampler};
     }
     
-    Batch.VertexBuffers = ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, Pipeline.AttributeCount);
+    VertexBuffers := ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, Pipeline.AttributeCount);
     if Pipeline.Buffers == .POSITION_ONLY {
-        Batch.VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
+        VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
     }
     
     if Pipeline.Buffers == .POSITION_TEXCOORD {
-        Batch.VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
-        Batch.VertexBuffers[1] = SDL_GPUBufferBinding.{Mesh.TexCoordBuffer, 0};
+        VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
+        VertexBuffers[1] = SDL_GPUBufferBinding.{Mesh.TexCoordBuffer, 0};
     }
     
     if Pipeline.Buffers == .POSITION_SKINNING {
-        Batch.VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
-        Batch.VertexBuffers[1] = SDL_GPUBufferBinding.{Mesh.WeightBuffer, 0};
-        Batch.VertexBuffers[2] = SDL_GPUBufferBinding.{Mesh.BoneIdsBuffer, 0};
+        VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
+        VertexBuffers[1] = SDL_GPUBufferBinding.{Mesh.WeightBuffer, 0};
+        VertexBuffers[2] = SDL_GPUBufferBinding.{Mesh.BoneIdsBuffer, 0};
     }
     
     if Pipeline.Buffers == .POSITION_TEXCOORD_NORMAL_TANGENT_SKINNING {
-        Batch.VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
-        Batch.VertexBuffers[1] = SDL_GPUBufferBinding.{Mesh.TexCoordBuffer, 0};
-        Batch.VertexBuffers[2] = SDL_GPUBufferBinding.{Mesh.NormalBuffer, 0};
-        Batch.VertexBuffers[3] = SDL_GPUBufferBinding.{Mesh.TangentBuffer, 0};
-        Batch.VertexBuffers[4] = SDL_GPUBufferBinding.{Mesh.WeightBuffer, 0};
-        Batch.VertexBuffers[5] = SDL_GPUBufferBinding.{Mesh.BoneIdsBuffer, 0};
+        VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
+        VertexBuffers[1] = SDL_GPUBufferBinding.{Mesh.TexCoordBuffer, 0};
+        VertexBuffers[2] = SDL_GPUBufferBinding.{Mesh.NormalBuffer, 0};
+        VertexBuffers[3] = SDL_GPUBufferBinding.{Mesh.TangentBuffer, 0};
+        VertexBuffers[4] = SDL_GPUBufferBinding.{Mesh.WeightBuffer, 0};
+        VertexBuffers[5] = SDL_GPUBufferBinding.{Mesh.BoneIdsBuffer, 0};
     }
     
-    Batch.IndexBuffer = SDL_GPUBufferBinding.{Mesh.IndexBuffer, 0};
+    IndexBuffer := SDL_GPUBufferBinding.{Mesh.IndexBuffer, 0};
     
-    for Batch.VertexBuffers {
+    for TextureBindings {
+        Assert(it.texture != null);
+        Assert(it.sampler != null);
+    }
+    
+    for VertexBuffers {
         Assert(it.buffer != null);
     }
     
+    Assert(IndexBuffer.buffer != null);
+    
+    Batch := ArenaPush(*RendererFrameArena, pipeline_render_batch);
+    AddToLinkedList(*Pipeline.BatchList, Batch);
+    
+    Batch.TextureBindings = TextureBindings;
+    Batch.VertexBuffers = VertexBuffers;
+    Batch.IndexBuffer = IndexBuffer;
     Batch.IndexCount = Mesh.NumIndices;
     Batch.InstanceData = InstanceData.data;
     Batch.InstanceDataSize = size_of(T) * InstanceData.count;

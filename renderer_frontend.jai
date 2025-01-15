@@ -14,9 +14,14 @@ DebugVars :: ($Args: ..Code) #expand {
     Builder: String_Builder;
     Config: Print_Vars_Config;
     Config.control_flags = .PRINT_NAME | .PRINT_VALUE;
-    Config.after_value = "";
+    Config.after_value = "\n";
     Config.after_type = "";
-    print_vars_helper(*Builder, Config, Args);
+    
+    c := context;
+    push_context c {
+        c.print_style.default_format_struct = .{long_form_separator_between_fields = "\n"};
+        print_vars_helper(*Builder, Config, Args);
+    }
     
     Strings := split(builder_to_string(*Builder), "\n");
     for Strings DebugString(it);
@@ -160,45 +165,45 @@ CreateRendererBatches :: () {
     for * BatchList {
         if it.Kind == {
             case .QUAD_2D;
-            Quad := CreatePipelineBatchForMesh(QuadPipeline, it.Textures, .[], QuadMesh, ArenaToView(it.InstanceDataQuad));
+            Quad := CreatePipelineBatchForMesh(it, QuadPipeline, it.Textures, .[], QuadMesh, ArenaToView(it.InstanceDataQuad));
             Quad.Viewport = it.Viewport;
             Quad.Scissor = it.Scissor;
             
             case .TEXT;
-            Text := CreatePipelineBatchForMesh(TextPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataQuad));
+            Text := CreatePipelineBatchForMesh(it, TextPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataQuad));
             Text.Viewport = it.Viewport;
             Text.Scissor = it.Scissor;
             
             case .SDF_TEXT;
-            Text := CreatePipelineBatchForMesh(TextSDFPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataTextSDF));
+            Text := CreatePipelineBatchForMesh(it, TextSDFPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataTextSDF));
             Text.Viewport = it.Viewport;
             Text.Scissor = it.Scissor;
             
             case .OPAQUE;
-            Shadow := CreatePipelineBatchForMesh(ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow));
+            Shadow := CreatePipelineBatchForMesh(it, ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow));
             Shadow.Viewport = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
             Shadow.Scissor = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
             
-            Mesh := CreatePipelineBatchForMesh(OpaquePipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh));
+            Mesh := CreatePipelineBatchForMesh(it, OpaquePipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh));
             Mesh.Viewport = it.Viewport;
             Mesh.Scissor = it.Scissor;
             
             case .UNLIT;
-            Mesh := CreatePipelineBatchForMesh(UnlitPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataUnlit));
+            Mesh := CreatePipelineBatchForMesh(it, UnlitPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataUnlit));
             Mesh.Viewport = it.Viewport;
             Mesh.Scissor = it.Scissor;
             
             case .DEBUG;
-            Mesh := CreatePipelineBatchForMesh(DebugPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataDebug));
+            Mesh := CreatePipelineBatchForMesh(it, DebugPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataDebug));
             Mesh.Viewport = it.Viewport;
             Mesh.Scissor = it.Scissor;
             
             case .TRANSLUCENT;
-            Shadow := CreatePipelineBatchForMesh(ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow));
+            Shadow := CreatePipelineBatchForMesh(it, ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow));
             Shadow.Viewport = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
             Shadow.Scissor = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
             
-            Mesh := CreatePipelineBatchForMesh(TranslucentPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh));
+            Mesh := CreatePipelineBatchForMesh(it, TranslucentPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh));
             Mesh.Viewport = it.Viewport;
             Mesh.Scissor = it.Scissor;
         }
@@ -245,6 +250,23 @@ InitRendererFrontend :: () {
 batch_state_options :: struct {
     Viewport := #run xyzw(-1);
     Scissor := #run xyzw(-1);
+}
+
+draw_batch :: struct {
+    Next, Prev: *draw_batch;
+    
+    Kind: draw_command_kind;
+    Mesh: *mesh;
+    SkinningTransforms: [] float4x4;
+    Textures: [] *texture;
+    InstanceDataShadow: *arena(ibuffer_shadow);
+    InstanceDataMesh: *arena(ibuffer_mesh);
+    InstanceDataUnlit: *arena(ibuffer_unlit);
+    InstanceDataDebug: *arena(ibuffer_debug);
+    InstanceDataQuad: *arena(ibuffer_quad);
+    InstanceDataTextSDF: *arena(ibuffer_text_sdf);
+    using Options: batch_state_options;
+    Initialized: bool;
 }
 
 #scope_file
@@ -295,23 +317,6 @@ draw_command :: struct {
 batch_state_options :: struct {
     Viewport := #run xyzw(-1);
     Scissor := #run xyzw(-1);
-}
-
-draw_batch :: struct {
-    Next, Prev: *draw_batch;
-    
-    Kind: draw_command_kind;
-    Mesh: *mesh;
-    SkinningTransforms: [] float4x4;
-    Textures: [] *texture;
-    InstanceDataShadow: *arena(ibuffer_shadow);
-    InstanceDataMesh: *arena(ibuffer_mesh);
-    InstanceDataUnlit: *arena(ibuffer_unlit);
-    InstanceDataDebug: *arena(ibuffer_debug);
-    InstanceDataQuad: *arena(ibuffer_quad);
-    InstanceDataTextSDF: *arena(ibuffer_text_sdf);
-    using Options: batch_state_options;
-    Initialized: bool;
 }
 
 DrawMesh :: (Command: *draw_command, Options: batch_state_options = .{}) {

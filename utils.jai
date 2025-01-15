@@ -1,11 +1,4 @@
 
- Initialize :: (Value: *$T) {
-    Zero(Value);
-    
-    I :: initializer_of(T);
-#if I I(Value);
-}
-
 GetHash :: (V: float4, Seed: u32) -> u32 {
     Hash := GetHash(<< (cast (*u32) *V.x), Seed);
     Hash = GetHash(<< (cast (*u32) *V.x), Hash);
@@ -13,6 +6,8 @@ GetHash :: (V: float4, Seed: u32) -> u32 {
     Hash = GetHash(<< (cast (*u32) *V.x), Hash);
     return Hash;
 }
+
+PrintVars :: print_vars;
 
 linked_list :: struct($T: Type) {
     First, Last: *T;
@@ -36,32 +31,6 @@ ResetLinkedList :: (List: *linked_list($T)) {
     List.First = null;
     List.Last = null;
     List.Count = 0;
-}
-
-TAny :: (Value: *$T) -> Any {
-    Memory := ArenaPush(*FrameArena, T);
-    Copy(Memory, Value, size_of(T));
-    
-    Result: Any;
-    Result.value_pointer = Memory;
-    Result.type = type_info(T);
-    return Result;
-}
-
-// C string
-CS :: (S: string) -> *u8 {
-    String := ArenaAlloc(*WorkingArena, xx (S.count + 1));
-    Copy(String, S.data, S.count);
-    String[S.count] = 0;
-    return String;
-}
-
-// Temp C string
-TCS :: (S: string) -> *u8 {
-    String := ArenaAlloc(*FrameArena, xx (S.count + 1));
-    Copy(String, S.data, S.count);
-    String[S.count] = 0;
-    return String;
 }
 
 for_expansion :: (List: *linked_list($T), Body: Code, Flags: For_Flags) #expand {
@@ -92,6 +61,32 @@ for_expansion :: (List: *linked_list($T), Body: Code, Flags: For_Flags) #expand 
             Index += 1;
         }
     }
+}
+
+TAny :: (Value: *$T) -> Any {
+    Memory := ArenaPush(*FrameArena, T);
+    Copy(Memory, Value, size_of(T));
+    
+    Result: Any;
+    Result.value_pointer = Memory;
+    Result.type = type_info(T);
+    return Result;
+}
+
+// C string
+CS :: (S: string) -> *u8 {
+    String := ArenaAlloc(*WorkingArena, xx (S.count + 1));
+    Copy(String, S.data, S.count);
+    String[S.count] = 0;
+    return String;
+}
+
+// Temp C string
+TCS :: (S: string) -> *u8 {
+    String := ArenaAlloc(*FrameArena, xx (S.count + 1));
+    Copy(String, S.data, S.count);
+    String[S.count] = 0;
+    return String;
 }
 
 Zero :: (Memory: *void, Size: u64) {

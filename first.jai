@@ -111,30 +111,48 @@ build_game :: (profiling: bool) {
         builder: String_Builder;
         
         append(*builder, "entity_types :: struct {\n");
-        append(*builder, "\tInfoList: [] entity_type_info;\n");
+        append(*builder, "\tInfoList: [] *entity_type_info;\n");
         
         for entity_types {
-            print_to_builder(*builder, "\t%: entity_list;\n", convert_case(it.name));
+            print_to_builder(*builder, "\t%: entity_type_info;\n", convert_case(it.name));
         }
         
         append(*builder, "}\n\n");
         
         append(*builder, "BuildEntityTypeList :: (Arena: *arena) {\n");
-        print_to_builder(*builder, "EntityTypes.InfoList = ArenaPushN(Arena, entity_type_info, %);\n", entity_types.count);
+        print_to_builder(*builder, "\tGEntityTypes.InfoList = ArenaPushN(Arena, *entity_type_info, %);\n", entity_types.count);
         for entity_types {
-            print_to_builder(*builder, "\tEntityTypes.InfoList[%] = .{\"%\", %, *EntityTypes.%};\n", it_index, convert_case(it.name), it_index, convert_case(it.name));
+            print_to_builder(*builder, "\tGEntityTypes.%1 = .{\"%1\", %2, .{}, size_of(%3), .{}};\n", convert_case(it.name), it_index, it.name);
+        }
+        for entity_types {
+            print_to_builder(*builder, "\tGEntityTypes.InfoList[%] = *GEntityTypes.%;\n", it_index, convert_case(it.name));
         }
         append(*builder, "}\n\n");
+        
+        append(*builder, "EntityTypeId :: ($T: Type) -> int {\n");
+        for entity_types {
+            print_to_builder(*builder, "\tif T == % return %;\n", it.name, it_index);
+        }
+        append(*builder, "\tAssert(false);\n");
+        append(*builder, "\treturn -1;\n");
+        append(*builder, "}\n\n");
+        
+        append(*builder, "CreateEntityFromName :: (Name: string) -> *entity {\n");
+        for entity_types {
+            print_to_builder(*builder, "\tif equal(Name, \"%\") return CreateEntity(%);\n", convert_case(it.name), it.name);
+        }
+        append(*builder, "\treturn null;\n");
+        append(*builder, "}\n");
         
         /*
-        append(*builder, "GetEntityList :: ($T: Type) -> *entity_list{\n");
-        
-        for entity_types {
-            print_to_builder(*builder, "\t#if T == type_of(%) return EntityTypes.%;\n", it.name, convert_case(it.name));
-        }
-        append(*builder, "return null;\n");
-        append(*builder, "}\n\n");
-        */
+                append(*builder, "GetEntityList :: ($T: Type) -> *entity_list{\n");
+                
+                for entity_types {
+                    print_to_builder(*builder, "\t#if T == type_of(%) return EntityTypes.%;\n", it.name, convert_case(it.name));
+                }
+                append(*builder, "return null;\n");
+                append(*builder, "}\n\n");
+                */
         
         /*
         

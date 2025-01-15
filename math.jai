@@ -19,22 +19,6 @@ Rad2Turn :: 1.0 / (2 * PI);
 Turn2Deg :: PI;
 Deg2Turn :: 1.0 / 360.0;
 
-random_value :: struct {
-    Value: float;
-    Min := 0.0;
-    Max := 1.0;
-    Set: bool;
-}
-
-MakeRandomValue :: (Min: float, Max: float) -> random_value {
-    return .{0.0, Min, Max, false};
-}
-
-UpdateRandomValue :: (R: *random_value) {
-    R.Value = RandomFloat(R.Min, R.Max);
-    R.Set = true;
-}
-
 RandomFloat :: () -> float {
     R := random_get_zero_to_one_new();
     return cast (float) R;

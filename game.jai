@@ -66,18 +66,17 @@ entity_man :: struct {
     Base.MeshPath = "meshes/man.mesh";
     
     Patrol: entity_patrol;
-    Patrol.AreaExtents = #run MakeRandomValue(50, 200);
-    Patrol.WaitTime = #run MakeRandomValue(3.0, 5.0);
+    Patrol.AreaExtents = 150;
+    Patrol.WaitTime = 3.0;
+    Patrol.FollowSpeed = 6.0;
 }
 
 UpdateGame :: () {
     if GamePaused return;
     
-    GAllEntities = BuildEntityArray();
-    
     // These is only ever one player.
-    if EntityTypes.Player.Count > 0 {
-        if !GPlayer GPlayer = *EntityTypes.Player[0];
+    if GEntityTypes.Player.Count > 0 {
+        if !GPlayer GPlayer = DownCast(GEntityTypes.Player.First, entity_player);
         Player := GPlayer;
         
         MoveSpeed := Player.WalkSpeed;
@@ -109,30 +108,36 @@ UpdateGame :: () {
         UpdateCameraPlayer(*Player.Camera);
     }
     
-    for * :OnlyActiveEntities EntityTypes.Prop {
-        UpdateEntityBounds(it);
+    for GEntityTypes.Prop {
+        Prop := DownCast(it, entity_prop);
+        
+        UpdateEntityBounds(Prop);
     }
     
-    for * :OnlyActiveEntities EntityTypes.Collider {
-        UpdateEntityBounds(it);
+    for GEntityTypes.Collider {
+        Collider := DownCast(it, entity_collider);
+        
+        UpdateEntityBounds(Collider);
     }
     
-    for * :OnlyActiveEntities EntityTypes.Man {
-        UpdateEntityBounds(it);
+    for GEntityTypes.Man {
+        Man := DownCast(it, entity_man);
         
-        PositionEntityAboveGround(it);
+        PositionEntityAboveGround(Man);
         
-        EntityPatrol(it, *it.Patrol);
+        EntityPatrol(Man, *Man.Patrol);
+        
+        UpdateEntityBounds(Man);
     }
 }
 
 DrawGame :: () {
-    for EntityTypes.Prop {
+    for GEntityTypes.Prop {
         UpdateEntityDrawTransform(it, it.Position);
         DrawEntity(it);
     }
     
-    for EntityTypes.Man {
+    for GEntityTypes.Man {
         UpdateEntityDrawTransform(it);
         DrawEntity(it);
     }
@@ -149,8 +154,6 @@ GetGameViewParams :: () -> view_parameters {
 InitGame :: () {
     TextFont = LoadDistanceFont("fonts/consolas.png");
 }
-
-GAllEntities: [] *entity;
 
 #scope_file
 
