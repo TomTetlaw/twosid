@@ -288,7 +288,7 @@ CommitExpandAmount: u64;
     
 } else #if OS == .LINUX {
     
-#import "POSIX";
+using,only(getpagesize,mmap,PROT_READ,PROT_WRITE,MAP_PRIVATE,MAP_ANONYMOUS,MAP_NORESERVE) Posix :: #import "POSIX";
     
     PageSize: u64;
     
@@ -300,7 +300,7 @@ CommitExpandAmount: u64;
     }
     
     PlatformReserve :: (Capacity: u64) -> *u8 {
-        Memory := mmap(null, Capacity, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+        Memory := mmap(null, Capacity, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, 0, 0);
         if Memory == (cast(*void)-1) return null; // linux uses a different return Value for failed
         return Memory;
     }

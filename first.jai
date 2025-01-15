@@ -27,6 +27,7 @@ build_game :: (profiling: bool) {
             array_add(*plugin_names, "jai-tracy");
         }
     } else #if OS == .LINUX {
+        array_add(*lib_files, "-lm");
     } else {
         report_error("Platform not supported.");
     }
