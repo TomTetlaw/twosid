@@ -278,7 +278,7 @@ RemoveEntity :: (Entity: *entity) {
 
 RemoveAllEntities :: () {
     for GEntityTypes.InfoList {
-        ArenaReset(*it.Arena);
+        ResetArena(*it.Arena);
     }
 }
 
@@ -315,15 +315,15 @@ InitEntitySystem :: () {
 }
 
 UpdateEntitySystem :: () {
-    Mark := FrameArena.Used;
+    Mark := GetArenaMark(*FrameArena);
     
     for Info: GEntityTypes.InfoList {
         for Info {
-            ArenaPush(*FrameArena, *entity, it);
+            PushToArena(*FrameArena, it);
         }
     }
     
-    GAllEntities = ArenaToView(*FrameArena, *entity, Mark, FrameArena.Used - Mark);
+    GAllEntities = ArenaToView(*FrameArena, *entity, Mark);
 }
 
 AllocateEntity :: (Info: *entity_type_info, $T: Type) -> *entity {
@@ -337,8 +337,8 @@ AllocateEntity :: (Info: *entity_type_info, $T: Type) -> *entity {
     }
     
     if !Entity {
-        Index := xx Info.Arena.Used / Info.TypeSize;
-        Entity = ArenaPush(*Info.Arena, T);
+        Index := xx GetArenaMark(*Info.Arena) / Info.TypeSize;
+        Entity = ArenaAlloc(*Info.Arena, T);
         Entity.Index = Index;
     }
     

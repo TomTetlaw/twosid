@@ -37,7 +37,7 @@ InitTextureSystem :: () {
     }
     
     TotalTexturesSize := 0;
-    for * Textures {
+    for * ArenaToView(*Textures, texture) {
         TotalTexturesSize += it.Width * it.Height * it.PixelSize;
         
         TextureInfo: SDL_GPUTextureCreateInfo;
@@ -60,7 +60,7 @@ InitTextureSystem :: () {
     TransferMemory := cast(*u8) SDL_MapGPUTransferBuffer(GDevice, TransferBuffer, false);
     
     Cursor := 0;
-    for * Textures {
+    for * ArenaToView(*Textures, texture) {
         Size := it.Width * it.Height * it.PixelSize;
         memcpy(TransferMemory + Cursor, it.Pixels, Size);
         Cursor += Size;
@@ -72,7 +72,7 @@ InitTextureSystem :: () {
     CopyPass := SDL_BeginGPUCopyPass(CommandBuffer);
     
     Cursor = 0;
-    for * Textures {
+    for * ArenaToView(*Textures, texture) {
         Size := it.Width * it.Height * it.PixelSize;
         Info: SDL_GPUTextureTransferInfo;
         Info.transfer_buffer = TransferBuffer;
@@ -92,27 +92,29 @@ InitTextureSystem :: () {
     
     SDL_EndGPUCopyPass(CopyPass);
     
-    for * Textures {
+    for * ArenaToView(*Textures, texture) {
         SDL_GenerateMipmapsForGPUTexture(CommandBuffer, it.GpuTexture);
     }
     
     SDL_SubmitGPUCommandBuffer(CommandBuffer);
     SDL_ReleaseGPUTransferBuffer(GDevice, TransferBuffer);
     
-    for * Textures {
+    for * ArenaToView(*Textures, texture) {
         stbi_image_free(it.Pixels);
         it.Pixels = null;
     }
 }
 
 LoadTexture :: (Path: string) -> *texture {
-    for * Textures if equal(it.Path, Path) return it;
+    for * ArenaToView(*Textures, texture) if equal(it.Path, Path) return it;
     
     Width, Height, Channels: s32;
     Pixels := stbi_load(TCS(Path), *Width, *Height, *Channels, 4);
-    if !Pixels return ArenaPushNull(texture);
     
-    Texture := ArenaPush(*Textures);
+    Texture := ArenaAlloc(*Textures, texture);
+    
+    if !Pixels return Texture;
+    
     Texture.Path = Path;
     Texture.Width = xx Width;
     Texture.Height = xx Height;
@@ -165,7 +167,7 @@ CreateFontTexture :: (Name: string, Data: *u8, Width: int, Height: int) -> *text
     SDL_SubmitGPUCommandBuffer(CommandBuffer);
     SDL_ReleaseGPUTransferBuffer(GDevice, TransferBuffer);
     
-    Texture := ArenaPush(*Textures);
+    Texture := ArenaAlloc(*Textures, texture);
     Texture.Path = Name;
     Texture.Width = Width;
     Texture.Height = Height;
@@ -192,7 +194,7 @@ CreateDepthTexture :: (Name: string, Width: int, Height: int) -> *SDL_GPUTexture
 
 #scope_file
 
-Textures: arena(texture);
+Textures: arena;
 
 #import "Basic";
 #import "String";

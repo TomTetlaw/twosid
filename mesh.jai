@@ -63,7 +63,7 @@ InitMeshSystem :: () {
         }
     }
     
-    for * Meshes {
+    for * ArenaToView(*Meshes, mesh) {
         if it.Generated continue;
         
         it.PositionBuffer = CreateVertexBuffer(Format("%_positions", it.Path), it.Positions);
@@ -81,17 +81,17 @@ InitMeshSystem :: () {
 //        Static_Mesh and Skeletal_Mesh
 
 LoadMesh :: (Path: string) -> *mesh {
-    for * Meshes if equal(it.Path, Path) return it;
+    for * ArenaToView(*Meshes, mesh) if equal(it.Path, Path) return it;
     
     File, Success := file_open(Path);
     defer if Success file_close(*File);
     
-    if !Success return ArenaPushNull(mesh);
+    if !Success return ArenaAlloc(*Meshes, mesh);
     
     Header := FileReadMeshHeader(*File);
     if !equal(Header.Magic, "MESH") {
         print("Failed to load: % is not a mesh file!", Path);
-        return ArenaPushNull(mesh);
+        return ArenaAlloc(*Meshes, mesh);
     }
     
     Positions := FileReadArray(*File, *MeshArena, float3, Header.NumVertices);
@@ -116,8 +116,8 @@ LoadMesh :: (Path: string) -> *mesh {
         MaxBounds.z = max(MaxBounds.z, it.z);
     }
     
-    Bones := ArenaPushN(*MeshArena, bone, xx Header.NumBones);
-    BoneNameMap := ArenaPushN(*MeshArena, int, BONE_NAME_MAP_SIZE);
+    Bones := ArenaAlloc(*MeshArena, bone, Header.NumBones);
+    BoneNameMap := ArenaAlloc(*MeshArena, int, BONE_NAME_MAP_SIZE);
     
     for * BoneNameMap {
         it.* = -1;
@@ -150,11 +150,11 @@ LoadMesh :: (Path: string) -> *mesh {
         it.InverseBindTransform = InverseMatrix(it.InverseBindTransform);
     }
     
-    Skeleton := ArenaPush(*MeshArena, skeleton);
+    Skeleton := ArenaAlloc(*MeshArena, skeleton);
     Skeleton.Bones = Bones;
     Skeleton.BoneNameMap = BoneNameMap;
     
-    Mesh := ArenaPush(*Meshes);
+    Mesh := ArenaAlloc(*Meshes, mesh);
     
     Mesh.Positions = Positions;
     Mesh.TexCoords = TexCoords;
@@ -175,18 +175,16 @@ LoadMesh :: (Path: string) -> *mesh {
 }
 
 CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
-    Mark := ArenaPushMark(*WorkingArena);
-    
     IndexCount := Triangles.count * 3;
-
-    Positions := ArenaPushN(*WorkingArena, float3, IndexCount);
-    Indices := ArenaPushN(*WorkingArena, u32, IndexCount);
-
+    
+    Positions := ArenaAlloc(*MeshArena, float3, IndexCount);
+    Indices := ArenaAlloc(*MeshArena, u32, IndexCount);
+    
     for Triangles {
         Positions[it_index*3 + 0] = it.P1;
         Positions[it_index*3 + 1] = it.P2;
         Positions[it_index*3 + 2] = it.P3;
-
+        
         Indices[it_index*3 + 0] = xx (it_index*3 + 0);
         Indices[it_index*3 + 1] = xx (it_index*3 + 1);
         Indices[it_index*3 + 2] = xx (it_index*3 + 2);
@@ -205,7 +203,7 @@ CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
         MaxBounds.z = max(MaxBounds.z, it.z);
     }
     
-    Mesh := ArenaPush(*Meshes);
+    Mesh := ArenaAlloc(*Meshes, mesh);
     Mesh.Path = Name;
     Mesh.Positions = Positions;
     Mesh.Indices = Indices;
@@ -217,14 +215,10 @@ CreateMeshFromTriangles :: (Name: string, Triangles: [] triangle) -> *mesh {
     
     Mesh.Generated = true;
     
-    ArenaPopMark(*WorkingArena, Mark);
-    
     return Mesh;
 }
 
 CreateMesh :: (Name: string, Positions: [] float3, TexCoords: [] float2, Indices: [] u32) -> *mesh {
-    Mark := ArenaPushMark(*WorkingArena);
-    
     MinBounds := xyz(FLOAT32_MAX);
     MaxBounds := xyz(-FLOAT32_MAX);
     
@@ -238,11 +232,11 @@ CreateMesh :: (Name: string, Positions: [] float3, TexCoords: [] float2, Indices
         MaxBounds.z = max(MaxBounds.z, it.z);
     }
     
-    Mesh := ArenaPush(*Meshes);
+    Mesh := ArenaAlloc(*Meshes, mesh);
     Mesh.Path = Name;
-    Mesh.Positions = Positions;
-    Mesh.TexCoords = TexCoords;
-    Mesh.Indices = Indices;
+    Mesh.Positions = PushToArena(*MeshArena, Positions);
+    Mesh.TexCoords = PushToArena(*MeshArena, TexCoords);
+    Mesh.Indices = PushToArena(*MeshArena, Indices);
     Mesh.NumIndices = Indices.count;
     Mesh.Bounds = .{MinBounds, MaxBounds};
     
@@ -251,8 +245,6 @@ CreateMesh :: (Name: string, Positions: [] float3, TexCoords: [] float2, Indices
     Mesh.IndexBuffer = CreateIndexBuffer(Format("%_index", Name), Indices);
     
     Mesh.Generated = true;
-    
-    ArenaPopMark(*WorkingArena, Mark);
     
     return Mesh;
 }
@@ -263,22 +255,24 @@ FindBone :: (Skeleton: *skeleton, Name: string) -> *bone {
 }
 
 LoadAnimation :: (Path: string) -> *animation {
-    for * Animations if equal(it.Path, Path) return it;
+    for * ArenaToView(*Animations, animation) {
+        if equal(it.Path, Path) return it;
+    }
     
     File, Success := file_open(Path);
     defer if Success file_close(*File);
     
-    if !Success return ArenaPushNull(animation);
+    if !Success return ArenaAlloc(*Animations, animation);
     
     Header := FileReadAnimHeader(*File);
     if !equal(Header.Magic, "ANIM") {
         print("Failed to load: % is not an Anim File!", Path);
-        return ArenaPushNull(animation);
+        return ArenaAlloc(*Animations, animation);
     }
     
     Name := FileReadString(*File, *AnimationArena);
     
-    BoneNames := ArenaPushN(*AnimationArena, string, xx Header.BoneCount);
+    BoneNames := ArenaAlloc(*AnimationArena, string, Header.BoneCount);
     for 0..Header.BoneCount-1 {
         BoneNames[it] = FileReadString(*File, *AnimationArena);
     }
@@ -287,7 +281,7 @@ LoadAnimation :: (Path: string) -> *animation {
     Rotations := FileReadArray(*File, *AnimationArena, quat, Header.BoneCount * Header.SampleCount);
     Scales := FileReadArray(*File, *AnimationArena, float3, Header.BoneCount * Header.SampleCount);
     
-    Anim := ArenaPush(*Animations);
+    Anim := ArenaAlloc(*Animations, animation);
     Anim.Name = Name;
     Anim.Path = Path;
     Anim.SampleCount = Header.SampleCount;
@@ -334,7 +328,7 @@ serialized_animation :: struct {
 }
 
 FileReadBones :: (f: *File, Arena: *arena, Count: int) -> [] serialized_bone {
-    Bones := ArenaPushN(Arena, serialized_bone, xx Count);
+    Bones := ArenaAlloc(Arena, serialized_bone, Count);
     
     for 0..Count-1 {
         Name := FileReadString(f, Arena);
@@ -371,10 +365,10 @@ FileReadAnimHeader :: (f: *File) -> anim_header {
     return Header;
 }
 
-Meshes: arena(mesh);
+Meshes: arena;
 MeshArena: arena;
 
-Animations: arena(animation);
+Animations: arena;
 AnimationArena: arena;
 
 #import "Basic";

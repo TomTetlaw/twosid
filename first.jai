@@ -120,7 +120,7 @@ build_game :: (profiling: bool) {
         append(*builder, "}\n\n");
         
         append(*builder, "BuildEntityTypeList :: (Arena: *arena) {\n");
-        print_to_builder(*builder, "\tGEntityTypes.InfoList = ArenaPushN(Arena, *entity_type_info, %);\n", entity_types.count);
+        print_to_builder(*builder, "\tGEntityTypes.InfoList = ArenaAlloc(Arena, *entity_type_info, %);\n", entity_types.count);
         for entity_types {
             print_to_builder(*builder, "\tGEntityTypes.%1 = .{\"%1\", %2, .{}, size_of(%3), .{}};\n", convert_case(it.name), it_index, it.name);
         }

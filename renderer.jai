@@ -85,7 +85,7 @@ CreatePipeline :: (Name: string, Options: *pipeline_options, Textures: [] SDL_GP
     Info.rasterizer_state.fill_mode = Options.FillMode;
     Info.rasterizer_state.front_face = .SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
     
-    Mark := ArenaPushMark(*WorkingArena);
+    Mark := GetArenaMark(*WorkingArena);
     
     NeedsSkinningBuffer := false;
     AttributeCount := 0;
@@ -93,12 +93,12 @@ CreatePipeline :: (Name: string, Options: *pipeline_options, Textures: [] SDL_GP
     if Options.Buffers == .POSITION_ONLY {
         AttributeCount = 1;
         
-        BufferDescriptions := ArenaPushN(*WorkingArena, SDL_GPUVertexBufferDescription, AttributeCount);
+        BufferDescriptions := ArenaAlloc(*WorkingArena, SDL_GPUVertexBufferDescription, AttributeCount);
         BufferDescriptions[0] = .{0, size_of(float3), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
         Info.vertex_input_state.vertex_buffer_descriptions = BufferDescriptions.data;
         Info.vertex_input_state.num_vertex_buffers = xx AttributeCount;
         
-        VertexAttributes := ArenaPushN(*WorkingArena, SDL_GPUVertexAttribute, AttributeCount);
+        VertexAttributes := ArenaAlloc(*WorkingArena, SDL_GPUVertexAttribute, AttributeCount);
         VertexAttributes[0] = .{0, 0, .SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0};
         Info.vertex_input_state.vertex_attributes = VertexAttributes.data;
         Info.vertex_input_state.num_vertex_attributes = xx AttributeCount;
@@ -107,13 +107,13 @@ CreatePipeline :: (Name: string, Options: *pipeline_options, Textures: [] SDL_GP
     if Options.Buffers == .POSITION_TEXCOORD {
         AttributeCount = 2;
         
-        BufferDescriptions := ArenaPushN(*WorkingArena, SDL_GPUVertexBufferDescription, AttributeCount);
+        BufferDescriptions := ArenaAlloc(*WorkingArena, SDL_GPUVertexBufferDescription, AttributeCount);
         BufferDescriptions[0] = .{0, size_of(float3), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
         BufferDescriptions[1] = .{1, size_of(float2), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
         Info.vertex_input_state.vertex_buffer_descriptions = BufferDescriptions.data;
         Info.vertex_input_state.num_vertex_buffers = xx AttributeCount;
         
-        VertexAttributes := ArenaPushN(*WorkingArena, SDL_GPUVertexAttribute, AttributeCount);
+        VertexAttributes := ArenaAlloc(*WorkingArena, SDL_GPUVertexAttribute, AttributeCount);
         VertexAttributes[0] = .{0, 0, .SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0};
         VertexAttributes[1] = .{1, 1, .SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 0};
         Info.vertex_input_state.vertex_attributes = VertexAttributes.data;
@@ -124,14 +124,14 @@ CreatePipeline :: (Name: string, Options: *pipeline_options, Textures: [] SDL_GP
         AttributeCount = 3;
         NeedsSkinningBuffer = true;
         
-        BufferDescriptions := ArenaPushN(*WorkingArena, SDL_GPUVertexBufferDescription, AttributeCount);
+        BufferDescriptions := ArenaAlloc(*WorkingArena, SDL_GPUVertexBufferDescription, AttributeCount);
         BufferDescriptions[0] = .{0, size_of(float3), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
         BufferDescriptions[1] = .{1, size_of(float3), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
         BufferDescriptions[2] = .{2, size_of(bone_ids), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
         Info.vertex_input_state.vertex_buffer_descriptions = BufferDescriptions.data;
         Info.vertex_input_state.num_vertex_buffers = xx AttributeCount;
         
-        VertexAttributes := ArenaPushN(*WorkingArena, SDL_GPUVertexAttribute, AttributeCount);
+        VertexAttributes := ArenaAlloc(*WorkingArena, SDL_GPUVertexAttribute, AttributeCount);
         VertexAttributes[0] = .{0, 0, .SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0};
         VertexAttributes[1] = .{1, 1, .SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0};
         VertexAttributes[2] = .{2, 2, .SDL_GPU_VERTEXELEMENTFORMAT_SHORT4, 0};
@@ -143,7 +143,7 @@ CreatePipeline :: (Name: string, Options: *pipeline_options, Textures: [] SDL_GP
         AttributeCount = 6;
         NeedsSkinningBuffer = true;
         
-        BufferDescriptions := ArenaPushN(*WorkingArena, SDL_GPUVertexBufferDescription, AttributeCount);
+        BufferDescriptions := ArenaAlloc(*WorkingArena, SDL_GPUVertexBufferDescription, AttributeCount);
         BufferDescriptions[0] = .{0, size_of(float3), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
         BufferDescriptions[1] = .{1, size_of(float2), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
         BufferDescriptions[2] = .{2, size_of(float3), .SDL_GPU_VERTEXINPUTRATE_VERTEX, 0};
@@ -153,7 +153,7 @@ CreatePipeline :: (Name: string, Options: *pipeline_options, Textures: [] SDL_GP
         Info.vertex_input_state.vertex_buffer_descriptions = BufferDescriptions.data;
         Info.vertex_input_state.num_vertex_buffers = xx AttributeCount;
         
-        VertexAttributes := ArenaPushN(*WorkingArena, SDL_GPUVertexAttribute, AttributeCount); 
+        VertexAttributes := ArenaAlloc(*WorkingArena, SDL_GPUVertexAttribute, AttributeCount); 
         VertexAttributes[0] = .{0, 0, .SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0};
         VertexAttributes[1] = .{1, 1, .SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 0};
         VertexAttributes[2] = .{2, 2, .SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 0};
@@ -169,9 +169,9 @@ CreatePipeline :: (Name: string, Options: *pipeline_options, Textures: [] SDL_GP
     
     PipelineObject := SDL_CreateGPUGraphicsPipeline(GDevice, *Info);
     
-    ArenaPopMark(*WorkingArena, Mark);
+    PopArenaMark(*WorkingArena, Mark);
     
-    Pipeline := ArenaPush(*RendererArena, pipeline);
+    Pipeline := ArenaAlloc(*RendererArena, pipeline);
     
     AddToLinkedList(*PipelineList, Pipeline);
     
@@ -186,12 +186,12 @@ CreatePipeline :: (Name: string, Options: *pipeline_options, Textures: [] SDL_GP
     Pipeline.AttributeCount = AttributeCount;
     Pipeline.TextureCount = Textures.count + TextureCount;
     
-    Pipeline.Textures = ArenaPushN(*RendererArena, SDL_GPUTextureSamplerBinding, Textures);
+    Pipeline.Textures = PushToArena(*RendererArena, Textures);
     
-    Pipeline.VertConstants = ArenaAlloc(*RendererArena, size_of(Cv));
+    Pipeline.VertConstants = cast(*void) ArenaAlloc(*RendererArena, Cv);
     Pipeline.VertConstantsSize = size_of(Cv);
     
-    Pipeline.FragConstants = ArenaAlloc(*RendererArena, size_of(Cf));
+    Pipeline.FragConstants = cast(*void) ArenaAlloc(*RendererArena, Cf);
     Pipeline.FragConstantsSize = size_of(Cf);
     
     Pipeline.Name = Name;
@@ -206,7 +206,7 @@ ResetPipelines :: () {
 }
 
 CreatePipelineBatchForMesh :: (Source: *draw_batch, Pipeline: *pipeline, Textures: [] *texture, Samplers: [] *SDL_GPUSampler, Mesh: *mesh, InstanceData: [] $T) -> *pipeline_render_batch {
-    TextureBindings := ArenaPushN(*RendererFrameArena, SDL_GPUTextureSamplerBinding, Pipeline.TextureCount);
+    TextureBindings := ArenaAlloc(*RendererFrameArena, SDL_GPUTextureSamplerBinding, Pipeline.TextureCount);
     
     Grey := LoadTexture("textures/grey.png");
     for * TextureBindings {
@@ -219,17 +219,21 @@ CreatePipelineBatchForMesh :: (Source: *draw_batch, Pipeline: *pipeline, Texture
     }
     
     for Textures {
-        if it_index >= Pipeline.TextureCount break;
-        if !it continue;
+        if !it || !it.GpuTexture continue;
+        
+        Index := Pipeline.Textures.count + it_index;
+        if Index >= Pipeline.TextureCount break;
         
         Sampler: *SDL_GPUSampler;
         if it_index >= Samplers.count || !Samplers[it_index] Sampler = DefaultSampler;
         else Sampler = Samplers[it_index];
         
-        TextureBindings[Pipeline.Textures.count + it_index] = .{it.GpuTexture, Sampler};
+        Assert(Sampler != null);
+        
+        TextureBindings[Index] = .{it.GpuTexture, Sampler};
     }
     
-    VertexBuffers := ArenaPushN(*RendererFrameArena, SDL_GPUBufferBinding, Pipeline.AttributeCount);
+    VertexBuffers := ArenaAlloc(*RendererFrameArena, SDL_GPUBufferBinding, Pipeline.AttributeCount);
     if Pipeline.Buffers == .POSITION_ONLY {
         VertexBuffers[0] = SDL_GPUBufferBinding.{Mesh.PositionBuffer, 0};
     }
@@ -267,7 +271,7 @@ CreatePipelineBatchForMesh :: (Source: *draw_batch, Pipeline: *pipeline, Texture
     
     Assert(IndexBuffer.buffer != null);
     
-    Batch := ArenaPush(*RendererFrameArena, pipeline_render_batch);
+    Batch := ArenaAlloc(*RendererFrameArena, pipeline_render_batch);
     AddToLinkedList(*Pipeline.BatchList, Batch);
     
     Batch.TextureBindings = TextureBindings;
@@ -358,24 +362,24 @@ InitRenderer :: () {
     SamplerInfo.address_mode_w = .SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT;
     ShadowSampler = SDL_CreateGPUSampler(GDevice, *SamplerInfo);
     
-    ShadowPass = ArenaPush(*RendererArena, render_pass);
+    ShadowPass = ArenaAlloc(*RendererArena, render_pass);
     ShadowPass.DepthTarget = true;
     ShadowPass.ClearDepth = true;
     ShadowPass.DepthTexture = ShadowTexture;
     
-    OpaquePass = ArenaPush(*RendererArena, render_pass);
+    OpaquePass = ArenaAlloc(*RendererArena, render_pass);
     OpaquePass.ColourTarget = true;
     OpaquePass.ClearColour = true;
     OpaquePass.DepthTarget = true;
     OpaquePass.ClearDepth = true;
     OpaquePass.DepthTexture = DepthTexture;
     
-    TranslucentPass = ArenaPush(*RendererArena, render_pass);
+    TranslucentPass = ArenaAlloc(*RendererArena, render_pass);
     TranslucentPass.ColourTarget = true;
     TranslucentPass.DepthTarget = true;
     TranslucentPass.DepthTexture = DepthTexture;
     
-    UIPass = ArenaPush(*RendererArena, render_pass);
+    UIPass = ArenaAlloc(*RendererArena, render_pass);
     UIPass.ColourTarget = true;
     
     QuadOptions := pipeline_options.{
@@ -626,7 +630,7 @@ RenderFrame :: (Camera: *$T/interface view_parameters) {
     ResetPipelines();
     ResetRendererFrontend();
     
-    ArenaReset(*RendererFrameArena);
+    ResetArena(*RendererFrameArena);
     
     SwapTexture = null;
 }

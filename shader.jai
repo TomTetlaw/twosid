@@ -33,7 +33,7 @@ InitShaderSystem :: () {
 #import "File";
 
 ShaderArena: arena;
-Shaders: arena(shader);
+Shaders: arena;
 
 FormatToLoad: SDL_GPUShaderFormat;
 ShaderFormat: string;
@@ -65,7 +65,7 @@ CreateShader :: (Path: string) -> *shader {
     FragMeta: SDL_ShaderCross_GraphicsShaderMetadata;
     FragShader := SDL_ShaderCross_CompileGraphicsShaderFromHLSL(GDevice, *Info, *FragMeta);
     
-    Shader := ArenaPush(*Shaders);
+    Shader := ArenaAlloc(*Shaders, shader);
     Shader.Vert = VertShader;
     Shader.VertMeta = VertMeta;
     Shader.Frag = FragShader;

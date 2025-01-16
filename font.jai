@@ -16,12 +16,12 @@ font :: struct {
 }
 
 LoadFont :: (Path: string, Size: float) -> *font {
-    for * Fonts {
+    for * ArenaToView(*Fonts, font) {
         if equal(Path, it.Path) && it.Size == Size return it;
     }
     
     File, Success := read_entire_file(Path);
-    if !Success return ArenaPushNull(font);
+    if !Success return ArenaAlloc(*Fonts, font);
     
     FontInfo: stbtt_fontinfo;
     stbtt_InitFont(*FontInfo, File.data, stbtt_GetFontOffsetForIndex(File.data, 0));
@@ -30,7 +30,7 @@ LoadFont :: (Path: string, Size: float) -> *font {
     Width, Height: s32 = 512;
     
     Pixels := ArenaAlloc(*FontArena, xx (Width * Height));
-    CharData := ArenaPushN(*FontArena, stbtt_packedchar, 96);
+    CharData := ArenaAlloc(*FontArena, stbtt_packedchar, 96);
     
     PackContext: stbtt_pack_context;
     stbtt_PackBegin(*PackContext, Pixels, Width, Height, Width, 1, null);
@@ -46,7 +46,7 @@ LoadFont :: (Path: string, Size: float) -> *font {
     Advance: s32;
     stbtt_GetCodepointHMetrics(*FontInfo, #char "A", *Advance, null);
     
-    Font := ArenaPush(*Fonts);
+    Font := ArenaAlloc(*Fonts, font);
     Font.Path = Path;
     Font.Texture = Texture;
     Font.LineSkip = LineSkip;
@@ -74,7 +74,7 @@ sdf_font :: struct {
 }
 
 LoadDistanceFont :: (TexturePath: string) -> *sdf_font {
-    for * DistanceFonts {
+    for * ArenaToView(*DistanceFonts, sdf_font) {
         if equal(TexturePath, it.Path) return it;
     }
     
@@ -82,10 +82,10 @@ LoadDistanceFont :: (TexturePath: string) -> *sdf_font {
     
     Success, Lines := file_to_array(TFormat("%", replace(TexturePath, ".png", ".csv")));
     
-    Mark := FontArena.Used;
+    Mark := GetArenaMark(*FontArena);
     for Lines {
         Values := split(it, ",");
-        Char := ArenaPush(*FontArena, sdf_char);
+        Char := ArenaAlloc(*FontArena, sdf_char);
         
         Char.Ascii = string_to_int(Values[0]);
         
@@ -101,9 +101,9 @@ LoadDistanceFont :: (TexturePath: string) -> *sdf_font {
         Char.U1 = string_to_float(Values[8]) / DistanceTexture.Width;
         Char.V1 = string_to_float(Values[9]) / DistanceTexture.Height;
     }
-    Chars := ArenaToView(*FontArena, sdf_char, Mark, FontArena.Used - Mark);
+    Chars := ArenaToView(*FontArena, sdf_char, Mark);
     
-    Font := ArenaPush(*DistanceFonts);
+    Font := ArenaAlloc(*DistanceFonts, sdf_font);
     Font.Path = TexturePath;
     Font.Texture = DistanceTexture;
     Font.Chars = Chars;
@@ -157,10 +157,9 @@ GetStringSize :: (Font: *sdf_font, Size: float, S: string) -> float2 {
 
 #scope_file
 
-DistanceFonts: arena(sdf_font);
-
 FontArena: arena;
-Fonts: arena(font);
+Fonts: arena;
+DistanceFonts: arena;
 
 #import "Text_File_Handler";
 #import "stb_truetype";

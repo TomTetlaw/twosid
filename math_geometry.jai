@@ -184,8 +184,6 @@ surface_hit :: struct {
 }
 
 RaySurfaceIntersection :: (Surface: *surface_collision_mesh, Ray: float2) -> surface_hit {
-    Mark := ArenaPushMark(*FrameArena);
-    
     BestZ :: 32 * 0;
     Surface.m256Base[BestZ / 32] = PackFloat8(-FLOAT32_MAX);
     
@@ -208,8 +206,8 @@ RaySurfaceIntersection :: (Surface: *surface_collision_mesh, Ray: float2) -> sur
     IndexInc :: 32 * 2;
     Surface.m256BaseI[IndexInc / 32] = PackInt8(8);
     
-    m256Base := Surface.m256Base;
-    m256BaseI := Surface.m256BaseI;
+    m256Base := Surface.m256Base.data;
+    m256BaseI := Surface.m256BaseI.data;
     
 #asm {
         mov Base:, m256Base;
@@ -317,8 +315,6 @@ RaySurfaceIntersection :: (Surface: *surface_collision_mesh, Ray: float2) -> sur
         BestHit.Intersected = true;
     }
     
-    ArenaPopMark(*FrameArena, Mark);
-    
     return BestHit;
 }
 
@@ -329,7 +325,7 @@ collision_mesh :: struct {
 CreateCollisionMesh :: (Arena: *arena, Mesh: *mesh) -> collision_mesh {
     TriangleCount := Mesh.NumIndices / 3;
     
-    Tris := PushFixedArena(Arena, triangle, TriangleCount);
+    Mark := GetArenaMark(Arena);
     
     for 0..TriangleCount-1 {
         Index1 := Mesh.Indices[it*3 + 0];
@@ -340,18 +336,18 @@ CreateCollisionMesh :: (Arena: *arena, Mesh: *mesh) -> collision_mesh {
         P2 := Mesh.Positions[Index2];
         P3 := Mesh.Positions[Index3];
         
-        ArenaPush(Tris, .{P1, P2, P3});
+        PushToArena(Arena, triangle.{P1, P2, P3});
     }
     
     Result: collision_mesh;
-    Result.Tris = ArenaToView(Tris);
+    Result.Tris = ArenaToView(Arena, triangle, Mark);
     return Result;
 }
 
 CreateStaticCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) -> collision_mesh {
     TriangleCount := Mesh.NumIndices / 3;
     
-    Tris := PushFixedArena(Arena, triangle, TriangleCount);
+    Mark := GetArenaMark(Arena);
     
     for 0..TriangleCount-1 {
         Index1 := Mesh.Indices[it*3 + 0];
@@ -362,11 +358,11 @@ CreateStaticCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) -> 
         P2 := (ToWorld * xyzw(Mesh.Positions[Index2], 1.0)).xyz;
         P3 := (ToWorld * xyzw(Mesh.Positions[Index3], 1.0)).xyz;
         
-        ArenaPush(Tris, .{P1, P2, P3});
+        PushToArena(Arena, triangle.{P1, P2, P3});
     }
     
     Result: collision_mesh;
-    Result.Tris = ArenaToView(Tris);
+    Result.Tris = ArenaToView(Arena, triangle, Mark);
     return Result;
 }
 
@@ -379,8 +375,8 @@ surface_triangle_8 :: struct {
 surface_collision_mesh :: struct {
     Indices: [] u32;
     Triangles: [] surface_triangle_8;
-    m256Base: *float8;
-    m256BaseI: *int32x8;
+    m256Base: [] float8;
+    m256BaseI: [] int32x8;
 }
 
 CreateSurfaceCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) -> surface_collision_mesh {
@@ -388,7 +384,7 @@ CreateSurfaceCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) ->
     PackedTriangleCount := ((TriangleCount + 7) & ~7) / 8;
     if PackedTriangleCount == 0 PackedTriangleCount = 1;
     
-    Triangles := ArenaPushN(Arena, surface_triangle_8, PackedTriangleCount, Align=32);
+    Triangles := ArenaAlloc(Arena, surface_triangle_8, PackedTriangleCount, .{Align=32});
     for PackedIndex: 0..PackedTriangleCount-1 {
         TrianglesLeft := TriangleCount - (PackedIndex * 8);
         MaxIndex := Min(TrianglesLeft, 8);
@@ -459,8 +455,8 @@ CreateSurfaceCollisionMesh :: (Arena: *arena, Mesh: *mesh, ToWorld: float4x4) ->
     Result: surface_collision_mesh;
     Result.Indices = Mesh.Indices;
     Result.Triangles = Triangles;
-    Result.m256Base = cast (*float8) ArenaAlloc(Arena, size_of(float8) * 32, 32);
-    Result.m256BaseI = cast (*int32x8) ArenaAlloc(Arena, size_of(int32x8) * 32, 32);
+    Result.m256Base = ArenaAlloc(Arena, float8, 32, .{Align=32});
+    Result.m256BaseI = ArenaAlloc(Arena, int32x8, 32, .{Align=32});
     return Result;
 }
 
@@ -469,7 +465,7 @@ CreateSurfaceCollisionMesh :: (Arena: *arena, Triangles: [] triangle) -> surface
     PackedTriangleCount := ((TriangleCount + 7) & ~7) / 8;
     if PackedTriangleCount == 0 PackedTriangleCount = 1;
     
-    PackedTriangles := ArenaPushN(Arena, surface_triangle_8, PackedTriangleCount, Align=32);
+    PackedTriangles := ArenaAlloc(Arena, surface_triangle_8, PackedTriangleCount, .{Align=32});
     for PackedIndex: 0..PackedTriangleCount-1 {
         TrianglesLeft := TriangleCount - (PackedIndex * 8);
         MaxIndex := Min(TrianglesLeft, 8);
@@ -532,8 +528,8 @@ CreateSurfaceCollisionMesh :: (Arena: *arena, Triangles: [] triangle) -> surface
     Result: surface_collision_mesh;
     Result.Indices = .[];
     Result.Triangles = PackedTriangles;
-    Result.m256Base = cast (*float8) ArenaAlloc(Arena, size_of(float8) * 5, 32);
-    Result.m256BaseI = cast (*int32x8) ArenaAlloc(Arena, size_of(int32x8) * 3, 32);
+    Result.m256Base = ArenaAlloc(Arena, float8, 5, .{Align=32});
+    Result.m256BaseI = ArenaAlloc(Arena, int32x8, 3, .{Align=32});
     return Result;
 }
 

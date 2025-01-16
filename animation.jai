@@ -30,9 +30,9 @@ CreateAnimPlayer :: (Mesh: *mesh, Anim: *animation) -> anim_player {
     Player.Anim = Anim;
     Player.Pose.BoneNames = Anim.BoneNames;
     
-    Player.Pose.ParentModelSpaceTransforms = ArenaPushN(*AnimArena, float4x4, xx Anim.BoneCount);
-    Player.Pose.ModelSpaceTransforms = ArenaPushN(*AnimArena, float4x4, xx Anim.BoneCount);
-    Player.Pose.SkinningTransforms = ArenaPushN(*AnimArena, float4x4, xx Anim.BoneCount);
+    Player.Pose.ParentModelSpaceTransforms = ArenaAlloc(*AnimArena, float4x4, Anim.BoneCount);
+    Player.Pose.ModelSpaceTransforms = ArenaAlloc(*AnimArena, float4x4, Anim.BoneCount);
+    Player.Pose.SkinningTransforms = ArenaAlloc(*AnimArena, float4x4, Anim.BoneCount);
     
     return Player;
 }
@@ -63,11 +63,11 @@ AnimUpdate :: (Player: *anim_player) {
         Player.Pose.ModelSpaceTransforms[Bone.Id] = Bone.LocalBindTransform;
     }
     
-    Mark := ArenaPushMark(*FrameArena);
+    Mark := GetArenaMark(*FrameArena);
     
-    Positions := ArenaPushN(*FrameArena, float3, xx Anim.BoneNames.count);
-    Rotations := ArenaPushN(*FrameArena, quat, xx Anim.BoneNames.count);
-    Scales := ArenaPushN(*FrameArena, float3, xx Anim.BoneNames.count);
+    Positions := ArenaAlloc(*FrameArena, float3, Anim.BoneNames.count);
+    Rotations := ArenaAlloc(*FrameArena, quat, Anim.BoneNames.count);
+    Scales := ArenaAlloc(*FrameArena, float3, Anim.BoneNames.count);
     
     for Anim.BoneNames {
         Bone := FindBone(Player.Mesh.Skeleton, it);
@@ -114,7 +114,7 @@ AnimUpdate :: (Player: *anim_player) {
         Pose.SkinningTransforms[Bone.Id] = Pose.ModelSpaceTransforms[Bone.Id] * Bone.InverseBindTransform;
     }
     
-    ArenaPopMark(*FrameArena, Mark);
+    PopArenaMark(*FrameArena, Mark);
 }
 
 #scope_file

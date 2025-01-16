@@ -32,7 +32,7 @@ InitTerrain :: () {
     CollisionMesh = CreateStaticCollisionMesh(*TerrainArena, TerrainMesh, TerrainTransform);
     TerrainBVH = BuildBVH(*TerrainArena, CollisionMesh.Tris);
     
-    TerrainTextures = ArenaPushN(*TerrainArena, *texture, 3);
+    TerrainTextures = ArenaAlloc(*TerrainArena, *texture, 3);
     TerrainTextures[0] = LoadTexture("textures/terrain_diffuse.png");
     TerrainTextures[1] = LoadTexture("textures/terrain_normal.png");
     TerrainTextures[2] = LoadTexture("textures/unit_rmaoh.png");
@@ -81,9 +81,9 @@ bvh :: struct {
 BuildBVH :: (Arena: *arena, Triangles: [] triangle) -> bvh {
     BVH: bvh;
     
-    BVH.Nodes = ArenaPushN(Arena, bvh_node, Triangles.count * 2 - 1);
+    BVH.Nodes = ArenaAlloc(Arena, bvh_node, Triangles.count * 2 - 1);
     BVH.Triangles = Triangles;
-    BVH.TriIndex = ArenaPushN(Arena, s32, Triangles.count);
+    BVH.TriIndex = ArenaAlloc(Arena, s32, Triangles.count);
     for 0..Triangles.count-1 BVH.TriIndex[it] = xx it;
     
     BVH.Nodes[0].LeftOrFirstTri = 0;
@@ -185,7 +185,7 @@ QueryNodes :: (Arena: *arena, BVH: *bvh, NodeIndex: int, Ray: ray)  {
     } else {
         for 0..Node.TriCount-1 {
             Tri := BVH.Triangles[BVH.TriIndex[Node.LeftOrFirstTri + it]];
-            ArenaPush(Arena, triangle, Tri);
+            PushToArena(Arena, Tri);
         }
     }
 }
@@ -201,11 +201,9 @@ DrawBVH :: (BVH: *bvh) {
 }
 
 GetRelevantTrianglesForRay :: (BVH: *bvh, Ray: ray) -> [] triangle {
-    Mark := FrameArena.Used;
+    Mark := GetArenaMark(*FrameArena);
     QueryBVH(*FrameArena, BVH, Ray);
-    
-    Used := FrameArena.Used - Mark;
-    Triangles := ArenaToView(*FrameArena, triangle, Mark, Used);
+    Triangles := ArenaToView(*FrameArena, triangle, Mark);
     
     return Triangles;
 }

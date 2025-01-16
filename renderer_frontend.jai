@@ -3,11 +3,11 @@ DebugString :: (Format: string, Args: ..Any) {
     Builder: String_Builder;
     print_to_builder(*Builder, Format, ..Args);
     Message := builder_to_string(*Builder);
-    ArenaPush(*DebugStrings, Message);
+    PushToArena(*DebugStrings, Message);
 }
 
 DebugString :: (String: string) {
-    ArenaPush(*DebugStrings, String);
+    PushToArena(*DebugStrings, String);
 }
 
 DebugVars :: ($Args: ..Code) #expand {
@@ -35,7 +35,7 @@ DrawUnlitMesh :: (Transform: float4x4, Mesh: *mesh, Colour := float4.{1, 1, 1, 1
     Command: draw_command;
     Command.Kind = .UNLIT;
     Command.Mesh = Mesh;
-    Command.Textures = ArenaPushN(*RendererFrameArena, *texture, .[WhiteTexture]);
+    Command.Textures = PushToArena(*RendererFrameArena, *texture.[WhiteTexture]);
     Command.Instance.Transform = Transform;
     Command.Instance.Colour = Colour;
     DrawMesh(*Command, Options);
@@ -89,7 +89,7 @@ DrawScreenSpaceQuad :: (Position: float2, Size: float2, Colour := float4.{1, 1, 
     Command: draw_command;
     Command.Kind = .QUAD_2D;
     Command.Mesh = QuadMesh;
-    Command.Textures = ArenaPushN(*RendererFrameArena, *texture, .[Texture]);
+    Command.Textures = PushToArena(*RendererFrameArena, *texture.[Texture]);
     Command.Instance.PositionSize = xyzw(Position, Size);
     Command.Instance.Colour = Colour;
     Command.Instance.TexCoords = TexCoords;
@@ -143,7 +143,7 @@ DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colou
         Command: draw_command;
         Command.Kind = .SDF_TEXT;
         Command.Mesh = QuadMesh;
-        Command.Textures = ArenaPushN(*RendererFrameArena, *texture, .[Font.Texture]);
+        Command.Textures = PushToArena(*RendererFrameArena, *texture.[Font.Texture]);
         Command.Instance.PositionSize = xyzw(P, S);
         Command.Instance.Colour = Colour;
         Command.Instance.TexCoords = T;
@@ -156,54 +156,55 @@ DrawTextSDF :: (Position: float2, Font: *sdf_font, Size: float, S: string, Colou
 
 CreateRendererBatches :: () {
     DebugStart := float2.{1000, 50};
-    for DebugStrings {
+    for ArenaToView(*DebugStrings, string) {
         DrawTextSDF(DebugStart, DebugFont, 16.0, it);
         DebugStart.y += 15;
     }
-    ArenaReset(*DebugStrings);
+    
+    ResetArena(*DebugStrings);
     
     for * BatchList {
         if it.Kind == {
             case .QUAD_2D;
-            Quad := CreatePipelineBatchForMesh(it, QuadPipeline, it.Textures, .[], QuadMesh, ArenaToView(it.InstanceDataQuad));
+            Quad := CreatePipelineBatchForMesh(it, QuadPipeline, it.Textures, .[], QuadMesh, ArenaToView(it.InstanceDataQuad, ibuffer_quad));
             Quad.Viewport = it.Viewport;
             Quad.Scissor = it.Scissor;
             
             case .TEXT;
-            Text := CreatePipelineBatchForMesh(it, TextPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataQuad));
+            Text := CreatePipelineBatchForMesh(it, TextPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataQuad, ibuffer_quad));
             Text.Viewport = it.Viewport;
             Text.Scissor = it.Scissor;
             
             case .SDF_TEXT;
-            Text := CreatePipelineBatchForMesh(it, TextSDFPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataTextSDF));
+            Text := CreatePipelineBatchForMesh(it, TextSDFPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataTextSDF, ibuffer_text_sdf));
             Text.Viewport = it.Viewport;
             Text.Scissor = it.Scissor;
             
             case .OPAQUE;
-            Shadow := CreatePipelineBatchForMesh(it, ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow));
+            Shadow := CreatePipelineBatchForMesh(it, ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow, ibuffer_shadow));
             Shadow.Viewport = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
             Shadow.Scissor = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
             
-            Mesh := CreatePipelineBatchForMesh(it, OpaquePipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh));
+            Mesh := CreatePipelineBatchForMesh(it, OpaquePipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh, ibuffer_mesh));
             Mesh.Viewport = it.Viewport;
             Mesh.Scissor = it.Scissor;
             
             case .UNLIT;
-            Mesh := CreatePipelineBatchForMesh(it, UnlitPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataUnlit));
+            Mesh := CreatePipelineBatchForMesh(it, UnlitPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataUnlit, ibuffer_unlit));
             Mesh.Viewport = it.Viewport;
             Mesh.Scissor = it.Scissor;
             
             case .DEBUG;
-            Mesh := CreatePipelineBatchForMesh(it, DebugPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataDebug));
+            Mesh := CreatePipelineBatchForMesh(it, DebugPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataDebug, ibuffer_debug));
             Mesh.Viewport = it.Viewport;
             Mesh.Scissor = it.Scissor;
             
             case .TRANSLUCENT;
-            Shadow := CreatePipelineBatchForMesh(it, ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow));
+            Shadow := CreatePipelineBatchForMesh(it, ShadowPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataShadow, ibuffer_shadow));
             Shadow.Viewport = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
             Shadow.Scissor = .{0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE};
             
-            Mesh := CreatePipelineBatchForMesh(it, TranslucentPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh));
+            Mesh := CreatePipelineBatchForMesh(it, TranslucentPipeline, it.Textures, .[], it.Mesh, ArenaToView(it.InstanceDataMesh, ibuffer_mesh));
             Mesh.Viewport = it.Viewport;
             Mesh.Scissor = it.Scissor;
         }
@@ -216,7 +217,7 @@ ResetRendererFrontend :: () {
     }
     
     ResetLinkedList(*BatchList);
-    ArenaReset(*Batches);
+    ResetArena(*Batches);
 }
 
 InitRendererFrontend :: () {
@@ -241,7 +242,7 @@ InitRendererFrontend :: () {
     BoxMesh = LoadMesh("meshes/cube.mesh");
     CylinderMesh = LoadMesh("meshes/cylinder.mesh");
     
-    IndexHash = ArenaPushN(*RendererArena, int, MAX_BATCHES * 2);
+    IndexHash = ArenaAlloc(*RendererArena, int, MAX_BATCHES * 2);
     for 0..MAX_BATCHES-1 {
         IndexHash[it] = -1;
     }
@@ -259,12 +260,12 @@ draw_batch :: struct {
     Mesh: *mesh;
     SkinningTransforms: [] float4x4;
     Textures: [] *texture;
-    InstanceDataShadow: *arena(ibuffer_shadow);
-    InstanceDataMesh: *arena(ibuffer_mesh);
-    InstanceDataUnlit: *arena(ibuffer_unlit);
-    InstanceDataDebug: *arena(ibuffer_debug);
-    InstanceDataQuad: *arena(ibuffer_quad);
-    InstanceDataTextSDF: *arena(ibuffer_text_sdf);
+    InstanceDataShadow: *arena;
+    InstanceDataMesh: *arena;
+    InstanceDataUnlit: *arena;
+    InstanceDataDebug: *arena;
+    InstanceDataQuad: *arena;
+    InstanceDataTextSDF: *arena;
     using Options: batch_state_options;
     Initialized: bool;
 }
@@ -275,12 +276,12 @@ MAX_BATCHES :: 2048;
 
 IndexHash: [] int;
 BatchList: linked_list(draw_batch);
-Batches: arena(draw_batch);
+Batches: arena;
 
 WhiteTexture: *texture;
 QuadMesh, SphereMesh, BoxMesh, CylinderMesh: *mesh;
 
-DebugStrings: arena(string);
+DebugStrings: arena;
 DebugFont: *sdf_font;
 
 draw_command_kind :: enum {
@@ -334,10 +335,11 @@ DrawMesh :: (Command: *draw_command, Options: batch_state_options = .{}) {
     HashIndex := Hash % MAX_BATCHES;
     if IndexHash[HashIndex] == -1 {
         IndexHash[HashIndex] = BatchList.Count;
-        Batch = ArenaPush(*Batches);
+        Batch = ArenaAlloc(*Batches, draw_batch);
         AddToLinkedList(*BatchList, Batch);
     } else {
-        Batch = *Batches[IndexHash[HashIndex]];
+        View := ArenaToView(*Batches, draw_batch);
+        Batch = *View[IndexHash[HashIndex]];
     }
     
     if !Batch.Initialized {
@@ -359,12 +361,13 @@ DrawMesh :: (Command: *draw_command, Options: batch_state_options = .{}) {
             Batch.Scissor = Options.Scissor;
         }
         
-        Batch.InstanceDataShadow = PushFixedArena(*RendererFrameArena, ibuffer_shadow, MAX_INSTANCES);
-        Batch.InstanceDataMesh = PushFixedArena(*RendererFrameArena, ibuffer_mesh, MAX_INSTANCES);
-        Batch.InstanceDataUnlit = PushFixedArena(*RendererFrameArena, ibuffer_unlit, MAX_INSTANCES);
-        Batch.InstanceDataDebug = PushFixedArena(*RendererFrameArena, ibuffer_debug, MAX_INSTANCES);
-        Batch.InstanceDataQuad = PushFixedArena(*RendererFrameArena, ibuffer_quad, MAX_INSTANCES);
-        Batch.InstanceDataTextSDF = PushFixedArena(*RendererFrameArena, ibuffer_text_sdf, MAX_INSTANCES);
+        Batch.InstanceDataShadow = CreateSubArena(*RendererFrameArena, size_of(ibuffer_shadow) * MAX_INSTANCES);
+        Batch.InstanceDataMesh = CreateSubArena(*RendererFrameArena, size_of(ibuffer_mesh) * MAX_INSTANCES);
+        Batch.InstanceDataUnlit = CreateSubArena(*RendererFrameArena, size_of(ibuffer_unlit) * MAX_INSTANCES);
+        Batch.InstanceDataDebug = CreateSubArena(*RendererFrameArena, size_of(ibuffer_debug) * MAX_INSTANCES);
+        Batch.InstanceDataQuad = CreateSubArena(*RendererFrameArena, size_of(ibuffer_quad) * MAX_INSTANCES);
+        Batch.InstanceDataTextSDF = CreateSubArena(*RendererFrameArena, size_of(ibuffer_text_sdf) * MAX_INSTANCES);
+        
         Batch.Initialized = true;
     }
     
@@ -376,10 +379,10 @@ DrawMesh :: (Command: *draw_command, Options: batch_state_options = .{}) {
     Quad := ibuffer_quad.{Instance.PositionSize, Instance.Colour, Instance.TexCoords};
     TextSDF := ibuffer_text_sdf.{Instance.PositionSize, Instance.Colour, Instance.TexCoords, Instance.Params};
     
-    ArenaPush(Batch.InstanceDataShadow, Shadow);
-    ArenaPush(Batch.InstanceDataMesh, Mesh);
-    ArenaPush(Batch.InstanceDataUnlit, Unlit);
-    ArenaPush(Batch.InstanceDataDebug, Debug);
-    ArenaPush(Batch.InstanceDataQuad, Quad);
-    ArenaPush(Batch.InstanceDataTextSDF, TextSDF);
+    PushToArena(Batch.InstanceDataShadow, Shadow);
+    PushToArena(Batch.InstanceDataMesh, Mesh);
+    PushToArena(Batch.InstanceDataUnlit, Unlit);
+    PushToArena(Batch.InstanceDataDebug, Debug);
+    PushToArena(Batch.InstanceDataQuad, Quad);
+    PushToArena(Batch.InstanceDataTextSDF, TextSDF);
 }

@@ -75,7 +75,7 @@ TAny :: (Value: *$T) -> Any {
 
 // C string
 CS :: (S: string) -> *u8 {
-    String := ArenaAlloc(*WorkingArena, xx (S.count + 1));
+    String := ArenaAlloc(*WorkingArena, S.count + 1);
     Copy(String, S.data, S.count);
     String[S.count] = 0;
     return String;
@@ -83,7 +83,7 @@ CS :: (S: string) -> *u8 {
 
 // Temp C string
 TCS :: (S: string) -> *u8 {
-    String := ArenaAlloc(*FrameArena, xx (S.count + 1));
+    String := ArenaAlloc(*FrameArena, S.count + 1);
     Copy(String, S.data, S.count);
     String[S.count] = 0;
     return String;
@@ -149,14 +149,14 @@ FileReadString :: (f: *File, Arena: *arena) -> string {
     Count: int;
     file_read(f, *Count, size_of(int));
     
-    Data := ArenaPushN(Arena, u8, xx Count);
+    Data := ArenaAlloc(Arena, u8, Count);
     file_read(f, Data.data, Count);
     
     return .{Count, Data.data};
 }
 
 FileReadArray :: (f: *File, Arena: *arena, $T: Type, Count: int) -> [] T {
-    Out := ArenaPushN(Arena, T, xx Count);
+    Out := ArenaAlloc(Arena, T, Count);
     file_read(f, Out.data, Count * size_of(T));
     return Out;
 }

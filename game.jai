@@ -38,7 +38,7 @@ CreateProp :: (Mesh: *mesh, Position: float3) -> *entity_prop {
     Prop.Mesh = Mesh;
     
     Grey := LoadTexture("textures/grey.png");
-    Prop.Textures = ArenaPushN(*GameArena, *texture, .[Grey, Grey, Grey]);
+    Prop.Textures = PushToArena(*GameArena, *texture.[Grey, Grey, Grey]);
     
     Prop.Position = Position;
     Prop.Position.z = GetGroundHeight(Position);

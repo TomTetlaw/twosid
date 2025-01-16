@@ -102,7 +102,7 @@ structured_buffer :: struct {
 }
 
 CreateStructuredBuffer :: (Name: string, Capacity: int) -> *structured_buffer {
-    StructuredBuffer := ArenaPush(*RendererArena, structured_buffer);
+    StructuredBuffer := ArenaAlloc(*RendererArena, structured_buffer);
     StructuredBuffer.Buffer = CreateBuffer(Name, Capacity, SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ);
     StructuredBuffer.TransferBuffer = CreateTransferBuffer(Capacity);
     StructuredBuffer.Capacity = Capacity;

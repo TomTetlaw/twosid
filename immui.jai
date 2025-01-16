@@ -121,7 +121,7 @@ UpdateUI :: () {
     GUIWantsInput = false;
     
     Windows := FilterWidgets(.WINDOW);
-    for Widgets {
+    for * ArenaToView(*Widgets, widget_base) {
         if WidgetHovered(null, it.Position, it.Size) GUIWantsInput = true;
     }
 }
@@ -203,7 +203,7 @@ DrawUI :: () {
         DrawTextSDF(Position + Tree.TextMargin, Tree.Font, Tree.FontSize, Tree.Title, Options=.{Scissor=xyzw(it.Window.Position, it.Window.Size)});
     }
     
-    for Widgets {
+    for ArenaToView(*Widgets, *widget_base) {
         it.UsedThisFrame = false;
         it.DrawnThisFrame = false;
     }
@@ -328,25 +328,24 @@ MakeWidgetId :: (Id: int, L: Source_Code_Location) -> widget_id {
 }
 
 GetOrCreateWidget :: (Id: widget_id, $T: Type) -> *T {
-    for Widgets {
+    for ArenaToView(*Widgets, *widget_base) {
         if it.Id == Id {
-            Assert(!it.UsedThisFrame);
             it.UsedThisFrame = true;
             return cast (*T) it;
         }
     }
     
-    Widget := ArenaPush(*UIArena, T);
+    Widget := ArenaAlloc(*UIArena, T);
     Widget.Id = Id;
     Widget.Window = CurrentWindow;
     
-    ArenaPush(*Widgets, Widget);
+    PushToArena(*Widgets, Widget);
     
     return Widget;
 }
 
 GetWidget :: (Id: widget_id) -> *widget_base {
-    for Widgets {
+    for ArenaToView(*Widgets, *widget_base) {
         if it.Id == Id {
             it.UsedThisFrame = true;
             return it;
@@ -357,14 +356,14 @@ GetWidget :: (Id: widget_id) -> *widget_base {
 }
 
 FilterWidgets :: (Kind: widget_kind) -> [] *widget_base {
-    Mark := ArenaPushMark(*FrameArena);
+    Mark := GetArenaMark(*FrameArena);
     
-    for Widgets {
+    for ArenaToView(*Widgets, *widget_base) {
         if !it.UsedThisFrame continue;
-        if it.Kind == Kind ArenaPush(*FrameArena, *widget_base, it);
+        if it.Kind == Kind PushToArena(*FrameArena, it);
     }
     
-    return ArenaToView(*FrameArena, *widget_base, Mark, FrameArena.Used - Mark);
+    return ArenaToView(*FrameArena, *widget_base, Mark);
 }
 
 WidgetClicked :: (Widget: *widget_base, Position: float2, Size: float2) -> bool {
@@ -391,7 +390,7 @@ WidgetHovered :: (Widget: *widget_base, Position: float2, Size: float2) -> bool 
 }
 
 UIArena: arena;
-Widgets: arena(*widget_base);
+Widgets: arena;
 
 TextFont: *sdf_font;
 TitleFont: *sdf_font;

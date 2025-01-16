@@ -62,8 +62,6 @@ main :: () {
     CenterX := (Mode.w * .5) - (WindowWidth * .5);
     CenterY := (Mode.h * .5) - (WindowHeight * .5);
     
-    GFullscreen = true;
-    
     if GFullscreen {
         SDL_SetWindowSize(GWindow, Mode.w, Mode.h);
         SDL_SetWindowPosition(GWindow, 0, 0);
@@ -200,7 +198,7 @@ main :: () {
         
         FrameKeys.count = 0;
         FrameClicks.count = 0;
-        ArenaReset(*FrameArena);
+        ResetArena(*FrameArena);
         
 #if PROFILE {
             EmitProfilingData();
