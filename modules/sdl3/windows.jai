@@ -254,7 +254,8 @@ SDL_PROP_GAMEPAD_CAP_PLAYER_LED_BOOLEAN :: SDL_PROP_JOYSTICK_CAP_PLAYER_LED_BOOL
 SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN :: SDL_PROP_JOYSTICK_CAP_RUMBLE_BOOLEAN;
 SDL_PROP_GAMEPAD_CAP_TRIGGER_RUMBLE_BOOLEAN :: SDL_PROP_JOYSTICK_CAP_TRIGGER_RUMBLE_BOOLEAN;
 
-SDLK_SCANCODE_MASK :: 1<<30;
+SDLK_EXTENDED_MASK :: 1 << 29;
+SDLK_SCANCODE_MASK :: 1 << 30;
 
 SDLK_UNKNOWN :: 0x00000000;
 SDLK_RETURN :: 0x0000000d;
@@ -505,10 +506,18 @@ SDLK_SOFTLEFT :: 0x4000011f;
 SDLK_SOFTRIGHT :: 0x40000120;
 SDLK_CALL :: 0x40000121;
 SDLK_ENDCALL :: 0x40000122;
+SDLK_LEFT_TAB :: 0x20000001;
+SDLK_LEVEL5_SHIFT :: 0x20000002;
+SDLK_MULTI_KEY_COMPOSE :: 0x20000003;
+SDLK_LMETA :: 0x20000004;
+SDLK_RMETA :: 0x20000005;
+SDLK_LHYPER :: 0x20000006;
+SDLK_RHYPER :: 0x20000007;
 
 SDL_KMOD_NONE :: 0x0000;
 SDL_KMOD_LSHIFT :: 0x0001;
 SDL_KMOD_RSHIFT :: 0x0002;
+SDL_KMOD_LEVEL5 :: 0x0004;
 SDL_KMOD_LCTRL :: 0x0040;
 SDL_KMOD_RCTRL :: 0x0080;
 SDL_KMOD_LALT :: 0x0100;
@@ -536,6 +545,14 @@ SDL_BUTTON_RIGHT :: 3;
 SDL_BUTTON_X1 :: 4;
 SDL_BUTTON_X2 :: 5;
 
+SDL_TOUCH_MOUSEID :: cast,trunc(SDL_MouseID) -1;
+
+SDL_MOUSE_TOUCHID :: cast,trunc(SDL_TouchID) -1;
+
+SDL_PEN_MOUSEID :: cast,trunc(SDL_MouseID) -2;
+
+SDL_PEN_TOUCHID :: cast,trunc(SDL_TouchID) -2;
+
 SDL_PEN_INPUT_DOWN :: 1 << 0;
 SDL_PEN_INPUT_BUTTON_1 :: 1 << 1;
 SDL_PEN_INPUT_BUTTON_2 :: 1 << 2;
@@ -543,10 +560,6 @@ SDL_PEN_INPUT_BUTTON_3 :: 1 << 3;
 SDL_PEN_INPUT_BUTTON_4 :: 1 << 4;
 SDL_PEN_INPUT_BUTTON_5 :: 1 << 5;
 SDL_PEN_INPUT_ERASER_TIP :: 1 << 30;
-
-SDL_TOUCH_MOUSEID :: cast,trunc(SDL_MouseID) -1;
-
-SDL_MOUSE_TOUCHID :: cast,trunc(SDL_TouchID) -1;
 
 SDL_GLOB_CASEINSENSITIVE :: 1 << 0;
 
@@ -589,12 +602,25 @@ SDL_PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN :: "SDL.gpu.device.create.shaders
 SDL_PROP_GPU_DEVICE_CREATE_SHADERS_METALLIB_BOOLEAN :: "SDL.gpu.device.create.shaders.metallib";
 SDL_PROP_GPU_DEVICE_CREATE_D3D12_SEMANTIC_NAME_STRING :: "SDL.gpu.device.create.d3d12.semantic";
 
-SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_R_FLOAT :: "SDL.gpu.createtexture.d3d12.clear.r";
-SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_G_FLOAT :: "SDL.gpu.createtexture.d3d12.clear.g";
-SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_B_FLOAT :: "SDL.gpu.createtexture.d3d12.clear.b";
-SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_A_FLOAT :: "SDL.gpu.createtexture.d3d12.clear.a";
-SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_DEPTH_FLOAT :: "SDL.gpu.createtexture.d3d12.clear.depth";
-SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_STENCIL_UINT8 :: "SDL.gpu.createtexture.d3d12.clear.stencil";
+SDL_PROP_GPU_COMPUTEPIPELINE_CREATE_NAME_STRING :: "SDL.gpu.computepipeline.create.name";
+
+SDL_PROP_GPU_GRAPHICSPIPELINE_CREATE_NAME_STRING :: "SDL.gpu.graphicspipeline.create.name";
+
+SDL_PROP_GPU_SAMPLER_CREATE_NAME_STRING :: "SDL.gpu.sampler.create.name";
+
+SDL_PROP_GPU_SHADER_CREATE_NAME_STRING :: "SDL.gpu.shader.create.name";
+
+SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_R_FLOAT :: "SDL.gpu.texture.create.d3d12.clear.r";
+SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_G_FLOAT :: "SDL.gpu.texture.create.d3d12.clear.g";
+SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_B_FLOAT :: "SDL.gpu.texture.create.d3d12.clear.b";
+SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_A_FLOAT :: "SDL.gpu.texture.create.d3d12.clear.a";
+SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_DEPTH_FLOAT :: "SDL.gpu.texture.create.d3d12.clear.depth";
+SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_STENCIL_UINT8 :: "SDL.gpu.texture.create.d3d12.clear.stencil";
+SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING :: "SDL.gpu.texture.create.name";
+
+SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING :: "SDL.gpu.buffer.create.name";
+
+SDL_PROP_GPU_TRANSFERBUFFER_CREATE_NAME_STRING :: "SDL.gpu.transferbuffer.create.name";
 
 SDL_HAPTIC_CONSTANT :: 1<<0;
 
@@ -1014,6 +1040,8 @@ SDL_HINT_VIDEO_FORCE_EGL :: "SDL_VIDEO_FORCE_EGL";
 
 SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES :: "SDL_VIDEO_MAC_FULLSCREEN_SPACES";
 
+SDL_HINT_VIDEO_MAC_FULLSCREEN_MENU_VISIBILITY :: "SDL_VIDEO_MAC_FULLSCREEN_MENU_VISIBILITY";
+
 SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS :: "SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS";
 
 SDL_HINT_VIDEO_OFFSCREEN_SAVE_FRAMES :: "SDL_VIDEO_OFFSCREEN_SAVE_FRAMES";
@@ -1109,6 +1137,10 @@ SDL_HINT_X11_XCB_LIBRARY :: "SDL_X11_XCB_LIBRARY";
 SDL_HINT_XINPUT_ENABLED :: "SDL_XINPUT_ENABLED";
 
 SDL_HINT_ASSERT :: "SDL_ASSERT";
+
+SDL_HINT_PEN_MOUSE_EVENTS :: "SDL_PEN_MOUSE_EVENTS";
+
+SDL_HINT_PEN_TOUCH_EVENTS :: "SDL_PEN_TOUCH_EVENTS";
 
 SDL_INIT_AUDIO :: 0x00000010;
 SDL_INIT_VIDEO :: 0x00000020;
@@ -1268,11 +1300,15 @@ SDL_MAJOR_VERSION :: 3;
 
 SDL_MINOR_VERSION :: 1;
 
-SDL_MICRO_VERSION :: 8;
+SDL_MICRO_VERSION :: 10;
 
 SDL_SHADERCROSS_MAJOR_VERSION :: 3;
 SDL_SHADERCROSS_MINOR_VERSION :: 0;
 SDL_SHADERCROSS_MICRO_VERSION :: 0;
+
+_iobuf :: struct {
+    _Placeholder: *void;
+}
 
 /**
 * A signed 8-bit integer type.
@@ -5926,7 +5962,7 @@ SDL_AsyncIOQueue :: struct {}
 * \returns a pointer to the SDL_AsyncIO structure that is created or NULL on
 *          failure; call SDL_GetError() for more information.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CloseAsyncIO
 * \sa SDL_ReadAsyncIO
@@ -5947,7 +5983,7 @@ SDL_AsyncIOFromFile :: (file: *u8, mode: *u8) -> *SDL_AsyncIO #foreign sdl3;
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 */
 SDL_GetAsyncIOSize :: (asyncio: *SDL_AsyncIO) -> Sint64 #foreign sdl3;
 
@@ -5982,7 +6018,7 @@ SDL_GetAsyncIOSize :: (asyncio: *SDL_AsyncIO) -> Sint64 #foreign sdl3;
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_WriteAsyncIO
 * \sa SDL_CreateAsyncIOQueue
@@ -6019,7 +6055,7 @@ SDL_ReadAsyncIO :: (asyncio: *SDL_AsyncIO, ptr: *void, offset: Uint64, size: Uin
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_ReadAsyncIO
 * \sa SDL_CreateAsyncIOQueue
@@ -6071,7 +6107,7 @@ SDL_WriteAsyncIO :: (asyncio: *SDL_AsyncIO, ptr: *void, offset: Uint64, size: Ui
 * \threadsafety It is safe to call this function from any thread, but two
 *               threads should not attempt to close the same object.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 */
 SDL_CloseAsyncIO :: (asyncio: *SDL_AsyncIO, flush: bool, queue: *SDL_AsyncIOQueue, userdata: *void) -> bool #foreign sdl3;
 
@@ -6086,7 +6122,7 @@ SDL_CloseAsyncIO :: (asyncio: *SDL_AsyncIO, flush: bool, queue: *SDL_AsyncIOQueu
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_DestroyAsyncIOQueue
 * \sa SDL_GetAsyncIOResult
@@ -6120,7 +6156,7 @@ SDL_CreateAsyncIOQueue :: () -> *SDL_AsyncIOQueue #foreign sdl3;
 *               no other thread is waiting on the queue with
 *               SDL_WaitAsyncIOResult.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 */
 SDL_DestroyAsyncIOQueue :: (queue: *SDL_AsyncIOQueue) -> void #foreign sdl3;
 
@@ -6144,7 +6180,7 @@ SDL_DestroyAsyncIOQueue :: (queue: *SDL_AsyncIOQueue) -> void #foreign sdl3;
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_WaitAsyncIOResult
 */
@@ -6188,7 +6224,7 @@ SDL_GetAsyncIOResult :: (queue: *SDL_AsyncIOQueue, outcome: *SDL_AsyncIOOutcome)
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_SignalAsyncIOQueue
 */
@@ -6212,7 +6248,7 @@ SDL_WaitAsyncIOResult :: (queue: *SDL_AsyncIOQueue, outcome: *SDL_AsyncIOOutcome
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_WaitAsyncIOResult
 */
@@ -6244,7 +6280,7 @@ SDL_SignalAsyncIOQueue :: (queue: *SDL_AsyncIOQueue) -> void #foreign sdl3;
 * \returns true on success or false on failure; call SDL_GetError() for more
 *          information.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_LoadFile_IO
 */
@@ -7419,7 +7455,7 @@ SDL_WaitThread :: (thread: *SDL_Thread, status: *s32) -> void #foreign sdl3;
 * \returns the current state of a thread, or SDL_THREAD_UNKNOWN if the thread
 *          isn't valid.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_ThreadState
 */
@@ -8139,7 +8175,7 @@ SDL_InitStatus :: enum s32 {
 *    {
 *        if (!SDL_ShouldQuit(&init)) {
 *            // The system is not initialized
-*            return true;
+*            return;
 *        }
 *
 *        // At this point, you should not leave this function without calling SDL_SetInitialized()
@@ -8419,6 +8455,8 @@ SDL_IOStream :: struct {}
 * \returns a pointer to the SDL_IOStream structure that is created or NULL on
 *          failure; call SDL_GetError() for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_CloseIO
@@ -8456,6 +8494,8 @@ SDL_IOFromFile :: (file: *u8, mode: *u8) -> *SDL_IOStream #foreign sdl3;
 * \param size the buffer size, in bytes.
 * \returns a pointer to a new SDL_IOStream structure or NULL on failure; call
 *          SDL_GetError() for more information.
+*
+* \threadsafety It is safe to call this function from any thread.
 *
 * \since This function is available since SDL 3.1.3.
 *
@@ -8498,6 +8538,8 @@ SDL_IOFromMem :: (mem: *void, size: u64) -> *SDL_IOStream #foreign sdl3;
 * \returns a pointer to a new SDL_IOStream structure or NULL on failure; call
 *          SDL_GetError() for more information.
 *
+* \threadsafety It is safe to call this function from any thread.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_IOFromMem
@@ -8526,6 +8568,8 @@ SDL_IOFromConstMem :: (mem: *void, size: u64) -> *SDL_IOStream #foreign sdl3;
 * \returns a pointer to a new SDL_IOStream structure or NULL on failure; call
 *          SDL_GetError() for more information.
 *
+* \threadsafety It is safe to call this function from any thread.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_CloseIO
@@ -8552,6 +8596,8 @@ SDL_IOFromDynamicMem :: () -> *SDL_IOStream #foreign sdl3;
 * \param userdata the pointer that will be passed to the interface functions.
 * \returns a pointer to the allocated memory on success or NULL on failure;
 *          call SDL_GetError() for more information.
+*
+* \threadsafety It is safe to call this function from any thread.
 *
 * \since This function is available since SDL 3.1.3.
 *
@@ -8587,6 +8633,8 @@ SDL_OpenIO :: (iface: *SDL_IOStreamInterface, userdata: *void) -> *SDL_IOStream 
 * \returns true on success or false on failure; call SDL_GetError() for more
 *          information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_OpenIO
@@ -8599,6 +8647,8 @@ SDL_CloseIO :: (_context: *SDL_IOStream) -> bool #foreign sdl3;
 * \param context a pointer to an SDL_IOStream structure.
 * \returns a valid property ID on success or 0 on failure; call
 *          SDL_GetError() for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -8618,8 +8668,7 @@ SDL_GetIOProperties :: (_context: *SDL_IOStream) -> SDL_PropertiesID #foreign sd
 * \param context the SDL_IOStream to query.
 * \returns an SDL_IOStatus enum with the current state.
 *
-* \threadsafety This function should not be called at the same time that
-*               another thread is operating on the same SDL_IOStream.
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -8632,6 +8681,8 @@ SDL_GetIOStatus :: (_context: *SDL_IOStream) -> SDL_IOStatus #foreign sdl3;
 * \returns the size of the data stream in the SDL_IOStream on success or a
 *          negative error code on failure; call SDL_GetError() for more
 *          information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -8658,6 +8709,8 @@ SDL_GetIOSize :: (_context: *SDL_IOStream) -> Sint64 #foreign sdl3;
 * \returns the final offset in the data stream after the seek or -1 on
 *          failure; call SDL_GetError() for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_TellIO
@@ -8675,6 +8728,8 @@ SDL_SeekIO :: (_context: *SDL_IOStream, offset: Sint64, whence: SDL_IOWhence) ->
 *                current offset.
 * \returns the current offset in the stream, or -1 if the information can not
 *          be determined.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 *
@@ -8698,6 +8753,8 @@ SDL_TellIO :: (_context: *SDL_IOStream) -> Sint64 #foreign sdl3;
 * \param size the number of bytes to read from the data source.
 * \returns the number of bytes read, or 0 on end of file or other failure;
 *          call SDL_GetError() for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 *
@@ -8726,6 +8783,8 @@ SDL_ReadIO :: (_context: *SDL_IOStream, ptr: *void, size: u64) -> u64 #foreign s
 * \returns the number of bytes written, which will be less than `size` on
 *          failure; call SDL_GetError() for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_IOprintf
@@ -8747,6 +8806,8 @@ SDL_WriteIO :: (_context: *SDL_IOStream, ptr: *void, size: u64) -> u64 #foreign 
 *            any.
 * \returns the number of bytes written or 0 on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 *
@@ -8774,6 +8835,8 @@ SDL_IOprintf :: (_context: *SDL_IOStream, fmt: string, __args: ..Any) -> u64 {
 * \returns true on success or false on failure; call SDL_GetError() for more
 *          information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_OpenIO
@@ -8798,6 +8861,8 @@ SDL_FlushIO :: (_context: *SDL_IOStream) -> bool #foreign sdl3;
 * \returns the data or NULL on failure; call SDL_GetError() for more
 *          information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_LoadFile
@@ -8819,6 +8884,8 @@ SDL_LoadFile_IO :: (src: *SDL_IOStream, datasize: *u64, closeio: bool) -> *void 
 * \returns the data or NULL on failure; call SDL_GetError() for more
 *          information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 *
 * \sa SDL_LoadFile_IO
@@ -8838,7 +8905,9 @@ SDL_LoadFile :: (file: *u8, datasize: *u64) -> *void #foreign sdl3;
 * \returns true on success or false on failure; call SDL_GetError() for more
 *          information.
 *
-* \since This function is available since SDL 3.2.0.
+* \threadsafety This function is not thread safe.
+*
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_SaveFile
 * \sa SDL_LoadFile_IO
@@ -8848,14 +8917,16 @@ SDL_SaveFile_IO :: (src: *SDL_IOStream, data: *void, datasize: u64, closeio: boo
 /**
 * Save all the data into a file path.
 *
-* \param file the path to read all available data from.
+* \param file the path to write all available data into.
 * \param data the data to be written. If datasize is 0, may be NULL or a
 *             invalid pointer.
 * \param datasize the number of bytes to be written.
 * \returns true on success or false on failure; call SDL_GetError() for more
 *          information.
 *
-* \since This function is available since SDL 3.2.0.
+* \threadsafety This function is not thread safe.
+*
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_SaveFile_IO
 * \sa SDL_LoadFile
@@ -8875,6 +8946,8 @@ SDL_SaveFile :: (file: *u8, data: *void, datasize: u64) -> bool #foreign sdl3;
 * \returns true on success or false on failure or EOF; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_ReadU8 :: (src: *SDL_IOStream, value: *Uint8) -> bool #foreign sdl3;
@@ -8891,6 +8964,8 @@ SDL_ReadU8 :: (src: *SDL_IOStream, value: *Uint8) -> bool #foreign sdl3;
 * \param value a pointer filled in with the data read.
 * \returns true on success or false on failure; call SDL_GetError() for more
 *          information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -8913,6 +8988,8 @@ SDL_ReadS8 :: (src: *SDL_IOStream, value: *Sint8) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_ReadU16LE :: (src: *SDL_IOStream, value: *Uint16) -> bool #foreign sdl3;
@@ -8933,6 +9010,8 @@ SDL_ReadU16LE :: (src: *SDL_IOStream, value: *Uint16) -> bool #foreign sdl3;
 * \param value a pointer filled in with the data read.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -8955,6 +9034,8 @@ SDL_ReadS16LE :: (src: *SDL_IOStream, value: *Sint16) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_ReadU16BE :: (src: *SDL_IOStream, value: *Uint16) -> bool #foreign sdl3;
@@ -8975,6 +9056,8 @@ SDL_ReadU16BE :: (src: *SDL_IOStream, value: *Uint16) -> bool #foreign sdl3;
 * \param value a pointer filled in with the data read.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -8997,6 +9080,8 @@ SDL_ReadS16BE :: (src: *SDL_IOStream, value: *Sint16) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_ReadU32LE :: (src: *SDL_IOStream, value: *Uint32) -> bool #foreign sdl3;
@@ -9017,6 +9102,8 @@ SDL_ReadU32LE :: (src: *SDL_IOStream, value: *Uint32) -> bool #foreign sdl3;
 * \param value a pointer filled in with the data read.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -9039,6 +9126,8 @@ SDL_ReadS32LE :: (src: *SDL_IOStream, value: *Sint32) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_ReadU32BE :: (src: *SDL_IOStream, value: *Uint32) -> bool #foreign sdl3;
@@ -9059,6 +9148,8 @@ SDL_ReadU32BE :: (src: *SDL_IOStream, value: *Uint32) -> bool #foreign sdl3;
 * \param value a pointer filled in with the data read.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -9081,6 +9172,8 @@ SDL_ReadS32BE :: (src: *SDL_IOStream, value: *Sint32) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_ReadU64LE :: (src: *SDL_IOStream, value: *Uint64) -> bool #foreign sdl3;
@@ -9101,6 +9194,8 @@ SDL_ReadU64LE :: (src: *SDL_IOStream, value: *Uint64) -> bool #foreign sdl3;
 * \param value a pointer filled in with the data read.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -9123,6 +9218,8 @@ SDL_ReadS64LE :: (src: *SDL_IOStream, value: *Sint64) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_ReadU64BE :: (src: *SDL_IOStream, value: *Uint64) -> bool #foreign sdl3;
@@ -9144,6 +9241,8 @@ SDL_ReadU64BE :: (src: *SDL_IOStream, value: *Uint64) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_ReadS64BE :: (src: *SDL_IOStream, value: *Sint64) -> bool #foreign sdl3;
@@ -9156,6 +9255,8 @@ SDL_ReadS64BE :: (src: *SDL_IOStream, value: *Sint64) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteU8 :: (dst: *SDL_IOStream, value: Uint8) -> bool #foreign sdl3;
@@ -9167,6 +9268,8 @@ SDL_WriteU8 :: (dst: *SDL_IOStream, value: Uint8) -> bool #foreign sdl3;
 * \param value the byte value to write.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -9185,6 +9288,8 @@ SDL_WriteS8 :: (dst: *SDL_IOStream, value: Sint8) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteU16LE :: (dst: *SDL_IOStream, value: Uint16) -> bool #foreign sdl3;
@@ -9202,6 +9307,8 @@ SDL_WriteU16LE :: (dst: *SDL_IOStream, value: Uint16) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteS16LE :: (dst: *SDL_IOStream, value: Sint16) -> bool #foreign sdl3;
@@ -9218,6 +9325,8 @@ SDL_WriteS16LE :: (dst: *SDL_IOStream, value: Sint16) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteU16BE :: (dst: *SDL_IOStream, value: Uint16) -> bool #foreign sdl3;
@@ -9233,6 +9342,8 @@ SDL_WriteU16BE :: (dst: *SDL_IOStream, value: Uint16) -> bool #foreign sdl3;
 * \param value the data to be written, in native format.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -9251,6 +9362,8 @@ SDL_WriteS16BE :: (dst: *SDL_IOStream, value: Sint16) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteU32LE :: (dst: *SDL_IOStream, value: Uint32) -> bool #foreign sdl3;
@@ -9268,6 +9381,8 @@ SDL_WriteU32LE :: (dst: *SDL_IOStream, value: Uint32) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteS32LE :: (dst: *SDL_IOStream, value: Sint32) -> bool #foreign sdl3;
@@ -9284,6 +9399,8 @@ SDL_WriteS32LE :: (dst: *SDL_IOStream, value: Sint32) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteU32BE :: (dst: *SDL_IOStream, value: Uint32) -> bool #foreign sdl3;
@@ -9299,6 +9416,8 @@ SDL_WriteU32BE :: (dst: *SDL_IOStream, value: Uint32) -> bool #foreign sdl3;
 * \param value the data to be written, in native format.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -9317,6 +9436,8 @@ SDL_WriteS32BE :: (dst: *SDL_IOStream, value: Sint32) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteU64LE :: (dst: *SDL_IOStream, value: Uint64) -> bool #foreign sdl3;
@@ -9334,6 +9455,8 @@ SDL_WriteU64LE :: (dst: *SDL_IOStream, value: Uint64) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteS64LE :: (dst: *SDL_IOStream, value: Sint64) -> bool #foreign sdl3;
@@ -9350,6 +9473,8 @@ SDL_WriteS64LE :: (dst: *SDL_IOStream, value: Sint64) -> bool #foreign sdl3;
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
 *
+* \threadsafety This function is not thread safe.
+*
 * \since This function is available since SDL 3.1.3.
 */
 SDL_WriteU64BE :: (dst: *SDL_IOStream, value: Uint64) -> bool #foreign sdl3;
@@ -9365,6 +9490,8 @@ SDL_WriteU64BE :: (dst: *SDL_IOStream, value: Uint64) -> bool #foreign sdl3;
 * \param value the data to be written, in native format.
 * \returns true on successful write or false on failure; call SDL_GetError()
 *          for more information.
+*
+* \threadsafety This function is not thread safe.
 *
 * \since This function is available since SDL 3.1.3.
 */
@@ -9744,7 +9871,7 @@ SDL_OpenAudioDevice :: (devid: SDL_AudioDeviceID, spec: *SDL_AudioSpec) -> SDL_A
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 */
 SDL_IsAudioDevicePhysical :: (devid: SDL_AudioDeviceID) -> bool #foreign sdl3;
 
@@ -9758,7 +9885,7 @@ SDL_IsAudioDevicePhysical :: (devid: SDL_AudioDeviceID) -> bool #foreign sdl3;
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 */
 SDL_IsAudioDevicePlayback :: (devid: SDL_AudioDeviceID) -> bool #foreign sdl3;
 
@@ -9941,7 +10068,7 @@ SDL_CloseAudioDevice :: (devid: SDL_AudioDeviceID) -> void #foreign sdl3;
 * Binding a stream to a device will set its output format for playback
 * devices, and its input format for recording devices, so they match the
 * device's settings. The caller is welcome to change the other end of the
-* stream's format at any time.
+* stream's format at any time with SDL_SetAudioStreamFormat().
 *
 * \param devid an audio device to bind a stream to.
 * \param streams an array of audio streams to bind.
@@ -10102,6 +10229,12 @@ SDL_GetAudioStreamFormat :: (stream: *SDL_AudioStream, src_spec: *SDL_AudioSpec,
 * the end of a sound file in one format to a stream, change formats for the
 * next sound file, and start putting that new data while the previous sound
 * file is still queued, and everything will still play back correctly.
+*
+* If a stream is bound to a device, then the format of the side of the stream
+* bound to a device cannot be changed (src_spec for recording devices,
+* dst_spec for playback devices). Attempts to make a change to this side will
+* be ignored, but this will not report an error. The other side's format can
+* be changed.
 *
 * \param stream the stream the format is being changed.
 * \param src_spec the new format of the audio input; if NULL, it is not
@@ -10297,6 +10430,11 @@ SDL_GetAudioStreamOutputChannelMap :: (stream: *SDL_AudioStream, count: *s32) ->
 * race condition hasn't changed the format while this call is setting the
 * channel map.
 *
+* Unlike attempting to change the stream's format, the input channel map on a
+* stream bound to a recording device is permitted to change at any time; any
+* data added to the stream from the device after this call will have the new
+* mapping, but previously-added data will still have the prior mapping.
+*
 * \param stream the SDL_AudioStream to change.
 * \param chmap the new channel map, NULL to reset to default.
 * \param count The number of channels in the map.
@@ -10347,6 +10485,13 @@ SDL_SetAudioStreamInputChannelMap :: (stream: *SDL_AudioStream, chmap: *s32, cou
 * stream's format, this will fail. This is a safety measure to make sure a
 * race condition hasn't changed the format while this call is setting the
 * channel map.
+*
+* Unlike attempting to change the stream's format, the output channel map on
+* a stream bound to a recording device is permitted to change at any time;
+* any data added to the stream after this call will have the new mapping, but
+* previously-added data will still have the prior mapping. When the channel
+* map doesn't match the hardware's channel layout, SDL will convert the data
+* before feeding it to the device for playback.
 *
 * \param stream the SDL_AudioStream to change.
 * \param chmap the new channel map, NULL to reset to default.
@@ -10573,6 +10718,25 @@ SDL_PauseAudioStreamDevice :: (stream: *SDL_AudioStream) -> bool #foreign sdl3;
 * \sa SDL_PauseAudioStreamDevice
 */
 SDL_ResumeAudioStreamDevice :: (stream: *SDL_AudioStream) -> bool #foreign sdl3;
+
+/**
+* Use this function to query if an audio device associated with a stream is
+* paused.
+*
+* Unlike in SDL2, audio devices start in an _unpaused_ state, since an app
+* has to bind a stream before any audio will flow.
+*
+* \param stream the audio stream associated with the audio device to query.
+* \returns true if device is valid and paused, false otherwise.
+*
+* \threadsafety It is safe to call this function from any thread.
+*
+* \since This function is available since SDL 3.2.0.
+*
+* \sa SDL_PauseAudioStreamDevice
+* \sa SDL_ResumeAudioStreamDevice
+*/
+SDL_AudioStreamDevicePaused :: (stream: *SDL_AudioStream) -> bool #foreign sdl3;
 
 /**
 * Lock an audio stream for serialized access.
@@ -18113,7 +18277,7 @@ SDL_FileDialogType :: enum s32 {
 *               callback may be invoked from the same thread or from a
 *               different one, depending on the OS's constraints.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_FileDialogType
 * \sa SDL_DialogFileCallback
@@ -21598,6 +21762,9 @@ SDL_Scancode :: enum s32 {
 * A special exception is the number keys at the top of the keyboard which map
 * to SDLK_0...SDLK_9 on AZERTY layouts.
 *
+* Keys with the `SDLK_EXTENDED_MASK` bit set do not map to a scancode or
+* unicode code point.
+*
 * \since This datatype is available since SDL 3.1.3.
 */
 SDL_Keycode :: Uint32;
@@ -22486,6 +22653,11 @@ SDL_WarpMouseGlobal :: (x: float, y: float) -> bool #foreign sdl3;
 * report continuous relative mouse motion even if the mouse is at the edge of
 * the window.
 *
+* If you'd like to keep the mouse position fixed while in relative mode you
+* can use SDL_SetWindowMouseRect(). If you'd like the cursor to be at a
+* specific location when relative mode ends, you should use
+* SDL_WarpMouseInWindow() before disabling relative mode.
+*
 * This function will flush any pending mouse motion for this window.
 *
 * \param window the window to change.
@@ -22769,61 +22941,6 @@ SDL_HideCursor :: () -> bool #foreign sdl3;
 SDL_CursorVisible :: () -> bool #foreign sdl3;
 
 /**
-* SDL pen instance IDs.
-*
-* Zero is used to signify an invalid/null device.
-*
-* These show up in pen events when SDL sees input from them. They remain
-* consistent as long as SDL can recognize a tool to be the same pen; but if a
-* pen physically leaves the area and returns, it might get a new ID.
-*
-* \since This datatype is available since SDL 3.1.3.
-*/
-SDL_PenID :: Uint32;
-
-/**
-* Pen input flags, as reported by various pen events' `pen_state` field.
-*
-* \since This datatype is available since SDL 3.1.3.
-*/
-SDL_PenInputFlags :: Uint32;
-
-/**
-* Pen axis indices.
-*
-* These are the valid values for the `axis` field in SDL_PenAxisEvent. All
-* axes are either normalised to 0..1 or report a (positive or negative) angle
-* in degrees, with 0.0 representing the centre. Not all pens/backends support
-* all axes: unsupported axes are always zero.
-*
-* To convert angles for tilt and rotation into vector representation, use
-* SDL_sinf on the XTILT, YTILT, or ROTATION component, for example:
-*
-* `SDL_sinf(xtilt * SDL_PI_F / 180.0)`.
-*
-* \since This enum is available since SDL 3.1.3
-*/
-SDL_PenAxis :: enum s32 {
-    PRESSURE            :: 0;
-    XTILT               :: 1;
-    YTILT               :: 2;
-    DISTANCE            :: 3;
-    ROTATION            :: 4;
-    SLIDER              :: 5;
-    TANGENTIAL_PRESSURE :: 6;
-    COUNT               :: 7;
-
-    SDL_PEN_AXIS_PRESSURE            :: PRESSURE;
-    SDL_PEN_AXIS_XTILT               :: XTILT;
-    SDL_PEN_AXIS_YTILT               :: YTILT;
-    SDL_PEN_AXIS_DISTANCE            :: DISTANCE;
-    SDL_PEN_AXIS_ROTATION            :: ROTATION;
-    SDL_PEN_AXIS_SLIDER              :: SLIDER;
-    SDL_PEN_AXIS_TANGENTIAL_PRESSURE :: TANGENTIAL_PRESSURE;
-    SDL_PEN_AXIS_COUNT               :: COUNT;
-}
-
-/**
 * A unique ID for a touch device.
 *
 * This ID is valid for the time the device is connected to the system, and is
@@ -22936,6 +23053,61 @@ SDL_GetTouchDeviceType :: (touchID: SDL_TouchID) -> SDL_TouchDeviceType #foreign
 * \since This function is available since SDL 3.1.3.
 */
 SDL_GetTouchFingers :: (touchID: SDL_TouchID, count: *s32) -> **SDL_Finger #foreign sdl3;
+
+/**
+* SDL pen instance IDs.
+*
+* Zero is used to signify an invalid/null device.
+*
+* These show up in pen events when SDL sees input from them. They remain
+* consistent as long as SDL can recognize a tool to be the same pen; but if a
+* pen physically leaves the area and returns, it might get a new ID.
+*
+* \since This datatype is available since SDL 3.1.3.
+*/
+SDL_PenID :: Uint32;
+
+/**
+* Pen input flags, as reported by various pen events' `pen_state` field.
+*
+* \since This datatype is available since SDL 3.1.3.
+*/
+SDL_PenInputFlags :: Uint32;
+
+/**
+* Pen axis indices.
+*
+* These are the valid values for the `axis` field in SDL_PenAxisEvent. All
+* axes are either normalised to 0..1 or report a (positive or negative) angle
+* in degrees, with 0.0 representing the centre. Not all pens/backends support
+* all axes: unsupported axes are always zero.
+*
+* To convert angles for tilt and rotation into vector representation, use
+* SDL_sinf on the XTILT, YTILT, or ROTATION component, for example:
+*
+* `SDL_sinf(xtilt * SDL_PI_F / 180.0)`.
+*
+* \since This enum is available since SDL 3.1.3
+*/
+SDL_PenAxis :: enum s32 {
+    PRESSURE            :: 0;
+    XTILT               :: 1;
+    YTILT               :: 2;
+    DISTANCE            :: 3;
+    ROTATION            :: 4;
+    SLIDER              :: 5;
+    TANGENTIAL_PRESSURE :: 6;
+    COUNT               :: 7;
+
+    SDL_PEN_AXIS_PRESSURE            :: PRESSURE;
+    SDL_PEN_AXIS_XTILT               :: XTILT;
+    SDL_PEN_AXIS_YTILT               :: YTILT;
+    SDL_PEN_AXIS_DISTANCE            :: DISTANCE;
+    SDL_PEN_AXIS_ROTATION            :: ROTATION;
+    SDL_PEN_AXIS_SLIDER              :: SLIDER;
+    SDL_PEN_AXIS_TANGENTIAL_PRESSURE :: TANGENTIAL_PRESSURE;
+    SDL_PEN_AXIS_COUNT               :: COUNT;
+}
 
 /**
 * The types of events that can be delivered.
@@ -24292,8 +24464,11 @@ SDL_PushEvent :: (event: *SDL_Event) -> bool #foreign sdl3;
 SDL_EventFilter :: #type (userdata: *void, event: *SDL_Event) -> bool #c_call;
 
 /**
-* Set up a filter to process all events before they change internal state and
-* are posted to the internal event queue.
+* Set up a filter to process all events before they are added to the internal
+* event queue.
+*
+* If you just want to see events without modifying them or preventing them
+* from being queued, you should use SDL_AddEventWatch() instead.
 *
 * If the filter function returns true when called, then the event will be
 * added to the internal queue. If it returns false, then the event will be
@@ -24307,16 +24482,8 @@ SDL_EventFilter :: #type (userdata: *void, event: *SDL_Event) -> bool #c_call;
 * interrupt signal (e.g. pressing Ctrl-C), it will be delivered to the
 * application at the next event poll.
 *
-* There is one caveat when dealing with the SDL_QuitEvent event type. The
-* event filter is only called when the window manager desires to close the
-* application window. If the event filter returns 1, then the window will be
-* closed, otherwise the window will remain open if possible.
-*
 * Note: Disabled events never make it to the event filter function; see
 * SDL_SetEventEnabled().
-*
-* Note: If you just want to inspect events without filtering, you should use
-* SDL_AddEventWatch() instead.
 *
 * Note: Events pushed onto the queue with SDL_PushEvent() get passed through
 * the event filter, but events pushed onto the queue with SDL_PeepEvents() do
@@ -24757,6 +24924,9 @@ SDL_EnumerationResult :: enum s32 {
 * terminate the enumeration early, and dictate the return value of the
 * enumeration function itself.
 *
+* `dirname` is guaranteed to end with a path separator ('\\' on Windows, '/'
+* on most other platforms).
+*
 * \param userdata an app-controlled pointer that is passed to the callback.
 * \param dirname the directory that is being enumerated.
 * \param fname the next entry in the enumeration.
@@ -24924,11 +25094,14 @@ SDL_GlobDirectory :: (path: *u8, pattern: *u8, flags: SDL_GlobFlags, count: *s32
 * platforms without this concept, this would cause surprises with file access
 * outside of SDL.
 *
+* The returned path is guaranteed to end with a path separator ('\\' on
+* Windows, '/' on most other platforms).
+*
 * \returns a UTF-8 string of the current working directory in
 *          platform-dependent notation. NULL if there's a problem. This
 *          should be freed with SDL_free() when it is no longer needed.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 */
 SDL_GetCurrentDirectory :: () -> *u8 #foreign sdl3;
 
@@ -26724,7 +26897,7 @@ SDL_CreateGPUDevice :: (format_flags: SDL_GPUShaderFormat, debug_mode: bool, nam
 *   provide SPIR-V shaders if applicable.
 * - `SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXBC_BOOLEAN`: The app is able to
 *   provide DXBC shaders if applicable
-*   `SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN`: The app is able to
+* - `SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN`: The app is able to
 *   provide DXIL shaders if applicable.
 * - `SDL_PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN`: The app is able to
 *   provide MSL shaders if applicable.
@@ -26839,6 +27012,12 @@ SDL_GetGPUShaderFormats :: (device: *SDL_GPUDevice) -> SDL_GPUShaderFormat #fore
 * - [[texture]]: Sampled textures, followed by read-only storage textures,
 *   followed by read-write storage textures
 *
+* There are optional properties that can be provided through `props`. These
+* are the supported properties:
+*
+* - `SDL_PROP_GPU_COMPUTEPIPELINE_CREATE_NAME_STRING`: a name that can be
+*   displayed in debugging tools.
+*
 * \param device a GPU Context.
 * \param createinfo a struct describing the state of the compute pipeline to
 *                   create.
@@ -26854,6 +27033,12 @@ SDL_CreateGPUComputePipeline :: (device: *SDL_GPUDevice, createinfo: *SDL_GPUCom
 
 /**
 * Creates a pipeline object to be used in a graphics workflow.
+*
+* There are optional properties that can be provided through `props`. These
+* are the supported properties:
+*
+* - `SDL_PROP_GPU_GRAPHICSPIPELINE_CREATE_NAME_STRING`: a name that can be
+*   displayed in debugging tools.
 *
 * \param device a GPU Context.
 * \param createinfo a struct describing the state of the graphics pipeline to
@@ -26872,6 +27057,12 @@ SDL_CreateGPUGraphicsPipeline :: (device: *SDL_GPUDevice, createinfo: *SDL_GPUGr
 /**
 * Creates a sampler object to be used when binding textures in a graphics
 * workflow.
+*
+* There are optional properties that can be provided through `props`. These
+* are the supported properties:
+*
+* - `SDL_PROP_GPU_SAMPLER_CREATE_NAME_STRING`: a name that can be displayed
+*   in debugging tools.
 *
 * \param device a GPU Context.
 * \param createinfo a struct describing the state of the sampler to create.
@@ -26943,6 +27134,12 @@ SDL_CreateGPUSampler :: (device: *SDL_GPUDevice, createinfo: *SDL_GPUSamplerCrea
 * SDL_PROP_GPU_DEVICE_CREATE_D3D12_SEMANTIC_NAME_STRING with
 * SDL_CreateGPUDeviceWithProperties().
 *
+* There are optional properties that can be provided through `props`. These
+* are the supported properties:
+*
+* - `SDL_PROP_GPU_SHADER_CREATE_NAME_STRING`: a name that can be displayed in
+*   debugging tools.
+*
 * \param device a GPU Context.
 * \param createinfo a struct describing the state of the shader to create.
 * \returns a shader object on success, or NULL on failure; call
@@ -26971,27 +27168,26 @@ SDL_CreateGPUShader :: (device: *SDL_GPUDevice, createinfo: *SDL_GPUShaderCreate
 * There are optional properties that can be provided through
 * SDL_GPUTextureCreateInfo's `props`. These are the supported properties:
 *
-* - `SDL_PROP_PROCESS_CREATE_ARGS_POINTER`: an array of strings containing
-*   the program to run, any arguments, and a NULL pointer, e.g. const char
-*   *args[] = { "myprogram", "argument", NULL }. This is a required property.
-* - `SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_R_FLOAT`: (Direct3D 12 only) if
+* - `SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_R_FLOAT`: (Direct3D 12 only) if
 *   the texture usage is SDL_GPU_TEXTUREUSAGE_COLOR_TARGET, clear the texture
 *   to a color with this red intensity. Defaults to zero.
-* - `SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_G_FLOAT`: (Direct3D 12 only) if
+* - `SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_G_FLOAT`: (Direct3D 12 only) if
 *   the texture usage is SDL_GPU_TEXTUREUSAGE_COLOR_TARGET, clear the texture
 *   to a color with this green intensity. Defaults to zero.
-* - `SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_B_FLOAT`: (Direct3D 12 only) if
+* - `SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_B_FLOAT`: (Direct3D 12 only) if
 *   the texture usage is SDL_GPU_TEXTUREUSAGE_COLOR_TARGET, clear the texture
 *   to a color with this blue intensity. Defaults to zero.
-* - `SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_A_FLOAT`: (Direct3D 12 only) if
+* - `SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_A_FLOAT`: (Direct3D 12 only) if
 *   the texture usage is SDL_GPU_TEXTUREUSAGE_COLOR_TARGET, clear the texture
 *   to a color with this alpha intensity. Defaults to zero.
-* - `SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_DEPTH_FLOAT`: (Direct3D 12 only)
+* - `SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_DEPTH_FLOAT`: (Direct3D 12 only)
 *   if the texture usage is SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET, clear
 *   the texture to a depth of this value. Defaults to zero.
-* - `SDL_PROP_GPU_CREATETEXTURE_D3D12_CLEAR_STENCIL_UINT8`: (Direct3D 12
+* - `SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_STENCIL_UINT8`: (Direct3D 12
 *   only) if the texture usage is SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
 *   clear the texture to a stencil of this value. Defaults to zero.
+* - `SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING`: a name that can be displayed
+*   in debugging tools.
 *
 * \param device a GPU Context.
 * \param createinfo a struct describing the state of the texture to create.
@@ -27027,6 +27223,12 @@ SDL_CreateGPUTexture :: (device: *SDL_GPUDevice, createinfo: *SDL_GPUTextureCrea
 * [this blog post](https://moonside.games/posts/sdl-gpu-concepts-cycling/)
 * .
 *
+* There are optional properties that can be provided through `props`. These
+* are the supported properties:
+*
+* - `SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING`: a name that can be displayed in
+*   debugging tools.
+*
 * \param device a GPU Context.
 * \param createinfo a struct describing the state of the buffer to create.
 * \returns a buffer object on success, or NULL on failure; call
@@ -27034,7 +27236,6 @@ SDL_CreateGPUTexture :: (device: *SDL_GPUDevice, createinfo: *SDL_GPUTextureCrea
 *
 * \since This function is available since SDL 3.1.3.
 *
-* \sa SDL_SetGPUBufferName
 * \sa SDL_UploadToGPUBuffer
 * \sa SDL_DownloadFromGPUBuffer
 * \sa SDL_CopyGPUBufferToBuffer
@@ -27057,6 +27258,12 @@ SDL_CreateGPUBuffer :: (device: *SDL_GPUDevice, createinfo: *SDL_GPUBufferCreate
 * Download buffers can be particularly expensive to create, so it is good
 * practice to reuse them if data will be downloaded regularly.
 *
+* There are optional properties that can be provided through `props`. These
+* are the supported properties:
+*
+* - `SDL_PROP_GPU_TRANSFERBUFFER_CREATE_NAME_STRING`: a name that can be
+*   displayed in debugging tools.
+*
 * \param device a GPU Context.
 * \param createinfo a struct describing the state of the transfer buffer to
 *                   create.
@@ -27076,26 +27283,39 @@ SDL_CreateGPUTransferBuffer :: (device: *SDL_GPUDevice, createinfo: *SDL_GPUTran
 /**
 * Sets an arbitrary string constant to label a buffer.
 *
-* Useful for debugging.
+* You should use SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING with
+* SDL_CreateGPUBuffer instead of this function to avoid thread safety issues.
 *
 * \param device a GPU Context.
 * \param buffer a buffer to attach the name to.
 * \param text a UTF-8 string constant to mark as the name of the buffer.
 *
+* \threadsafety This function is not thread safe, you must make sure the
+*               buffer is not simultaneously used by any other thread.
+*
 * \since This function is available since SDL 3.1.3.
+*
+* \sa SDL_CreateGPUBuffer
 */
 SDL_SetGPUBufferName :: (device: *SDL_GPUDevice, buffer: *SDL_GPUBuffer, text: *u8) -> void #foreign sdl3;
 
 /**
 * Sets an arbitrary string constant to label a texture.
 *
-* Useful for debugging.
+* You should use SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING with
+* SDL_CreateGPUTexture instead of this function to avoid thread safety
+* issues.
 *
 * \param device a GPU Context.
 * \param texture a texture to attach the name to.
 * \param text a UTF-8 string constant to mark as the name of the texture.
 *
+* \threadsafety This function is not thread safe, you must make sure the
+*               texture is not simultaneously used by any other thread.
+*
 * \since This function is available since SDL 3.1.3.
+*
+* \sa SDL_CreateGPUTexture
 */
 SDL_SetGPUTextureName :: (device: *SDL_GPUDevice, texture: *SDL_GPUTexture, text: *u8) -> void #foreign sdl3;
 
@@ -28035,7 +28255,7 @@ SDL_SetGPUSwapchainParameters :: (device: *SDL_GPUDevice, window: *SDL_Window, s
 * \returns true if successful, false on error; call SDL_GetError() for more
 *          information.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 */
 SDL_SetGPUAllowedFramesInFlight :: (device: *SDL_GPUDevice, allowed_frames_in_flight: Uint32) -> bool #foreign sdl3;
 
@@ -28111,7 +28331,7 @@ SDL_AcquireGPUSwapchainTexture :: (command_buffer: *SDL_GPUCommandBuffer, window
 * \threadsafety This function should only be called from the thread that
 *               created the window.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_AcquireGPUSwapchainTexture
 * \sa SDL_WaitAndAcquireGPUSwapchainTexture
@@ -28152,7 +28372,7 @@ SDL_WaitForGPUSwapchain :: (device: *SDL_GPUDevice, window: *SDL_Window) -> bool
 * \threadsafety This function should only be called from the thread that
 *               created the window.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_SubmitGPUCommandBuffer
 * \sa SDL_SubmitGPUCommandBufferAndAcquireFence
@@ -30205,7 +30425,7 @@ SDL_Quit :: () -> void #foreign sdl3;
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_RunOnMainThread
 */
@@ -30242,7 +30462,7 @@ SDL_MainThreadCallback :: #type (userdata: *void) -> void #c_call;
 *
 * \threadsafety It is safe to call this function from any thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_IsMainThread
 */
@@ -32713,8 +32933,8 @@ SDL_LockTexture :: (texture: *SDL_Texture, rect: *SDL_Rect, pixels: **void, pitc
 *                `SDL_TEXTUREACCESS_STREAMING`.
 * \param rect a pointer to the rectangle to lock for access. If the rect is
 *             NULL, the entire texture will be locked.
-* \param surface this is filled in with an SDL surface representing the
-*                locked area.
+* \param surface a pointer to an SDL surface of size **rect**. Don't assume
+*                any specific pixel content.
 * \returns true on success or false on failure; call SDL_GetError() for more
 *          information.
 *
@@ -33547,7 +33767,7 @@ SDL_RenderTextureRotated :: (renderer: *SDL_Renderer, texture: *SDL_Texture, src
 *
 * \threadsafety You may only call this function from the main thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_RenderTexture
 */
@@ -33979,7 +34199,7 @@ SDL_RenderDebugText :: (renderer: *SDL_Renderer, x: float, y: float, str: *u8) -
 *
 * \threadsafety This function should only be called on the main thread.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_RenderDebugText
 * \sa SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE
@@ -35125,7 +35345,7 @@ SDL_TrayCallback :: #type (userdata: *void, entry: *SDL_TrayEntry) -> void #c_ca
 *                UTF-8 encoding. Not supported on all platforms. May be NULL.
 * \returns The newly created system tray icon.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CreateTrayMenu
 * \sa SDL_GetTrayMenu
@@ -35139,7 +35359,7 @@ SDL_CreateTray :: (icon: *SDL_Surface, tooltip: *u8) -> *SDL_Tray #foreign sdl3;
 * \param tray the tray icon to be updated.
 * \param icon the new icon. May be NULL.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CreateTray
 */
@@ -35151,7 +35371,7 @@ SDL_SetTrayIcon :: (tray: *SDL_Tray, icon: *SDL_Surface) -> void #foreign sdl3;
 * \param tray the tray icon to be updated.
 * \param tooltip the new tooltip in UTF-8 encoding. May be NULL.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CreateTray
 */
@@ -35170,7 +35390,7 @@ SDL_SetTrayTooltip :: (tray: *SDL_Tray, tooltip: *u8) -> void #foreign sdl3;
 * \param tray the tray to bind the menu to.
 * \returns the newly created menu.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CreateTray
 * \sa SDL_GetTrayMenu
@@ -35191,7 +35411,7 @@ SDL_CreateTrayMenu :: (tray: *SDL_Tray) -> *SDL_TrayMenu #foreign sdl3;
 * \param entry the tray entry to bind the menu to.
 * \returns the newly created menu.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_InsertTrayEntryAt
 * \sa SDL_GetTraySubmenu
@@ -35213,7 +35433,7 @@ SDL_CreateTraySubmenu :: (entry: *SDL_TrayEntry) -> *SDL_TrayMenu #foreign sdl3;
 * \param tray the tray entry to bind the menu to.
 * \returns the newly created menu.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CreateTray
 * \sa SDL_CreateTrayMenu
@@ -35223,7 +35443,7 @@ SDL_GetTrayMenu :: (tray: *SDL_Tray) -> *SDL_TrayMenu #foreign sdl3;
 /**
 * Gets a previously created tray entry submenu.
 *
-* You should have called SDL_CreateTraySubenu() on the entry object. This
+* You should have called SDL_CreateTraySubmenu() on the entry object. This
 * function allows you to fetch it again later.
 *
 * This function does the same thing as SDL_GetTrayMenu(), except that it
@@ -35234,7 +35454,7 @@ SDL_GetTrayMenu :: (tray: *SDL_Tray) -> *SDL_TrayMenu #foreign sdl3;
 * \param entry the tray entry to bind the menu to.
 * \returns the newly created menu.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_InsertTrayEntryAt
 * \sa SDL_CreateTraySubmenu
@@ -35251,7 +35471,7 @@ SDL_GetTraySubmenu :: (entry: *SDL_TrayEntry) -> *SDL_TrayMenu #foreign sdl3;
 *          pointer becomes invalid when any function that inserts or deletes
 *          entries in the menu is called.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_RemoveTrayEntry
 * \sa SDL_InsertTrayEntryAt
@@ -35263,7 +35483,7 @@ SDL_GetTrayEntries :: (menu: *SDL_TrayMenu, size: *s32) -> **SDL_TrayEntry #fore
 *
 * \param entry The entry to be deleted.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_GetTrayEntries
 * \sa SDL_InsertTrayEntryAt
@@ -35286,7 +35506,7 @@ SDL_RemoveTrayEntry :: (entry: *SDL_TrayEntry) -> void #foreign sdl3;
 * \param flags a combination of flags, some of which are mandatory.
 * \returns the newly created entry, or NULL if pos is out of bounds.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_TrayEntryFlags
 * \sa SDL_GetTrayEntries
@@ -35306,7 +35526,7 @@ SDL_InsertTrayEntryAt :: (menu: *SDL_TrayMenu, pos: s32, label: *u8, flags: SDL_
 * \param entry the entry to be updated.
 * \param label the new label for the entry in UTF-8 encoding.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_GetTrayEntries
 * \sa SDL_InsertTrayEntryAt
@@ -35322,7 +35542,7 @@ SDL_SetTrayEntryLabel :: (entry: *SDL_TrayEntry, label: *u8) -> void #foreign sd
 * \param entry the entry to be read.
 * \returns the label of the entry in UTF-8 encoding.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_GetTrayEntries
 * \sa SDL_InsertTrayEntryAt
@@ -35336,10 +35556,9 @@ SDL_GetTrayEntryLabel :: (entry: *SDL_TrayEntry) -> *u8 #foreign sdl3;
 * The entry must have been created with the SDL_TRAYENTRY_CHECKBOX flag.
 *
 * \param entry the entry to be updated.
-* \param checked SDL_TRUE if the entry should be checked; SDL_FALSE
-*                otherwise.
+* \param checked true if the entry should be checked; false otherwise.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_GetTrayEntries
 * \sa SDL_InsertTrayEntryAt
@@ -35353,9 +35572,9 @@ SDL_SetTrayEntryChecked :: (entry: *SDL_TrayEntry, checked: bool) -> void #forei
 * The entry must have been created with the SDL_TRAYENTRY_CHECKBOX flag.
 *
 * \param entry the entry to be read.
-* \returns SDL_TRUE if the entry is checked; SDL_FALSE otherwise.
+* \returns true if the entry is checked; false otherwise.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_GetTrayEntries
 * \sa SDL_InsertTrayEntryAt
@@ -35367,10 +35586,9 @@ SDL_GetTrayEntryChecked :: (entry: *SDL_TrayEntry) -> bool #foreign sdl3;
 * Sets whether or not an entry is enabled.
 *
 * \param entry the entry to be updated.
-* \param enabled SDL_TRUE if the entry should be enabled; SDL_FALSE
-*                otherwise.
+* \param enabled true if the entry should be enabled; false otherwise.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_GetTrayEntries
 * \sa SDL_InsertTrayEntryAt
@@ -35382,9 +35600,9 @@ SDL_SetTrayEntryEnabled :: (entry: *SDL_TrayEntry, enabled: bool) -> void #forei
 * Gets whether or not an entry is enabled.
 *
 * \param entry the entry to be read.
-* \returns SDL_TRUE if the entry is enabled; SDL_FALSE otherwise.
+* \returns true if the entry is enabled; false otherwise.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_GetTrayEntries
 * \sa SDL_InsertTrayEntryAt
@@ -35400,12 +35618,21 @@ SDL_GetTrayEntryEnabled :: (entry: *SDL_TrayEntry) -> bool #foreign sdl3;
 * \param userdata an optional pointer to pass extra data to the callback when
 *                 it will be invoked.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_GetTrayEntries
 * \sa SDL_InsertTrayEntryAt
 */
 SDL_SetTrayEntryCallback :: (entry: *SDL_TrayEntry, callback: SDL_TrayCallback, userdata: *void) -> void #foreign sdl3;
+
+/**
+* Simulate a click on a tray entry.
+*
+* \param entry The entry to activate.
+*
+* \since This function is available since SDL 3.2.0.
+*/
+SDL_ClickTrayEntry :: (entry: *SDL_TrayEntry) -> void #foreign sdl3;
 
 /**
 * Destroys a tray object.
@@ -35414,7 +35641,7 @@ SDL_SetTrayEntryCallback :: (entry: *SDL_TrayEntry, callback: SDL_TrayCallback, 
 *
 * \param tray the tray icon to be destroyed.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CreateTray
 */
@@ -35426,7 +35653,7 @@ SDL_DestroyTray :: (tray: *SDL_Tray) -> void #foreign sdl3;
 * \param entry the entry for which to get the parent menu.
 * \returns the parent menu.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_InsertTrayEntryAt
 */
@@ -35442,7 +35669,7 @@ SDL_GetTrayEntryParent :: (entry: *SDL_TrayEntry) -> *SDL_TrayMenu #foreign sdl3
 * \param menu the menu for which to get the parent entry.
 * \returns the parent entry, or NULL if this menu is not a submenu.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CreateTraySubmenu
 * \sa SDL_GetTrayMenuParentTray
@@ -35459,7 +35686,7 @@ SDL_GetTrayMenuParentEntry :: (menu: *SDL_TrayMenu) -> *SDL_TrayEntry #foreign s
 * \param menu the menu for which to get the parent enttrayry.
 * \returns the parent tray, or NULL if this menu is a submenu.
 *
-* \since This function is available since SDL 3.2.0.
+* \since This function is available since SDL 3.1.8.
 *
 * \sa SDL_CreateTrayMenu
 * \sa SDL_GetTrayMenuParentEntry
@@ -35750,10 +35977,17 @@ SDL_ShaderCross_CompileComputePipelineFromHLSL :: (device: *SDL_GPUDevice, info:
 
 #import "Basic"; // For assert, push_context
 
-sdl3 :: #library "build/SDL3";
-sdl3_shadercross :: #library "build/SDL3_shadercross";
+sdl3 :: #library "windows/SDL3-3.1.10/lib/x64/SDL3";
+sdl3_shadercross :: #library "windows/SDL3_shadercross-3.0.0-windows-VC-x64/lib/SDL3_shadercross";
 
 #run {
+    {
+        instance: _iobuf;
+        assert(((cast(*void)(*instance._Placeholder)) - cast(*void)(*instance)) == 0, "_iobuf._Placeholder has unexpected offset % instead of 0", ((cast(*void)(*instance._Placeholder)) - cast(*void)(*instance)));
+        assert(size_of(type_of(_iobuf._Placeholder)) == 8, "_iobuf._Placeholder has unexpected size % instead of 8", size_of(type_of(_iobuf._Placeholder)));
+        assert(size_of(_iobuf) == 8, "_iobuf has size % instead of 8", size_of(_iobuf));
+    }
+
     {
         instance: SDL_alignment_test;
         assert(((cast(*void)(*instance.a)) - cast(*void)(*instance)) == 0, "SDL_alignment_test.a has unexpected offset % instead of 0", ((cast(*void)(*instance.a)) - cast(*void)(*instance)));

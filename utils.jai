@@ -1,4 +1,25 @@
 
+Write :: (F: *File, Value: $T) {
+    file_write(F, *Value, size_of(T));
+}
+
+Write :: (F: *File, Value: string) {
+    file_write(F, *Value.count, size_of(int));
+    file_write(F, Value.data, Value.count);
+}
+
+Read :: (F: *File, Value: *$T) {
+    file_read(<<F, Value, size_of(T));
+}
+
+Read :: (F: *File, Value: *string) {
+    Count := 0;
+    file_read(<<F, *Count, size_of(int));
+    S := ArenaAllocString(*WorldArena, Count);
+    file_read(<<F, S.data, Count);
+    Value.* = S;
+}
+
 GetHash :: (V: float4, Seed: u32) -> u32 {
     Hash := GetHash(<< (cast (*u32) *V.x), Seed);
     Hash = GetHash(<< (cast (*u32) *V.x), Hash);
@@ -35,11 +56,9 @@ ResetLinkedList :: (List: *linked_list($T)) {
 
 for_expansion :: (List: *linked_list($T), Body: Code, Flags: For_Flags) #expand {
     Value := List.First;
-    Index := 0;
     
 #if Flags & .REVERSE {
         Value = List.Last;
-        Index = List.Last - List.First;
     }
     
     while Value {
@@ -49,17 +68,15 @@ for_expansion :: (List: *linked_list($T), Body: Code, Flags: For_Flags) #expand 
             `it := <<Value;
         }
         
-        `it_index := Index;
-        
-#insert Body;
+        `it_index := Value - List.Last;
         
 #if Flags & .REVERSE {
             Value = Value.Prev;
-            Index -= 1;
         } else {
             Value = Value.Next;
-            Index += 1;
         }
+        
+#insert Body;
     }
 }
 

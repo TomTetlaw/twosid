@@ -1,6 +1,8 @@
 
 magic:
 
+radiation!
+
 either sorcerer-style (evil):
 	- use items and books to focus and power magic spells
 	- high power floor but limited ceiling

@@ -142,57 +142,74 @@ build_game :: (profiling: bool) {
             print_to_builder(*builder, "\tif equal(Name, \"%\") return CreateEntity(%);\n", convert_case(it.name), it.name);
         }
         append(*builder, "\treturn null;\n");
-        append(*builder, "}\n");
+        append(*builder, "}\n\n");
         
-        /*
-                append(*builder, "GetEntityList :: ($T: Type) -> *entity_list{\n");
-                
-                for entity_types {
-                    print_to_builder(*builder, "\t#if T == type_of(%) return EntityTypes.%;\n", it.name, convert_case(it.name));
-                }
-                append(*builder, "return null;\n");
-                append(*builder, "}\n\n");
-                */
-        
-        /*
-        
-        append(*builder, "CreateEntityTypeInfo :: (EntityInfo: *entity_types) {\n");
-        append(*builder, "\tEntityTypesList: [..] entity_type_info;\n");
+        T: Table(string, [] entity_member);
         for entity_types {
-            print_to_builder(*builder, "\tarray_add(*EntityTypesList, .{\"%2\", %1, *EntityInfo.%2});\n", it.name, convert_case(it.name));
+            BuildMemberList(it, *T);
         }
-        append(*builder, "\tEntityInfo.InfoList = EntityTypesList;\n");
-        append(*builder, "}\n");
         
-        append(*builder, "ResetEntityArenas :: () {\n");
-        for entity_types {
-            print_to_builder(*builder, "\tArenaReset(*EntityTypes.%);\n", convert_case(it.name));
-        }
-        append(*builder, "}\n");
+        append(*builder, "WriteEntity :: (F: *File, Entity: *entity) {\n");
         
-        append(*builder, "CreateEntityFromInfoIndex :: (Index: int) -> *entity {\n");
-        for entity_types {
-            print_to_builder(*builder, "\tif Index == % return CreateEntity(%);\n", it_index, it.name);
+        Members, Found := table_find(*T, "entity");
+        if Found {
+            BuildWriteCode(*builder, "Entity", Members, *T, 1);
         }
-        append(*builder, "\treturn null;\n");
-        append(*builder, "}\n");
         
-        append(*builder, "CreateEntityFromName :: (Name: string) -> *entity {\n");
         for entity_types {
-            print_to_builder(*builder, "\tif equal(Name, \"%\") return CreateEntity(%);\n", convert_case(it.name), it.name);
+            if it_index > 0 {
+                append(*builder, " else ");
+            } else {
+                append(*builder, "\t");
+            }
+            
+            print_to_builder(*builder, "if Entity.TypeId == % {\n", it_index);
+            print_to_builder(*builder, "\t\tE := DownCast(Entity, %);\n", it.name);
+            
+            Members, Found := table_find(*T, it.name);
+            if Found {
+                BuildWriteCode(*builder, "E", Members, *T, 2);
+            }
+            
+            append(*builder, "\t}");
+            
+            if it_index == entity_types.count-1 {
+                append(*builder, "\n");
+            }
         }
-        append(*builder, "\treturn null;\n");
-        append(*builder, "}\n");
         
-        append(*builder, "BuildEntityArray :: () -> [] *entity {\n");
-        append(*builder, "Entities: [..] *entity;\n");
-        append(*builder, "Entities.allocator = temp;\n");
-        for entity_types {
-            print_to_builder(*builder, "for * :OnlyActiveEntities EntityTypes.% array_add(*Entities, it);\n", convert_case(it.name));
+        append(*builder, "}\n\n");
+        
+        append(*builder, "ReadEntity :: (F: *File, Entity: *entity) {\n");
+        
+        Members, Found = table_find(*T, "entity");
+        if Found {
+            BuildReadCode(*builder, "Entity", Members, *T, 1);
         }
-        append(*builder, "return Entities;\n");
-        append(*builder, "}\n");
-*/
+        
+        for entity_types {
+            if it_index > 0 {
+                append(*builder, " else ");
+            } else {
+                append(*builder, "\t");
+            }
+            
+            print_to_builder(*builder, "if Entity.TypeId == % {\n", it_index);
+            print_to_builder(*builder, "\t\tE := DownCast(Entity, %);\n", it.name);
+            
+            Members, Found := table_find(*T, it.name);
+            if Found {
+                BuildReadCode(*builder, "E", Members, *T, 2);
+            }
+            
+            append(*builder, "\t}");
+            
+            if it_index == entity_types.count-1 {
+                append(*builder, "\n");
+            }
+        }
+        
+        append(*builder, "}\n\n");
         
         add_build_string(builder_to_string(*builder), workspace);
     }
@@ -201,6 +218,172 @@ build_game :: (profiling: bool) {
     
     for plugins if it.finish it.finish(it);
     for plugins if it.shutdown it.shutdown(it);
+}
+
+BuildWriteCode :: (Builder: *String_Builder, Name: string, Members: [] entity_member, T: *Table, Depth: int) {
+    WriteTabs :: (Builder: *String_Builder, N: int) {
+        for 0..N-1 {
+            append(Builder, "\t");
+        }
+    }
+    
+    for M: Members {
+        if equal(Name, "E.Base") continue;
+        
+        if M.Kind == {
+            case .FIELD;
+            WriteTabs(Builder, Depth);
+            print_to_builder(Builder, "Write(F, %.%);\n", Name, M.Name);
+            
+            case .ARRAY;
+            S, F := table_find(T, M.ElementType);
+            WriteTabs(Builder, Depth);
+            print_to_builder(Builder, "Write(F, %.%.count);\n", Name, M.Name);
+            
+            if F {
+                WriteTabs(Builder, Depth);
+                print_to_builder(Builder, "for %.% {\n", Name, M.Name);
+                BuildWriteCode(Builder, "it", S, T, Depth + 1);
+                WriteTabs(Builder, Depth);
+                append(Builder, "}\n");
+            } else {
+                WriteTabs(Builder, Depth);
+                print_to_builder(Builder, "for %.% {\n", Name, M.Name);
+                WriteTabs(Builder, Depth + 1);
+                append(Builder, "Write(F, it);\n");
+                WriteTabs(Builder, Depth);
+                append(Builder, "}\n");
+            }
+            
+            case .STRUCT;
+            S, F := table_find(T, M.ElementType);
+            if F {
+                BuildWriteCode(Builder, tprint("%.%", Name, M.Name), S, T, Depth);
+            }
+        }
+    }
+}
+
+BuildReadCode :: (Builder: *String_Builder, Name: string, Members: [] entity_member, T: *Table, Depth: int) {
+    WriteTabs :: (Builder: *String_Builder, N: int) {
+        for 0..N-1 {
+            append(Builder, "\t");
+        }
+    }
+    
+    for M: Members {
+        if equal(Name, "E.Base") continue;
+        
+        if M.Kind == {
+            case .FIELD;
+            if M.Read {
+                WriteTabs(Builder, Depth);
+                print_to_builder(Builder, "Read(F, *%.%);\n", Name, M.Name);
+            }
+            
+            case .ARRAY;
+            S, F := table_find(T, M.ElementType);
+            WriteTabs(Builder, Depth);
+            print_to_builder(Builder, "%Count := 0;\n", M.Name);
+            WriteTabs(Builder, Depth);
+            print_to_builder(Builder, "Read(F, *%Count);\n", M.Name);
+            WriteTabs(Builder, Depth);
+            print_to_builder(Builder, "%1.%2 = __ArenaAlloc(*WorldArena, %1.%2, %2Count);\n", Name, M.Name);
+            if F {
+                WriteTabs(Builder, Depth);
+                print_to_builder(Builder, "for 0..%Count-1 {\n", M.Name);
+                BuildReadCode(Builder, tprint("%.%[it]", Name, M.Name), S, T, Depth + 1);
+                WriteTabs(Builder, Depth);
+                append(Builder, "}\n");
+            } else {
+                WriteTabs(Builder, Depth);
+                print_to_builder(Builder, "for 0..%Count-1 {\n", M.Name);
+                WriteTabs(Builder, Depth + 1);
+                print_to_builder(Builder, "Read(F, *%.%[it]);\n", Name, M.Name);
+                WriteTabs(Builder, Depth);
+                append(Builder, "}\n");
+            }
+            
+            case .STRUCT;
+            S, F := table_find(T, M.ElementType);
+            if F {
+                BuildReadCode(Builder, tprint("%.%", Name, M.Name), S, T, Depth);
+            }
+        }
+    }
+}
+
+entity_member_kind :: enum {
+    FIELD;
+    STRUCT;
+    ARRAY;
+}
+
+entity_member :: struct {
+    Name: string;
+    Kind := entity_member_kind.FIELD;
+    ElementType: string;
+    Read: bool;
+}
+
+BuildMemberList :: (Info: *Type_Info_Struct, T: *Table) {
+    List: [..] entity_member;
+    
+    for Info.members {
+        if it.flags & .CONSTANT continue;
+        
+        if it.type.type == .POINTER continue;
+        
+        Filter := false;
+        NamesToFilter := string.["Rows", "Coef", "Floats", "xy", "yz", "zw", "xyz", "yzw", "Components"];
+        
+        for N: NamesToFilter {
+            if ends_with(it.name, N) {
+                Filter = true;
+                break;
+            }
+        }
+        
+        if Filter continue;
+        
+        if array_find(it.notes, "noserialize") continue;
+        
+        Read := true;
+        if array_find(it.notes, "noread") Read = false;
+        
+        SimpleTypes := string.["float2", "float3", "float4", "quat", "float4x4"];
+        
+        S := cast (*Type_Info_Struct) it.type;
+        
+        if it.type.type == .STRUCT && !array_find(SimpleTypes, S.name) {
+            
+            if !table_contains(T, S.name) {
+                BuildMemberList(S, T);
+            }
+            
+            array_add(*List, .{Name=it.name, Kind=.STRUCT, ElementType=S.name, Read=Read});
+        } else {
+            Kind := entity_member_kind.FIELD;
+            ElementType := "";
+            
+            if it.type.type == .ARRAY {
+                Kind = .ARRAY;
+                
+                Info := cast (*Type_Info_Array) it.type;
+                S := cast (*Type_Info_Struct) Info.element_type;
+                if Info.element_type.type == .STRUCT && !array_find(SimpleTypes, S.name) {
+                    ElementType = S.name;
+                    if !table_contains(T, S.name) {
+                        BuildMemberList(S, T);
+                    }
+                }
+            }
+            
+            array_add(*List, .{Name=it.name, Kind=Kind, ElementType=ElementType, Read=Read});
+        }
+    }
+    
+    table_add(T, Info.name, List);
 }
 
 convert_case :: (name: string) -> string {

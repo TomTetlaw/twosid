@@ -35,10 +35,7 @@ CreateProp :: (Path: string, Position: float3) -> *entity_prop {
 
 CreateProp :: (Mesh: *mesh, Position: float3) -> *entity_prop {
     Prop := CreateEntity(entity_prop);
-    Prop.Mesh = Mesh;
-    
-    Grey := LoadTexture("textures/grey.png");
-    Prop.Textures = PushToArena(*GameArena, *texture.[Grey, Grey, Grey]);
+    Prop._Mesh = Mesh;
     
     Prop.Position = Position;
     Prop.Position.z = GetGroundHeight(Position);
@@ -72,8 +69,6 @@ entity_man :: struct {
 }
 
 UpdateGame :: () {
-    if GamePaused return;
-    
     // These is only ever one player.
     if GEntityTypes.Player.Count > 0 {
         if !GPlayer GPlayer = DownCast(GEntityTypes.Player.First, entity_player);

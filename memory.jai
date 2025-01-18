@@ -91,6 +91,10 @@ ArenaAlloc :: (Arena: *arena, $T: Type, Options := alloc_options.{}, $L := #call
     return Out;
 }
 
+ArenaAllocString :: (Arena: *arena, Count: int) -> string {
+    return .{Count, ArenaAlloc(Arena, Count)};
+}
+
 ArenaAlloc :: (Arena: *arena, $T: Type, N: int, Options := alloc_options.{}, $L := #caller_location) -> [] T {
     Init :: initializer_of(T);
     
@@ -103,6 +107,11 @@ ArenaAlloc :: (Arena: *arena, $T: Type, N: int, Options := alloc_options.{}, $L 
 #if Init for * Out Init(it);
     
     return Out;
+}
+
+// @HACK to support reading entities
+__ArenaAlloc :: (Arena: *arena, A: [] $T, N: int) -> [] T {
+    return ArenaAlloc(Arena, T, N);
 }
 
 PushToArena :: (Arena: *arena, Value: $T, Options := alloc_options.{}, $L := #caller_location) -> *T #modify {

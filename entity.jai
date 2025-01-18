@@ -1,20 +1,27 @@
 
 entity_handle :: struct {
-    Index: int;
-    Gen: int;
-    TypeId: int;
+    Index := -1;
+    Gen := -1;
+    TypeId := -1;
 }
 
 entity_flags :: enum_flags {
     BLOCKING;
 }
 
+material :: struct {
+    TexturePaths: [] string;
+    _Textures: [] *texture; @noserialize;
+}
+
 entity :: struct {
     Next, Prev: *entity;
     
-    using Handle: entity_handle;
+    TypeName: string; @noserialize;
     
-    Active: bool;
+    using Handle: entity_handle; @noserialize;
+    
+    Active: bool; @noserialize;
     
     Flags: entity_flags;
     
@@ -25,9 +32,12 @@ entity :: struct {
     Bounds: bounding_box;
     
     MeshPath: string;
-    Mesh: *mesh;
+    TexturePaths: [] string;
+    
+    _Mesh: *mesh;
+    Materials: [] material;
+    
     AnimPlayer: anim_player;
-    Textures: [] *texture;
     
     PositionAboveGround: float3;
     
@@ -70,8 +80,8 @@ UpdateEntityDrawTransform :: (Entity: *entity) {
 UpdateEntityBounds :: (Entity: *entity) {
     Bounds: bounding_box;
     
-    if Entity.Mesh {
-        Bounds = Entity.Mesh.Bounds;
+    if Entity._Mesh {
+        Bounds = Entity._Mesh.Bounds;
     } else {
         Bounds = .{xyz(-1), xyz(1)};
     }
@@ -202,8 +212,8 @@ EntityPatrol :: (Entity: *entity, Patrol: *entity_patrol) {
         Patrol.WaitStartTime = GameTime;
     }
     
-    StartFollow :: (Patrol: *entity_patrol) {
-        Patrol.FollowTarget = GPlayer.Handle;
+    StartFollow :: (Patrol: *entity_patrol, Following: *entity) {
+        Patrol.FollowTarget = Following.Handle;
         Patrol.State = .FOLLOWING;
     }
     
@@ -231,10 +241,10 @@ EntityPatrol :: (Entity: *entity, Patrol: *entity_patrol) {
         }
     }
     
-    if Patrol.State != .FOLLOWING {
+    if Patrol.State != .FOLLOWING && GPlayer {
         D := Distance(Entity.Position, GPlayer.Position);
         if D < Patrol.SightRadius {
-            StartFollow(Patrol);
+            StartFollow(Patrol, GPlayer);
         }
     }
 }
@@ -252,16 +262,17 @@ UpdateEntityAnimation :: (Entity: *entity) {
 CreateEntity :: ($T: Type) -> *T {
     TypeId := EntityTypeId(T);
     
-    Entities := GetEntityTypeInfo(TypeId);
-    if !Entities return null;
+    Info := GetEntityTypeInfo(TypeId);
+    if !Info return null;
     
-    Entity := AllocateEntity(Entities, T);
+    Entity := AllocateEntity(Info, T);
+    Entity.TypeName = Info.Name;
     Entity.TypeId = TypeId;
     Entity.Gen += 1;
     Entity.Active = true;
     
     if Entity.MeshPath.count > 0 {
-        Entity.Mesh = LoadMesh(Entity.MeshPath);
+        Entity._Mesh = LoadMesh(Entity.MeshPath);
     }
     
     return cast (*T) Entity;
@@ -283,7 +294,7 @@ RemoveAllEntities :: () {
 }
 
 DrawEntity :: (Entity: *entity) {
-    DrawOpaqueMesh(Entity.DrawTransform, Entity.Mesh, Entity.Textures, Entity.AnimPlayer.Pose.SkinningTransforms, .{1, 1, 1, 1}, Entity.Colour);
+    DrawOpaqueMesh(Entity.DrawTransform, Entity._Mesh, .[], Entity.AnimPlayer.Pose.SkinningTransforms, .{1, 1, 1, 1}, Entity.Colour);
 }
 
 GetEntityTypeInfo :: (TypeId: int) -> *entity_type_info {
@@ -303,10 +314,14 @@ GetEntityTypeInfo :: (Name: string) -> *entity_type_info {
 }
 
 GetEntity :: (Handle: entity_handle) -> *entity {
+    if Handle.Index == -1 return null;
+    
     TypeInfo := GetEntityTypeInfo(Handle.TypeId);
     Entity := GetEntityFromList(TypeInfo, Handle.Index);
-    if !Entity.Active return null;
+    
+    if !Entity return null;
     if Entity.Gen != Handle.Gen return null;
+    
     return Entity;
 }
 
@@ -352,21 +367,16 @@ GetEntityFromList :: (Info: *entity_type_info, Index: int) -> *entity {
     return Entity;
 }
 
-for_expansion :: (List: *entity_type_info, Body: Code, Flags: For_Flags) #expand {
-    Entity := List.First;
-    while Entity {
-        if !Entity.Active continue;
-        
-        `it := Entity;
-        `it_index := List.Last - Entity;
+for_expansion :: (Info: *entity_type_info, Body: Code, Flags: For_Flags) #expand {
+    for *`it, `it_index: Info.List {
+        if !it.Active continue;
         
 #insert Body;
-        
-        Entity = Entity.Next;
     }
 }
 
 GAllEntities: [] *entity;
+
 GEntityTypes: entity_types;
 
 entity_type_info :: struct {
@@ -375,6 +385,7 @@ entity_type_info :: struct {
     Arena: arena;
     TypeSize: int;
     using List: linked_list(entity);
+    
 }
 
 #scope_file 

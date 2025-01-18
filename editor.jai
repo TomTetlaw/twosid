@@ -159,6 +159,14 @@ EditorUI :: () {
     
     ImmSeperator();
     
+    if ImmButton("Write world") {
+        WriteWorld();
+    }
+    
+    if ImmButton("Read world") {
+        ReadWorld();
+    }
+    
     ImmEndWindow();
 }
 
@@ -307,7 +315,7 @@ DrawEditor :: () {
     
     if SelectedEntity {
         Colour := Lerp(xyzw(xyz(1), 0.125), float4.{1, 0, 0, 0.125}, Mod(RealTime, 1.0));
-        DebugDrawMesh(SelectedEntity.Mesh, SelectedEntity.DrawTransform, Colour);
+        DebugDrawMesh(SelectedEntity._Mesh, SelectedEntity.DrawTransform, Colour);
         
         DrawTextSDF(.{50, 50 + 3*15}, TextFont, 16.0, TFormat("Transform Axis - %", Transform.Axis));
         DrawTextSDF(.{50, 50 + 4*15}, TextFont, 16.0, TFormat("Position - %", SelectedEntity.Position));

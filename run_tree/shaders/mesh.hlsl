@@ -11,7 +11,7 @@ struct Frag_Input {
 	float2 tex_coord: TEXCOORD6;
 	float4 colour: TEXCOORD7;
 
-	nointerpolation float4 material_params: TEXCOORD9;
+	nointerpolation float4 material_params: TEXCOORD8;
 };
 
 cbuffer Constant_Buffer : register(b0, space1) {
@@ -94,6 +94,7 @@ Frag_Input vertex_main(Vertex_Input input, uint instance_id: SV_InstanceId) {
 	output.ts_view_pos = mul(TBN, view_pos);
 	output.tex_coord = input.tex_coord;
 	output.colour = instance.diffuse_colour;
+	output.material_params = instance.material_params;
 	return output;
 }
 

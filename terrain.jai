@@ -38,6 +38,33 @@ InitTerrain :: () {
     TerrainTextures[2] = LoadTexture("textures/unit_rmaoh.png");
 }
 
+WriteTerrain :: (F: *File) {
+    Write(F, "meshes/terrain.mesh");
+    
+    Write(F, TerrainTextures.count);
+    for TerrainTextures {
+        Write(F, it.Path);
+    }
+    
+    Write(F, TerrainTransform);
+}
+
+ReadTerrain :: (F: *File) {
+    MeshPath: string;
+    Read(F, *MeshPath);
+    
+    TextureCount := 0;
+    Read(F, *TextureCount);
+    TerrainTextures = ArenaAlloc(*TerrainArena, *texture, TextureCount);
+    for 0..TextureCount-1 {
+        Path: string;
+        Read(F, *Path);
+        TerrainTextures[it] = LoadTexture(Path);
+    }
+    
+    Read(F, *TerrainTransform);
+}
+
 DrawTerrain :: () {
     if !TerrainDebug DrawOpaqueMesh(TerrainTransform, TerrainMesh, TerrainTextures);
     
